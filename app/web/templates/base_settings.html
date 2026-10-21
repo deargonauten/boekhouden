@@ -1,0 +1,27 @@
+{#- Layout of the settings pages: full-width header band, then a second navigation column next to the content.
+    Child templates fill two blocks:
+      settings_header  the page header band (full-bleed, above the columns)
+      settings_content the page content (right column) #}
+{% extends "base.html" %}
+{% from "partials/_info.html" import info %}
+{% block content %}
+{% block settings_header %}{% endblock %}
+<div class="settings-layout">
+  <nav class="settings-nav" aria-label="Instellingen">
+    {% for group in settings_nav %}
+    <div class="settings-nav__group">
+      <p class="settings-nav__heading">{{ group.label }}</p>
+      {% for item in group.items %}
+      {% set active = is_settings_active(item, current_path) %}
+      <div class="settings-nav__item">
+        <a class="settings-nav__link" href="{{ item.path }}"{% if active %} aria-current="page"{% endif %}>{{ item.label }}{% if item.term_key %}<span class="settings-nav__sub">{{ explain(item.term_key).plain }}</span>{% endif %}</a>{% if item.term_key %}{{ info(item.term_key) }}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </nav>
+  <div class="settings-content">
+    {% block settings_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

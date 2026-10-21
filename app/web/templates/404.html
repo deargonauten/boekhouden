@@ -2,8 +2,9 @@
 {% from "partials/_ui.html" import page_header, empty_state with context %}
 {% block title %}Pagina niet gevonden{% endblock %}
 {% block content %}
-{{ page_header("Pagina niet gevonden", [("Niet gevonden", None)]) }}
+{{ page_header("Pagina niet gevonden", [("Niet gevonden", None)], icon_name="alert") }}
 <div class="card card--flush">
   {{ empty_state("De opgevraagde pagina bestaat niet", "Controleer het adres, of ga terug naar je bestanden.", "Terug naar je bestanden", "/inbox", "alert") }}
+  <p class="empty-note">Weet je een woord niet? Lees de <a href="/help">uitleg van termen</a>.</p>
 </div>
 {% endblock %}

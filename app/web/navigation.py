@@ -46,3 +46,33 @@ def mark_active(path: str) -> list[MarkedNavItem]:
         MarkedNavItem(i.label, i.path, i.key, i.group, i.term_key, i.icon, is_active(i, path))
         for i in NAV_ITEMS
     ]
+
+
+@dataclass(frozen=True)
+class SettingsItem:
+    label: str
+    path: str
+    term_key: str | None = None  # glossary key: info icon plus plain-Dutch sub-line
+
+
+@dataclass(frozen=True)
+class SettingsGroup:
+    label: str  # plain Dutch heading, no bookkeeping term
+    items: tuple[SettingsItem, ...]
+
+
+# Second navigation column on the settings pages (templates/base_settings.html). Only existing pages.
+SETTINGS_NAV: list[SettingsGroup] = [
+    SettingsGroup(
+        "Boekhouding",
+        (
+            SettingsItem("Grootboek", "/instellingen/grootboek", "grootboek"),
+            SettingsItem("Dagboeken", "/instellingen/dagboeken", "dagboek"),
+            SettingsItem("Boekjaren", "/instellingen/boekjaren", "boekjaar"),
+        ),
+    ),
+]
+
+
+def is_settings_active(item: SettingsItem, path: str) -> bool:
+    return path == item.path or path.startswith(item.path + "/")

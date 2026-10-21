@@ -82,6 +82,119 @@
     if (empty) empty.hidden = shown > 0;
   });
 
+  // --- Drawer: [data-drawer-open="#id"] opens <aside class="drawer" id="id">; htmx triggers open it after the swap ---
+  var lastTrigger = null;
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function drawerScrim(d) { var n = d.nextElementSibling; return n && n.classList.contains("drawer-scrim") ? n : null; }
+  function openDrawer(d, trigger) {
+    if (!d || !d.hidden) return;
+    lastTrigger = trigger || document.activeElement;
+    var scrim = drawerScrim(d);
+    d.hidden = false;
+    if (scrim) scrim.hidden = false;
+    root.setAttribute("data-drawer-open", "");
+    void d.offsetWidth; // let the slide-in transition start from the closed position
+    d.setAttribute("data-open", "");
+    if (scrim) scrim.setAttribute("data-open", "");
+    d.focus();
+  }
+  function closeDrawer(d) {
+    if (!d || d.hidden) return;
+    var scrim = drawerScrim(d);
+    d.removeAttribute("data-open");
+    if (scrim) scrim.removeAttribute("data-open");
+    root.removeAttribute("data-drawer-open");
+    var done = function () { d.hidden = true; if (scrim) scrim.hidden = true; };
+    if (reduceMotion) done(); else setTimeout(done, 200);
+    if (lastTrigger && document.contains(lastTrigger) && lastTrigger.focus) lastTrigger.focus();
+    lastTrigger = null;
+  }
+  function openDrawerEl() { return document.querySelector(".drawer[data-open]"); }
+  document.addEventListener("click", function (e) {
+    var trig = e.target.closest("[data-drawer-open]:not(html)");
+    if (trig) {
+      var d = document.querySelector(trig.getAttribute("data-drawer-open"));
+      if (!d) return; // no drawer on this page: the link keeps working as a normal link
+      if (trig.hasAttribute("hx-get")) { lastTrigger = trig; return; } // htmx loads the body, afterSwap opens it
+      e.preventDefault();
+      openDrawer(d, trig);
+      return;
+    }
+    var close = e.target.closest("[data-drawer-close]");
+    if (close) closeDrawer(close.closest(".drawer") || openDrawerEl());
+  });
+  document.addEventListener("htmx:afterSwap", function (e) {
+    var t = e.detail && e.detail.target;
+    if (t && /-body$/.test(t.id || "") && t.closest(".drawer")) openDrawer(t.closest(".drawer"), lastTrigger);
+  });
+  document.addEventListener("htmx:beforeHistorySave", function () {
+    root.removeAttribute("data-drawer-open");
+    document.querySelectorAll(".drawer, .drawer-scrim").forEach(function (n) { n.hidden = true; n.removeAttribute("data-open"); });
+  });
+  document.addEventListener("keydown", function (e) {
+    var d = openDrawerEl();
+    if (!d) return;
+    if (e.key === "Escape") { closeDrawer(d); return; }
+    if (e.key !== "Tab") return;
+    var f = d.querySelectorAll("a[href], button:not([disabled]), input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex='-1'])");
+    if (!f.length) { e.preventDefault(); return; }
+    var first = f[0], last = f[f.length - 1];
+    if (!d.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && (document.activeElement === first || document.activeElement === d)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  // --- Modal: native <dialog class="modal">. [data-modal-open="#id"] opens, [data-modal-close] closes ---
+  document.addEventListener("click", function (e) {
+    var open = e.target.closest("[data-modal-open]");
+    if (open) {
+      var m = document.querySelector(open.getAttribute("data-modal-open"));
+      if (m && m.showModal) { e.preventDefault(); if (!m.open) m.showModal(); }
+      return;
+    }
+    if (e.target.closest("[data-modal-close]")) { var dlg = e.target.closest("dialog"); if (dlg) dlg.close(); }
+    else if (e.target.matches && e.target.matches("dialog.modal") && e.target.open) e.target.close(); // backdrop click
+  });
+  function initDialogs() {
+    document.querySelectorAll("dialog.modal[data-open-on-load]").forEach(function (m) {
+      if (m.showModal && !m.open) m.showModal();
+    });
+    var id = location.hash.length > 1 ? location.hash : "";
+    var target = id && document.querySelector("dialog.modal" + id.replace(/[^#\w-]/g, ""));
+    if (target && target.showModal && !target.open) target.showModal();
+  }
+  initDialogs();
+  document.addEventListener("htmx:afterSettle", initDialogs);
+
+  // --- Dropzone: drag-over state and chosen file names (the native input covers the whole zone) ---
+  function dragState(on) { return function (e) { var z = e.target.closest && e.target.closest(".dropzone"); if (z) { if (on) z.setAttribute("data-dragover", ""); else z.removeAttribute("data-dragover"); } }; }
+  ["dragenter", "dragover"].forEach(function (t) { document.addEventListener(t, dragState(true)); });
+  ["dragleave", "drop"].forEach(function (t) { document.addEventListener(t, dragState(false)); });
+  document.addEventListener("change", function (e) {
+    var zone = e.target.closest && e.target.closest(".dropzone");
+    var out = zone && zone.querySelector(".dropzone__files");
+    if (out && e.target.files) out.textContent = Array.prototype.map.call(e.target.files, function (f) { return f.name; }).join(", ");
+  });
+
+  // --- Sidebar collapse (desktop): html.sidebar-collapsed, remembered in localStorage (may be blocked) ---
+  function syncSidebar() {
+    var collapsed = root.classList.contains("sidebar-collapsed");
+    document.querySelectorAll("[data-sidebar-collapse]").forEach(function (b) {
+      b.setAttribute("aria-expanded", String(!collapsed));
+      var label = collapsed ? "Menu uitklappen" : "Menu inklappen";
+      b.setAttribute("aria-label", label);
+      b.setAttribute("title", label);
+    });
+  }
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest("[data-sidebar-collapse]")) return;
+    var collapsed = root.classList.toggle("sidebar-collapsed");
+    try { localStorage.setItem("bh.sidebar", collapsed ? "collapsed" : "expanded"); } catch (err) { /* storage blocked: stays for this page only */ }
+    syncSidebar();
+  });
+  syncSidebar();
+  document.addEventListener("htmx:afterSettle", syncSidebar);
+
   // --- Boosted navigation swaps only <body>: load stylesheets the new page adds in <head> ---
   document.addEventListener("htmx:beforeSwap", function (e) {
     var html = e.detail.serverResponse || "";

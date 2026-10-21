@@ -75,3 +75,22 @@ def test_active_prefix_match():
     assert [i.key for i in mark_active("/boeken/12") if i.active] == ["boeken"]
     assert not any(i.active for i in mark_active("/boekenx"))
     assert len(NAV_ITEMS) == 10
+
+
+def test_help_button_on_every_page_kind(client):
+    for path in ("/inbox", "/bank", "/bestaat-niet"):
+        html = client.get(path).text
+        assert re.search(r'<a class="help-fab" href="/help" aria-label="Uitleg over begrippen"', html), path
+
+
+def test_help_page_is_not_in_the_sidebar(client):
+    html = client.get("/inbox").text
+    assert "Uitleg" not in sidebar_labels(html)
+    nav = re.search(r"<nav.*?</nav>", html, re.S).group(0)
+    assert 'href="/help"' not in nav
+
+
+def test_placeholder_icon_and_help_link(client):
+    html = client.get("/bank").text
+    assert 'class="page-header__icon"' in html
+    assert 'href="/help"' in html and 'href="/inbox"' in html

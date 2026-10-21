@@ -1,0 +1,33 @@
+{#- Read-only list of every glossary term. By nature it shows the bookkeeping words as plain text next to
+    their plain-Dutch phrase, so this page is deliberately not part of PAGES in tests/test_plain_language.py. #}
+{% extends "base.html" %}
+{% from "partials/_ui.html" import page_header, icon, empty_state with context %}
+{% block title %}Uitleg van termen{% endblock %}
+{% block content %}
+{{ page_header("Uitleg van termen", [("Uitleg van termen", None)], icon_name="help",
+   lead="Hier staat in gewone taal wat de woorden in dit programma betekenen. Zoek op een woord om het snel te vinden.") }}
+<div class="card card--flush">
+  <div class="toolbar">
+    <div class="toolbar__search">
+      {{ icon("search") }}
+      <input type="search" data-filter-table="#help-terms" placeholder="Zoek een woord" aria-label="Zoek een woord">
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data" id="help-terms">
+      <thead><tr><th>In gewone taal</th><th>Uitleg</th></tr></thead>
+      <tbody>
+        {% for t in terms %}
+        <tr id="term-{{ t.key }}">
+          <td><strong>{{ t.plain }}</strong> <span class="muted">({{ t.term }})</span></td>
+          <td>{{ t.explanation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div data-filter-empty="#help-terms" hidden>
+    {{ empty_state("Geen uitleg gevonden", "Er is geen woord dat past bij je zoekterm.", icon_name="search") }}
+  </div>
+</div>
+{% endblock %}

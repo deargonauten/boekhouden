@@ -1,22 +1,34 @@
-{#- Boekhouden UI macros (design system contract: factory/ui-redesign/spec.md)
+{#- Boekhouden UI macros (design system contracts: factory/ui-redesign/spec.md, factory/moneymonk-style-restyle/spec.md)
 
 Styleguide. Import what you need:
-  {% from "partials/_ui.html" import page_header, tabs, toolbar_search, pill, pager, empty_state, notice, error_box, icon, row_menu with context %}
+  {% from "partials/_ui.html" import page_header, tabs, toolbar_search, pill, pager, empty_state, notice, error_box, icon, row_menu, stat_cards, segmented, drawer, modal, dropzone with context %}
 
-  page_header(title, breadcrumb=[], action_label=None, action_href=None, term=None, lead=None)
-      breadcrumb: [(label, href_or_None), ...]; the last item is the current page. Optional
-      {% call page_header(...) %}extra buttons{% endcall %} slot next to the primary action.
+  page_header(title, breadcrumb=[], action_label=None, action_href=None, term=None, lead=None, icon_name=None, tab_items=None, tab_label=None)
+      The full-width white band at the top of every page. breadcrumb: [(label, href_or_None), ...]; the last
+      item is the current page. icon_name: icon in front of the title. tab_items/tab_label: a tabs() bar
+      inside the band. Optional {% call page_header(...) %}extra buttons{% endcall %} slot next to the primary action.
   tabs(items, aria_label)            items: (label, href, active, count_or_None, term_key_or_None)
   toolbar_search(action, q, placeholder, hidden={})   GET form, name="q", hx-boost="false"
   pill(label, tone, title=None)      tone: neutral | info | success | warning | danger
-  pager(page, per_page, total, base_url, params={}, noun="resultaten")
+  pager(page, per_page, total, base_url, params={}, noun="resultaten", sticky=False)
       links keep `params` (empty values dropped); page 1 has no `page` parameter
   empty_state(title, text, action_label=None, action_href=None, icon_name="inbox")
   notice(text, tone="info")          role="status"; tone: info | success | warning
   error_box(text_or_list)            role="alert"
   icon(name, size=18)                inline SVG; an unknown name raises ValueError
   row_menu(label)                    {% call row_menu("Meer acties") %}<a>..</a>{% endcall %} (kebab, opens without JS)
+  stat_cards(cards)                  [{"title", "term", "cells": [{"label", "value", "tone", "href"}, x2]}]; values pre-formatted
+  segmented(items, aria_label, small=False)   items: (label, href, active, term_key_or_None); pill-shaped link group
+  drawer(id, title, term=None)       {% call drawer("boeking-drawer", "Boeking", "boeking") %}loading text{% endcall %}
+      right-side panel; open with data-drawer-open="#id" on a link/button; htmx loads into #id-body
+  modal(id, title, open=False, term=None)   {% call modal("upload", "Bestand toevoegen") %}body{% endcall %}
+      native <dialog>; open with data-modal-open="#id"; open=True opens on page load (form errors);
+      without JS it renders as an in-page card. Close buttons: data-modal-close
+  dropzone(input_name, accept, label, hint, multiple=True)   dashed file picker (native input inside a label)
 
+Row state bars: <tr class="row--done"> (green) / "row--warn" (amber) mark the first cell.
+pager(..., sticky=True) adds .pager--sticky (stays at the bottom of the viewport inside the list card).
+Settings pages extend base_settings.html (block settings_header = full-width band, settings_content = column).
 Layout classes (app.css): .card .card__header .card__body .card__footer .card--flush, .stack .cluster
 .grid-2, .toolbar (.toolbar__search .toolbar__filters .toolbar__spacer), .table-wrap > table.data
 (th.num td.num .row-actions .btn-icon tr.inactive .table-empty), .field (.field__hint .field__error),
@@ -48,38 +60,48 @@ Client-side filter: <input data-filter-table="#tabel-id"> hides non-matching tbo
   "percent": '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
   "chart": '<path d="M4 20V4M4 20h16"/><path d="M8 16v-5M12 16V8M16 16v-8"/>',
   "box": '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',
-  "settings": '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+  "settings": '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   "file": '<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/>',
   "upload": '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/>',
   "alert": '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17.5v.5"/>',
   "menu": '<path d="M4 6h16M4 12h16M4 18h16"/>',
   "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>',
+  "help": '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.9M12 17v.5"/>',
+  "eye": '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  "sidebar-collapse": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M16 10l-2 2 2 2"/>',
+  "sidebar-expand": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M14 10l2 2-2 2"/>',
+  "download": '<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 16v4h16v-4"/>',
+  "folder": '<path d="M3 6a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  "calendar": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
 } -%}
 {%- if name not in paths -%}{{ template_error("Onbekend icoon: " ~ name) }}{%- endif -%}
 <svg class="icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ paths[name]|safe }}</svg>
 {%- endmacro %}
 
-{% macro page_header(title, breadcrumb=[], action_label=None, action_href=None, term=None, lead=None) -%}
+{% macro page_header(title, breadcrumb=[], action_label=None, action_href=None, term=None, lead=None, icon_name=None, tab_items=None, tab_label=None) -%}
 <header class="page-header">
-  <div class="page-header__main">
-    {% if breadcrumb %}
-    <nav class="breadcrumb" aria-label="Kruimelpad">
-      <ol>
-        {% for label, href in breadcrumb %}
-        {% if href and not loop.last %}<li><a href="{{ href }}">{{ label }}</a></li>{% else %}<li><span class="breadcrumb__current">{{ label }}</span></li>{% endif %}
-        {% endfor %}
-      </ol>
-    </nav>
+  <div class="page-header__row">
+    <div class="page-header__main">
+      {% if breadcrumb %}
+      <nav class="breadcrumb" aria-label="Kruimelpad">
+        <ol>
+          {% for label, href in breadcrumb %}
+          {% if href and not loop.last %}<li><a href="{{ href }}">{{ label }}</a></li>{% else %}<li><span class="breadcrumb__current">{{ label }}</span></li>{% endif %}
+          {% endfor %}
+        </ol>
+      </nav>
+      {% endif %}
+      <div class="page-header__title">{% if icon_name %}<span class="page-header__icon">{{ icon(icon_name, 28) }}</span>{% endif %}<h1>{{ title }}</h1>{% if term %}{{ info(term) }}{% endif %}</div>
+      {% if lead %}<p class="page-header__lead">{{ lead }}</p>{% endif %}
+    </div>
+    {% if action_label or caller is defined %}
+    <div class="page-header__actions">
+      {% if caller is defined %}{{ caller() }}{% endif %}
+      {% if action_label and action_href %}<a class="btn" href="{{ action_href }}">{{ icon("plus") }}{{ action_label }}</a>{% endif %}
+    </div>
     {% endif %}
-    <div class="page-header__title"><h1>{{ title }}</h1>{% if term %}{{ info(term) }}{% endif %}</div>
-    {% if lead %}<p class="page-header__lead">{{ lead }}</p>{% endif %}
   </div>
-  {% if action_label or caller is defined %}
-  <div class="page-header__actions">
-    {% if caller is defined %}{{ caller() }}{% endif %}
-    {% if action_label and action_href %}<a class="btn" href="{{ action_href }}">{{ icon("plus") }}{{ action_label }}</a>{% endif %}
-  </div>
-  {% endif %}
+  {% if tab_items %}<div class="page-header__tabs">{{ tabs(tab_items, tab_label or title) }}</div>{% endif %}
 </header>
 {%- endmacro %}
 
@@ -126,11 +148,11 @@ Client-side filter: <input data-filter-table="#tabel-id"> hides non-matching tbo
 </div>
 {%- endmacro %}
 
-{% macro pager(page, per_page, total, base_url, params={}, noun="resultaten") -%}
+{% macro pager(page, per_page, total, base_url, params={}, noun="resultaten", sticky=False) -%}
 {%- if total > 0 -%}
 {%- set last = ((total + per_page - 1) // per_page) -%}
 {%- set cur = [[page, 1]|max, last]|min -%}
-<nav class="pager" aria-label="Paginering">
+<nav class="pager{% if sticky %} pager--sticky{% endif %}" aria-label="Paginering">
   <span class="pager__count">Toont {{ (cur - 1) * per_page + 1 }}-{{ [cur * per_page, total]|min }} van {{ total }} {{ noun }}</span>
   {% if last > 1 %}
   <div class="pager__pages">
@@ -157,4 +179,62 @@ Client-side filter: <input data-filter-table="#tabel-id"> hides non-matching tbo
   <summary class="btn-icon" aria-label="{{ label }}" title="{{ label }}">{{ icon("more") }}</summary>
   <div class="menu__list">{{ caller() }}</div>
 </details>
+{%- endmacro %}
+
+{% macro stat_cards(cards) -%}
+<div class="stat-cards">
+  {% for card in cards %}
+  <section class="stat-card">
+    <h2 class="stat-card__title">{{ card.title }}{% if card.term %}{{ info(card.term) }}{% endif %}</h2>
+    <div class="stat-card__cells">
+      {% for cell in card.cells %}
+      <div class="stat-cell{% if cell.tone %} stat-cell--{{ cell.tone }}{% endif %}">
+        <div class="stat-cell__label">{{ cell.label }}</div>
+        <div class="stat-cell__value">{% if cell.href %}<a href="{{ cell.href }}">{{ cell.value }}</a>{% else %}{{ cell.value }}{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro segmented(items, aria_label, small=False) -%}
+<nav class="segmented{% if small %} segmented--small{% endif %}" aria-label="{{ aria_label }}">
+  {% for item in items %}
+  {% set term_key = item[3] if item|length > 3 else None %}
+  <span class="segmented__item"><a href="{{ item[1] }}"{% if item[2] %} aria-current="page"{% endif %}>{{ item[0] }}</a>{% if term_key %}{{ info(term_key) }}{% endif %}</span>
+  {% endfor %}
+</nav>
+{%- endmacro %}
+
+{% macro drawer(id, title, term=None) -%}
+<aside class="drawer" id="{{ id }}" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title" tabindex="-1" hidden>
+  <div class="drawer__header">
+    <h2 id="{{ id }}-title">{{ title }}</h2>{% if term %}{{ info(term) }}{% endif %}
+    <button type="button" class="btn-icon" data-drawer-close aria-label="Sluiten">{{ icon("x") }}</button>
+  </div>
+  <div class="drawer__body" id="{{ id }}-body">{% if caller is defined %}{{ caller() }}{% endif %}</div>
+</aside>
+<div class="drawer-scrim" data-drawer-close hidden></div>
+{%- endmacro %}
+
+{% macro modal(id, title, open=False, term=None) -%}
+<dialog class="modal" id="{{ id }}" aria-labelledby="{{ id }}-title"{% if open %} data-open-on-load{% endif %}>
+  <div class="modal__header">
+    <h2 id="{{ id }}-title">{{ title }}</h2>{% if term %}{{ info(term) }}{% endif %}
+    <button type="button" class="btn-icon modal__close" data-modal-close aria-label="Sluiten">{{ icon("x") }}</button>
+  </div>
+  <div class="modal__body">{% if caller is defined %}{{ caller() }}{% endif %}</div>
+</dialog>
+{%- endmacro %}
+
+{% macro dropzone(input_name, accept, label, hint, multiple=True) -%}
+<label class="dropzone">
+  <input class="dropzone__input" type="file" name="{{ input_name }}" accept="{{ accept }}"{% if multiple %} multiple{% endif %} aria-label="{{ label }}">
+  {{ icon("upload", 28) }}
+  <span class="dropzone__text">{% if multiple %}Klik om bestanden toe te voegen of sleep ze hierheen.{% else %}Klik om een bestand toe te voegen of sleep het hierheen.{% endif %}</span>
+  {% if hint %}<span class="dropzone__hint">{{ hint }}</span>{% endif %}
+  <span class="dropzone__files" aria-live="polite"></span>
+</label>
 {%- endmacro %}

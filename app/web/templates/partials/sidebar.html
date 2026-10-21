@@ -1,9 +1,12 @@
 {% from "partials/_ui.html" import icon %}
 <aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
   <a class="brand" href="/inbox">
     <svg class="brand__mark" width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true" focusable="false"><rect width="28" height="28" rx="8" fill="currentColor"/><path d="M9 8.5h7.5a2.5 2.5 0 0 1 0 5H9m0 0h8.5a2.5 2.5 0 0 1 0 5H9m0-10v10" style="stroke:var(--primary-fg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span>Boekhouden</span>
   </a>
+  <button type="button" class="btn-icon sidebar-toggle" data-sidebar-collapse aria-controls="sidebar" aria-expanded="true" aria-label="Menu inklappen" title="Menu inklappen"><span class="icon-collapse">{{ icon("sidebar-collapse", 20) }}</span><span class="icon-expand">{{ icon("sidebar-expand", 20) }}</span></button>
+  </div>
   <nav aria-label="Hoofdmenu">
     {% for item in nav_items %}
     {% if item.group != (loop.previtem.group if not loop.first else none) %}
@@ -12,15 +15,15 @@
     {% endif %}
     {% endif %}
     {% set pinned = item.group not in group_labels %}
-    {% if pinned and (loop.first or loop.previtem.group != item.group) %}<div class="nav-group--pinned">{% endif %}
+    {% if pinned and (loop.first or loop.previtem.group != item.group) %}<div class="nav-group--pinned nav-footer">{% endif %}
     <div class="nav-entry">
       <span class="nav-icon">{{ icon(item.icon, 20) if item.icon else "" }}</span>
       {% if item.term_key %}
       {% set t = explain(item.term_key) %}
-      <a class="nav-link{% if item.active %} active{% endif %}" href="{{ item.path }}" title="{{ t.explanation }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
+      <a class="nav-link{% if item.active %} active{% endif %}" href="{{ item.path }}" title="{{ item.label }}: {{ t.explanation }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
       <span class="nav-sub">{{ t.plain }}</span>
       {% else %}
-      <a class="nav-link{% if item.active %} active{% endif %}" href="{{ item.path }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
+      <a class="nav-link{% if item.active %} active{% endif %}" href="{{ item.path }}" title="{{ item.label }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
       {% endif %}
     </div>
     {% if pinned and (loop.last or loop.nextitem.group != item.group) %}</div>{% endif %}

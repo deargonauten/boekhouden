@@ -67,4 +67,4 @@ def test_sidebar_sub_lines_and_titles(client):
             continue
         t = get_term(item.term_key)
         assert f'<span class="nav-sub">{t.plain}</span>' in nav
-        assert f'title="{t.explanation}"' in nav
+        assert f'title="{item.label}: {t.explanation}"' in nav

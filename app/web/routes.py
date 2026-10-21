@@ -6,6 +6,7 @@ from app.web.ledger_routes import router as ledger_router
 from app.web.inbox_routes import router as inbox_router
 from app.web.extraction_routes import router as extraction_router
 from app.web.relations_routes import router as relations_router
+from app.domain.glossary import terms_alphabetical
 from app.web.navigation import NAV_ITEMS, NavItem
 
 router = APIRouter()
@@ -22,10 +23,17 @@ def index() -> RedirectResponse:
     return RedirectResponse("/inbox", status_code=307)
 
 
+@router.get("/help", include_in_schema=False)
+def help_page(request: Request):
+    return web.templates.TemplateResponse(
+        request, "help.html", web.page_context(request, title="Uitleg van termen", terms=terms_alphabetical())
+    )
+
+
 def _register(item: NavItem) -> None:
     def page(request: Request):
         return web.templates.TemplateResponse(
-            request, "placeholder.html", web.page_context(request, title=item.label)
+            request, "placeholder.html", web.page_context(request, title=item.label, icon_name=item.icon)
         )
 
     page.__name__ = f"page_{item.key}"

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "partials/_ui.html" import page_header, empty_state with context %}
 {% block content %}
-{{ page_header(title, [(title, None)]) }}
+{{ page_header(title, [(title, None)], icon_name=icon_name|default("box")) }}
 <div class="card card--flush">
   {{ empty_state("Deze pagina is nog in ontwikkeling", "Dit onderdeel komt later. Bekijk ondertussen je binnengekomen bestanden.", "Naar je bestanden", "/inbox", "box") }}
+  <p class="empty-note">Weet je een woord niet? Lees de <a href="/help">uitleg van termen</a>.</p>
 </div>
 {% endblock %}

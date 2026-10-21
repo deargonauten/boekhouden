@@ -176,3 +176,8 @@ def get_term(key: str) -> Term:
 
 def all_terms() -> list[Term]:
     return list(GLOSSARY.values())
+
+
+def terms_alphabetical() -> list[Term]:
+    """All terms sorted by the plain-Dutch phrase first, for the help page."""
+    return sorted(_TERMS, key=lambda t: (t.plain.lower(), t.term.lower()))

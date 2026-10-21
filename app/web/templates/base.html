@@ -8,7 +8,8 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/app.css">
   {% block head %}{% endblock %}
-  <script>document.documentElement.classList.add("js");</script>
+  {# Applied before first paint: scripting is on, and the sidebar keeps the collapsed state the user chose. #}
+  <script>(function (d) { d.classList.add("js"); try { if (localStorage.getItem("bh.sidebar") === "collapsed") d.classList.add("sidebar-collapsed"); } catch (e) {} })(document.documentElement);</script>
   {# htmx 2.0.4, vendored in static/htmx.min.js; no CDN at runtime #}
   <script src="/static/htmx.min.js" defer></script>
   <script src="/static/app.js" defer></script>
@@ -34,5 +35,6 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+  <a class="help-fab" href="/help" aria-label="Uitleg over begrippen" title="Uitleg over begrippen">{{ icon("help", 24) }}</a>
 </body>
 </html>

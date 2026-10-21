@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.domain.glossary import get_term
 from app.domain.money import format_euro
-from app.web.navigation import GROUP_LABELS, NAV_ITEMS, mark_active
+from app.web.navigation import GROUP_LABELS, NAV_ITEMS, SETTINGS_NAV, is_settings_active, mark_active
 
 WEB_DIR = Path(__file__).parent
 STATIC_DIR = WEB_DIR / "static"
@@ -18,6 +18,8 @@ _info_ids = itertools.count(1)  # tooltip ids only need to be unique within one 
 templates.env.globals["explain"] = get_term
 templates.env.globals["next_info_id"] = lambda: next(_info_ids)
 templates.env.globals["group_labels"] = GROUP_LABELS
+templates.env.globals["settings_nav"] = SETTINGS_NAV  # base_settings.html marks the active item via current_path
+templates.env.globals["is_settings_active"] = is_settings_active
 
 
 def page_url(base_url: str, params: dict, page: int) -> str:
@@ -44,6 +46,14 @@ def page_context(request: Request, **extra) -> dict:
         "current_path": request.url.path,
         **extra,
     }
+
+
+def is_drawer_request(request: Request, drawer_id: str) -> bool:
+    """True when htmx loads content into the body of drawer `drawer_id` (HX-Target equals `<id>-body`).
+
+    Exact match on purpose: boosted navigation also sends HX-Request but targets `body`.
+    """
+    return request.headers.get("HX-Target") == f"{drawer_id}-body"
 
 
 def not_found_response(request: Request) -> HTMLResponse:
