@@ -8,3 +8,10 @@ coverage/
 *.log
 .claude/worktrees/
 .claude/settings.local.json
+!.env.example
+data/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
