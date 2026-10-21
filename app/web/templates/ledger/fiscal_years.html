@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Instellingen</h1>
+{% include "ledger/_settings_nav.html" %}
+<h2>Boekjaren</h2>
+{% include "ledger/_error.html" %}
+<form method="post" action="/instellingen/boekjaren" class="inline-form" hx-boost="false">
+  <label>Jaar <input type="number" name="year" value="{{ current_year }}" min="1990" max="2100" required></label>
+  <button type="submit" class="btn">Boekjaar aanmaken</button>
+</form>
+{% if not years %}<p>Er is nog geen boekjaar. Maak eerst een boekjaar aan om te kunnen boeken.</p>{% endif %}
+{% for y in years %}
+<section class="year">
+  <div class="page-head">
+    <h3>Boekjaar {{ y.year }} <span class="badge{% if y.status == 'closed' %} badge-muted{% endif %}">{{ "Afgesloten" if y.status == "closed" else "Open" }}</span></h3>
+    {% if y.status != "closed" %}
+    <form method="post" action="/instellingen/boekjaren/{{ y.year }}/afsluiten"
+          hx-confirm="Boekjaar {{ y.year }} afsluiten? Alle periodes worden permanent vergrendeld en dit kan niet ongedaan worden gemaakt.">
+      <button type="submit" class="btn btn-danger">Boekjaar afsluiten</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Periode</th><th>Van</th><th>Tot</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for p in y.periods %}
+    <tr>
+      <td>{{ p.number }}</td>
+      <td>{{ p.start_date.strftime("%d-%m-%Y") }}</td>
+      <td>{{ p.end_date.strftime("%d-%m-%Y") }}</td>
+      <td>{{ "Open" if p.status == "open" else "Vergrendeld" }}</td>
+      <td>
+        {% if p.status == "open" %}
+        <form method="post" action="/instellingen/boekjaren/periodes/{{ p.id }}/vergrendel"
+              hx-confirm="Periode {{ p.number }} van {{ y.year }} vergrendelen? Dit is permanent.">
+          <button type="submit" class="btn btn-secondary">Vergrendel periode</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

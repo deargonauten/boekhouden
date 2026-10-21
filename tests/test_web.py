@@ -5,9 +5,9 @@ import pytest
 from app import web
 from app.web.navigation import NAV_ITEMS, mark_active
 
+# /boeken and /instellingen are real pages now (see tests/test_ledger_web.py).
 PAGES = [
     ("/inbox", "Inbox"),
-    ("/boeken", "Boeken"),
     ("/bank", "Bank"),
     ("/verkoop", "Verkoop"),
     ("/inkoop", "Inkoop"),
@@ -15,9 +15,11 @@ PAGES = [
     ("/btw", "BTW"),
     ("/rapportages", "Rapportages"),
     ("/activa", "Activa"),
-    ("/instellingen", "Instellingen"),
 ]
-LABELS = [label for _, label in PAGES]
+LABELS = [
+    "Inbox", "Boeken", "Bank", "Verkoop", "Inkoop", "Relaties", "BTW",
+    "Rapportages", "Activa", "Instellingen",
+]
 
 
 def sidebar_labels(html):
