@@ -24,6 +24,15 @@
   <dt>Vingerafdruk van het bestand {{ info("vingerafdruk") }}</dt><dd><span class="fingerprint">{{ document.sha256 }}</span></dd>
 </dl>
 <p class="hint">Dit bestand wordt bewaard en nooit verwijderd (bewaarplicht {{ info("bewaarplicht") }}).</p>
+{% if extract_error %}<div class="alert" role="alert"><p>{{ extract_error }}</p></div>{% endif %}
+{% if document.status != "geboekt" %}
+{% include "inbox/_extract_banner.html" %}
+{% if document.status == "nieuw" %}
+{% include "inbox/_extract_button.html" %}
+{% else %}
+<p><a class="btn" href="/inbox/{{ document.id }}/nakijken">Nakijken</a> {{ info("nakijken") }}</p>
+{% endif %}
+{% endif %}
 <p><a class="btn btn-secondary" href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand</a></p>
 {% if document.content_type == "application/pdf" %}
 <iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>

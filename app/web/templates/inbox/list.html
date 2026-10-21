@@ -16,6 +16,25 @@
 
 {% if results %}{% include "inbox/_results.html" %}{% endif %}
 
+{% if request.query_params.get("melding") == "klaar" %}<p class="notice" role="status">Klaar met nakijken. De volgende stap is boeken.</p>{% endif %}
+{% include "inbox/_extract_banner.html" %}
+{% if counts.nieuw %}
+<form method="post" action="/inbox/uitlezen-alles" class="extract-form" hx-disabled-elt="find button" hx-indicator="#extract-busy-all">
+  <button type="submit" class="btn">Lees alle nieuwe documenten uit ({{ counts.nieuw if counts.nieuw < 10 else 10 }})</button>
+  <span class="htmx-indicator" id="extract-busy-all" role="status">Bezig met uitlezen, dit duurt 10 tot 60 seconden per document...</span>
+</form>
+{% if counts.nieuw > 10 %}<p class="hint">Per keer worden maximaal 10 documenten uitgelezen. Klik daarna nog een keer voor de rest.</p>{% endif %}
+{% endif %}
+{% if extract_results %}
+<ul class="results" role="status" aria-label="Resultaat van het uitlezen">
+  {% for r in extract_results %}
+  {% if r.ok %}<li class="result-created">{{ r.name }}: Gelukt - <a href="/inbox/{{ r.id }}/nakijken">bekijk</a></li>
+  {% else %}<li class="result-error" role="alert">{{ r.name }}: Mislukt: {{ r.message }}</li>{% endif %}
+  {% endfor %}
+  {% if extract_left %}<li class="result-duplicate">Er {{ "is nog 1 document" if extract_left == 1 else "zijn nog " ~ extract_left ~ " documenten" }} niet uitgelezen. Klik nog een keer op 'Lees alle nieuwe documenten uit' om verder te gaan.</li>{% endif %}
+</ul>
+{% endif %}
+
 <ul class="status-filter" aria-label="Filter op status">
   <li>{% if not status_filter %}<a class="active" href="/inbox" aria-current="page">Alle ({{ total }})</a>{% else %}<a href="/inbox">Alle ({{ total }})</a>{% endif %}</li>
   <li>{% if status_filter == "nieuw" %}<a class="active" href="/inbox?status=nieuw" aria-current="page">Nieuw ({{ counts.nieuw }})</a>{% else %}<a href="/inbox?status=nieuw">Nieuw ({{ counts.nieuw }})</a>{% endif %} {{ info("status_nieuw") }}</li>
@@ -36,7 +55,7 @@
 <div class="table-wrap">
 <table class="data">
   <thead><tr>
-    <th>Bestand</th><th>Type</th><th>Grootte</th><th>Toegevoegd op</th><th>Bron</th><th>Status</th>
+    <th>Bestand</th><th>Type</th><th>Grootte</th><th>Toegevoegd op</th><th>Bron</th><th>Status</th><th>Actie</th>
   </tr></thead>
   <tbody>
   {% for d in documents %}
@@ -47,6 +66,10 @@
     <td>{{ d.received_at|datum_tijd }}</td>
     <td>{{ SOURCE_LABELS.get(d.source, d.source) }}</td>
     <td><span class="badge badge-{{ d.status }}">{{ STATUS_LABELS[d.status] }}</span></td>
+    <td>
+      {% if d.status == "nieuw" %}{% with document=d, compact=true %}{% include "inbox/_extract_button.html" %}{% endwith %}
+      {% elif d.status == "herkend" %}<a href="/inbox/{{ d.id }}/nakijken">Nakijken</a>{% endif %}
+    </td>
   </tr>
   {% endfor %}
   </tbody>

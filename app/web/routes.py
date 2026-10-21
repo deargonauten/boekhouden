@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from app import web
 from app.web.ledger_routes import router as ledger_router
 from app.web.inbox_routes import router as inbox_router
+from app.web.extraction_routes import router as extraction_router
 from app.web.relations_routes import router as relations_router
 from app.web.navigation import NAV_ITEMS, NavItem
 
@@ -12,6 +13,7 @@ router = APIRouter()
 router.include_router(ledger_router)
 router.include_router(relations_router)
 router.include_router(inbox_router)
+router.include_router(extraction_router)
 LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox"}
 
 
