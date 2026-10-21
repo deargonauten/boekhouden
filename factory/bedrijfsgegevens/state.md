@@ -2,7 +2,7 @@
 Feature: Bedrijfsgegevens (backlog item 1, feature 35)
 Base branch: main
 Branch: factory/bedrijfsgegevens
-Step: 2 (build round 1) — builders A and B running
+Step: 2 (build round 1) — A done (branch worktree-agent-af3157fdc59adde0a), B running
 Spec writer id: a1a57d9ddb15b9eae
 Review round: 0
 Human rework rounds: 0
