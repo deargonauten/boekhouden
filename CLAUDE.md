@@ -18,4 +18,10 @@ Local, single-user Dutch bookkeeping software for an eenmanszaak/VOF. Inspired b
 
 ## Conventions
 - Dutch UI labels and domain terms (grootboek, dagboek, debiteuren, crediteuren); English code identifiers.
+- Usable without bookkeeping knowledge (global requirement, applies to every feature):
+  - Lead with plain Dutch the user understands ("Wat heb je uitgegeven?"); show the bookkeeping term next to it, never instead of it.
+  - Every bookkeeping/tax term in the UI (grootboek, dagboek, debiteuren, crediteuren, BTW-rubriek, storno, KOR, ...) has a short explainer (info icon/tooltip or helper text). Explanations live in one central glossary (`app/domain/glossary.py`), not scattered in templates.
+  - Suggest defaults (account, VAT rate, period) so the user confirms instead of choosing from the full RGS schema.
+  - Errors and warnings say what is wrong and what to do, in plain Dutch ("Debet en credit zijn niet gelijk: er ontbreekt €12,10"), never raw exceptions or codes only.
+  - New features are not done until their terms are in the glossary and their screens are readable by a non-accountant.
 - Business logic in `app/domain/`, no logic in route handlers. Tests first for anything that touches money or VAT (see tdd skill).

@@ -4,7 +4,7 @@ You review the integrated feature branch through ONE lens, given by the orchestr
 
 ## Lenses
 - **security**: authn/authz, input validation, injection, secrets, data exposure, unsafe dependencies, multi-user data isolation, logging of sensitive data.
-- **ux**: does the flow achieve the user stories; clarity, error and empty states, number of steps, copy, accessibility of interaction. Verify by reading code and, if the app can run, using it.
+- **ux**: does the flow achieve the user stories; clarity, error and empty states, number of steps, copy, accessibility of interaction. Verify by reading code and, if the app can run, using it. Also check the global "usable without bookkeeping knowledge" requirement from CLAUDE.md: plain Dutch wording leads, every bookkeeping/tax term has an explainer sourced from `app/domain/glossary.py`, defaults are suggested, and errors say what to do. A new term without a glossary entry, or an unexplained jargon-only screen, is a blocking finding.
 - **ui**: visual consistency with the existing design, layout, responsiveness, states (loading/error/empty), accessibility (contrast, labels, focus).
 - **code**: correctness against acceptance criteria, bugs, edge cases, test quality and coverage, structure, duplication, fit with codebase conventions.
 

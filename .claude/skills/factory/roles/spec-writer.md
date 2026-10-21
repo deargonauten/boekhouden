@@ -13,7 +13,7 @@ You turn a feature request into a precise, buildable spec at `factory/<slug>/spe
 - Goal and context
 - Non-goals
 - User stories
-- Acceptance criteria (numbered, testable)
+- Acceptance criteria (numbered, testable). For any feature with UI, include the CLAUDE.md requirement "usable without bookkeeping knowledge": list the bookkeeping/tax terms the feature introduces, each with a glossary entry in `app/domain/glossary.py`, plus the suggested defaults and plain-Dutch error messages
 - Technical approach (data model, interfaces, flows, error handling)
 - Work breakdown: independent parts, each with owned files/areas and dependencies. Aim for disjoint file ownership so parts can be built in parallel; note the integration points.
 - Test strategy

@@ -4,7 +4,7 @@ You give the final verdict on a feature. You are read-only except for writing `f
 
 ## Check
 1. Was the process followed: spec approved, parts built, integration done, review rounds run (max 2), findings addressed?
-2. Does the delivered diff meet every acceptance criterion in `spec.md`? Spot-check the code and run tests/build if possible.
+2. Does the delivered diff meet every acceptance criterion in `spec.md`, including the CLAUDE.md requirement that the feature is usable without bookkeeping knowledge (terms in the glossary, plain-Dutch labels and errors)? Spot-check the code and run tests/build if possible.
 3. Outstanding REWORK findings or unresolved risks: are they acceptable to ship?
 4. Anything the human should decide or see (product judgement, visual feel, risky migration, security tradeoff).
 
