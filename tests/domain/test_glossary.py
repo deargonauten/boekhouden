@@ -7,7 +7,8 @@ from app.domain.glossary import GLOSSARY, Term, all_terms, get_term
 REQUIRED = """grootboek grootrekening dagboek memoriaal verkoopdagboek inkoopdagboek bankdagboek
 kasdagboek boeking boekstuk debet credit storno boekjaar periode vergrendelen afsluiten btw
 btw_code rgs activa passiva eigen_vermogen opbrengsten kosten systeemrekening debiteuren
-crediteuren balans_evenwicht referentie inbox relaties rapportages bank kas""".split()
+crediteuren balans_evenwicht referentie inbox relaties rapportages bank kas
+kvk btw_nummer iban klant leverancier archiveren""".split()
 
 GUARDED = {"debet", "credit", "grootrekening", "dagboek", "storno", "periode"}
 
@@ -55,3 +56,18 @@ def test_explanation_avoids_other_jargon(t: Term):
         assert not re.search(rf"\b{re.escape(word)}\b", t.explanation, re.I), (
             f"{t.key} explanation uses {word!r}; reword in everyday words"
         )
+
+
+def test_btw_pattern_leaves_btw_nummer_to_its_own_term():
+    (rx,) = get_term("btw").patterns()
+    assert re.search(rx, "Btw", re.I)
+    assert not re.search(rx, "Btw-nummer", re.I)
+    assert not re.search(rx, "Btw-code", re.I)
+    (rx2,) = get_term("btw_nummer").patterns()
+    assert re.search(rx2, "Btw-nummer", re.I)
+
+
+def test_relation_term_patterns():
+    assert re.search(get_term("kvk").patterns()[0], "KvK-nummer", re.I)
+    assert re.search(get_term("kvk").patterns()[0], "KvK", re.I)
+    assert re.search(get_term("iban").patterns()[0], "IBAN", re.I)

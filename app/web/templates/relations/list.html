@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% block content %}
+<div class="page-head">
+  <h1>Relaties {{ info("relaties") }}</h1>
+  <a class="btn" href="/relaties/nieuw">Relatie toevoegen</a>
+</div>
+<p class="lead">Hier staan de bedrijven en personen met wie je zakendoet: je klanten {{ info("klant") }} en je leveranciers {{ info("leverancier") }}.</p>
+{% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+<form method="get" action="/relaties" class="filter" hx-boost="false">
+  <label>Wie wil je zien? <select name="soort">
+    <option value=""{% if not soort %} selected{% endif %}>Alle relaties</option>
+    <option value="klant"{% if soort == "klant" %} selected{% endif %}>Alleen klanten</option>
+    <option value="leverancier"{% if soort == "leverancier" %} selected{% endif %}>Alleen leveranciers</option>
+  </select></label>
+  <label>Zoeken <input type="search" name="q" value="{{ q }}" placeholder="Naam, nummer of plaats"></label>
+  <label class="check"><input type="checkbox" name="gearchiveerd" value="1"{% if include_archived %} checked{% endif %}> Toon ook gearchiveerde relaties {{ info("archiveren") }}</label>
+  <button type="submit" class="btn btn-secondary">Zoeken</button>
+</form>
+{% if not contacts %}
+  {% if filtered %}
+  <p>Geen relaties gevonden. Pas je zoekopdracht aan of <a href="/relaties">toon alles</a>.</p>
+  {% else %}
+  <div class="empty">
+    <p>Je hebt nog geen relaties. Een relatie is een klant aan wie je verkoopt of een leverancier bij wie je inkoopt. Als je een relatie vastlegt, herkent het programma haar straks op facturen en hoef je niets dubbel in te vullen.</p>
+    <p><a class="btn" href="/relaties/nieuw">Relatie toevoegen</a></p>
+  </div>
+  {% endif %}
+{% else %}
+<div class="table-wrap">
+<table class="data">
+  <thead><tr>
+    <th>Naam</th><th>Soort</th><th>KvK {{ info("kvk") }}</th><th>Btw-nummer {{ info("btw_nummer") }}</th><th>IBAN {{ info("iban") }}</th><th>Plaats</th><th>Status</th><th></th>
+  </tr></thead>
+  <tbody>
+  {% for c in contacts %}
+  <tr{% if not c.is_active %} class="inactive"{% endif %}>
+    <td>{{ c.name }}</td>
+    <td>{{ "Beide" if c.is_customer and c.is_supplier else ("Klant" if c.is_customer else "Leverancier") }}</td>
+    <td>{{ c.kvk or "" }}</td>
+    <td>{{ c.btw_number or "" }}</td>
+    <td>{{ c.iban|iban }}</td>
+    <td>{{ c.city or "" }}</td>
+    <td>{% if c.is_active %}Actief{% else %}<span class="badge badge-muted">Gearchiveerd</span>{% endif %}</td>
+    <td class="row-actions">
+      <a href="/relaties/{{ c.id }}/bewerken">Bewerken</a>
+      <form method="post" action="/relaties/{{ c.id }}/{{ 'archiveren' if c.is_active else 'herstellen' }}" hx-boost="false">
+        <button type="submit" class="btn btn-secondary" title="Verbergt de relatie in lijsten; bestaande boekingen en facturen blijven bewaard.">{{ "Relatie archiveren" if c.is_active else "Relatie herstellen" }}</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}
