@@ -8,7 +8,8 @@ REQUIRED = """grootboek grootrekening dagboek memoriaal verkoopdagboek inkoopdag
 kasdagboek boeking boekstuk debet credit storno boekjaar periode vergrendelen afsluiten btw
 btw_code rgs activa passiva eigen_vermogen opbrengsten kosten systeemrekening debiteuren
 crediteuren balans_evenwicht referentie inbox relaties rapportages bank kas
-kvk btw_nummer iban klant leverancier archiveren""".split()
+kvk btw_nummer iban klant leverancier archiveren
+status_nieuw status_herkend status_geboekt bewaarplicht vingerafdruk""".split()
 
 GUARDED = {"debet", "credit", "grootrekening", "dagboek", "storno", "periode"}
 
