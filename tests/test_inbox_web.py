@@ -247,14 +247,18 @@ def test_file_view_headers(client):
     assert r.content == PDF
     assert r.headers["content-type"].startswith("application/pdf")
     assert r.headers["x-content-type-options"] == "nosniff"
-    assert r.headers["content-security-policy"] == "sandbox"
+    # A sandbox CSP blocks the browser PDF viewer, so PDFs must not carry it.
+    assert "content-security-policy" not in r.headers
     cd = r.headers["content-disposition"]
     assert cd.startswith("inline;") and "filename*=UTF-8''mijn%20factuur.pdf" in cd
 
 
 def test_file_view_image_content_type(client):
     upload(client, ("foto.png", PNG))
-    assert client.get("/inbox/1/bestand").headers["content-type"].startswith("image/png")
+    r = client.get("/inbox/1/bestand")
+    assert r.headers["content-type"].startswith("image/png")
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["content-security-policy"] == "sandbox"
 
 
 def test_missing_file_on_disk_shows_integrity_message(client):

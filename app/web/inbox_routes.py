@@ -190,14 +190,13 @@ def document_file(
             message=FILE_MISSING_MESSAGE,
             document=document,
         )
-    return FileResponse(
-        path,
-        media_type=document.content_type,
-        headers={
-            "Content-Disposition": (
-                f"inline; filename*=UTF-8''{quote(document.original_filename, safe='')}"
-            ),
-            "X-Content-Type-Options": "nosniff",
-            "Content-Security-Policy": "sandbox",
-        },
-    )
+    headers = {
+        "Content-Disposition": (
+            f"inline; filename*=UTF-8''{quote(document.original_filename, safe='')}"
+        ),
+        "X-Content-Type-Options": "nosniff",
+    }
+    # A sandbox CSP stops Chrome/Safari from rendering PDFs, so only images get it.
+    if document.content_type != "application/pdf":
+        headers["Content-Security-Policy"] = "sandbox"
+    return FileResponse(path, media_type=document.content_type, headers=headers)
