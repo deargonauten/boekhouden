@@ -8,7 +8,7 @@
 {% endif %}
 <form method="post" action="/boeken/nieuw" class="stack" hx-boost="false">
   <div class="fields">
-    <label>{{ term_label("dagboek", "In welk dagboek?") }}
+    <label><span>{{ term_label("dagboek", "In welk dagboek?") }}</span>
       <select name="journal_id" required>
         <option value="">Kies een dagboek</option>
         {% for j in journals %}<option value="{{ j.id }}"{% if values.journal_id == j.id|string %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
@@ -16,7 +16,7 @@
     </label>
     <label>Datum <input type="date" name="booking_date" value="{{ values.booking_date }}" required></label>
     <label class="grow">Waar gaat het over? (Omschrijving) <input name="description" value="{{ values.description }}" maxlength="255" required></label>
-    <label>Referentie (bijv. factuurnummer) {{ info("referentie") }} <input name="reference" value="{{ values.reference }}"></label>
+    <label><span>Referentie (bijv. factuurnummer) {{ info("referentie") }}</span> <input name="reference" value="{{ values.reference }}"></label>
   </div>
   <div class="table-wrap">
   <table class="data" id="lines">

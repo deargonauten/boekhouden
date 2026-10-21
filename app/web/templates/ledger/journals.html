@@ -12,7 +12,7 @@
   <label>Soort dagboek
     <select name="type">{% for key, label in journal_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
   </label>
-  <label>Bij welke rekening hoort dit dagboek? (alleen bij bank {{ info("bank") }} en kas {{ info("kas") }}) {{ info("grootrekening") }}
+  <label><span>Bij welke rekening hoort dit dagboek? (alleen bij bank {{ info("bank") }} en kas {{ info("kas") }}) {{ info("grootrekening") }}</span>
     <select name="account_id">
       <option value="">Geen</option>
       {% for a in asset_accounts %}<option value="{{ a.id }}"{% if values.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}

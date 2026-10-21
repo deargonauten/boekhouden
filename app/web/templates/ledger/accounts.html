@@ -9,7 +9,7 @@
 <form method="post" action="/instellingen/grootboek" class="inline-form" hx-boost="false">
   <label>Rekeningnummer (4 cijfers) <input name="code" value="{{ values.code }}" maxlength="4" pattern="[0-9]{4}" aria-describedby="code-hint" required></label>
   <label>Naam <input name="name" value="{{ values.name }}" required></label>
-  <label>{{ term_label("grootrekening", "Soort rekening") }}
+  <label><span>{{ term_label("grootrekening", "Soort rekening") }}</span>
     <select name="type">{% for key, label in account_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
   </label>
   <button type="submit" class="btn">Rekening toevoegen</button>
