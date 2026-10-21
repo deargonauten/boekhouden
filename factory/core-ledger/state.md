@@ -1,5 +1,5 @@
 # core-ledger
-Step: 4 (approval)
+Step: COMPLETED
 Base branch: main
 Branch: factory/core-ledger
 Review round: 2
