@@ -17,7 +17,7 @@ def test_upgrade_downgrade_check(test_settings):
     cfg = alembic_config(test_settings)
 
     command.upgrade(cfg, "head")
-    assert _version(test_settings) == ["0003_relations"]
+    assert _version(test_settings) == ["0004_document_inbox"]
 
     command.check(cfg)  # raises on drift
 
