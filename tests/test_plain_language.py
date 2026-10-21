@@ -71,6 +71,10 @@ def seeded(client):
     entry_id = int(entry_url.rsplit("/", 1)[1])
     s = client.post(f"/boeken/{entry_id}/storno", data={"datum": ""}, follow_redirects=False)
     assert s.status_code == 303
+    up = client.post(
+        "/inbox/upload", files=[("files", ("factuur.pdf", b"%PDF-1.4\n%%EOF\n", "application/pdf"))]
+    )
+    assert up.status_code == 200
     client.entry_url = entry_url
     client.storno_url = s.headers["location"]
     return client
@@ -90,7 +94,29 @@ def pages(c):
         ("/relaties/nieuw", set()),
         (f"/relaties/{c.contact_id}/bewerken", set()),
         ("/bank", {"bank"}),  # placeholder page: heading is the nav label
+        ("/inbox", set()),
+        ("/inbox?status=nieuw", set()),
+        ("/inbox?status=geboekt", set()),
+        ("/inbox/1", set()),
     ]
+
+
+def test_empty_inbox_is_plain_language(client):
+    assert_plain_language(client, "/inbox")
+
+
+def test_inbox_upload_result_block_is_plain_language(client):
+    pdf = b"%PDF-1.4\n%%EOF\n"
+    files = [
+        ("files", ("a.pdf", pdf, "application/pdf")),
+        ("files", ("b.pdf", pdf, "application/pdf")),
+        ("files", ("c.txt", b"tekst", "text/plain")),
+    ]
+    r = client.post("/inbox/upload", files=files)
+    assert r.status_code == 200
+    assert missing_term_keys(r.text) == []
+    assert bare_term_elements(r.text) == []
+    assert "Dit bestandstype kan niet worden verwerkt" in r.text
 
 
 # --- 23a: template keys ------------------------------------------------------

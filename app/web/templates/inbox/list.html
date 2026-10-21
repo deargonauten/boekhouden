@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% block content %}
+<div class="page-head">
+  <h1>Inbox {{ info("inbox") }}</h1>
+</div>
+<p class="lead">Hier staan de facturen en bonnen die je nog moet verwerken.</p>
+
+<form method="post" action="/inbox/upload" enctype="multipart/form-data" class="upload-form" hx-boost="false">
+  <h2>Factuur of bon toevoegen</h2>
+  <label for="files">Kies een of meer bestanden</label>
+  <input id="files" type="file" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*">
+  <p class="hint">PDF of foto (JPEG, PNG, WebP), maximaal 20 MB per bestand. Je kunt meerdere bestanden tegelijk kiezen. Bestanden worden bewaard en nooit verwijderd. Waarom? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
+  <div class="actions"><button type="submit" class="btn">Toevoegen aan inbox</button></div>
+</form>
+
+{% if results %}{% include "inbox/_results.html" %}{% endif %}
+
+<ul class="status-filter" aria-label="Filter op status">
+  <li>{% if not status_filter %}<a class="active" href="/inbox" aria-current="page">Alle ({{ total }})</a>{% else %}<a href="/inbox">Alle ({{ total }})</a>{% endif %}</li>
+  <li>{% if status_filter == "nieuw" %}<a class="active" href="/inbox?status=nieuw" aria-current="page">Nieuw ({{ counts.nieuw }})</a>{% else %}<a href="/inbox?status=nieuw">Nieuw ({{ counts.nieuw }})</a>{% endif %} {{ info("status_nieuw") }}</li>
+  <li>{% if status_filter == "herkend" %}<a class="active" href="/inbox?status=herkend" aria-current="page">Herkend ({{ counts.herkend }})</a>{% else %}<a href="/inbox?status=herkend">Herkend ({{ counts.herkend }})</a>{% endif %} {{ info("status_herkend") }}</li>
+  <li>{% if status_filter == "geboekt" %}<a class="active" href="/inbox?status=geboekt" aria-current="page">Geboekt ({{ counts.geboekt }})</a>{% else %}<a href="/inbox?status=geboekt">Geboekt ({{ counts.geboekt }})</a>{% endif %} {{ info("status_geboekt") }}</li>
+</ul>
+
+{% if not documents %}
+  {% if status_filter %}
+  <p>Geen documenten met deze status.</p>
+  {% else %}
+  <div class="empty">
+    <p>Je inbox is leeg. Voeg hier de facturen en bonnen toe die je nog moet verwerken. Daarna kun je ze laten uitlezen en boeken.</p>
+  </div>
+  {% endif %}
+{% else %}
+{% if capped %}<p class="notice">Je ziet de {{ limit }} nieuwste documenten. Oudere documenten zijn wel bewaard.</p>{% endif %}
+<div class="table-wrap">
+<table class="data">
+  <thead><tr>
+    <th>Bestand</th><th>Type</th><th>Grootte</th><th>Toegevoegd op</th><th>Bron</th><th>Status</th>
+  </tr></thead>
+  <tbody>
+  {% for d in documents %}
+  <tr>
+    <td><a href="/inbox/{{ d.id }}">{{ d.original_filename }}</a></td>
+    <td>{{ kind_label(d.content_type) }}</td>
+    <td>{{ d.size_bytes|bestandsgrootte }}</td>
+    <td>{{ d.received_at|datum_tijd }}</td>
+    <td>{{ SOURCE_LABELS.get(d.source, d.source) }}</td>
+    <td><span class="badge badge-{{ d.status }}">{{ STATUS_LABELS[d.status] }}</span></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

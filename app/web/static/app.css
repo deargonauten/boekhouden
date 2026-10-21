@@ -212,3 +212,21 @@ input.num { text-align: right; width: 8rem; }
 .content fieldset.fields legend { padding: 0; color: var(--muted); font-size: 0.85rem; }
 .fields label.check, .filter label.check { flex-direction: row; align-items: center; gap: 0.4rem; }
 .row-actions { display: flex; gap: 0.75rem; align-items: center; white-space: nowrap; }
+
+/* Inbox (documenten) */
+.badge-nieuw { border-color: var(--muted); color: var(--muted); }
+.badge-herkend { border-color: var(--accent); color: var(--accent); }
+.badge-geboekt { border-color: var(--success, #1a7f37); color: var(--success, #1a7f37); }
+.upload-form { margin: 1rem 0; }
+.upload-form h2 { margin-top: 0; }
+.upload-form .actions { margin-top: 0.5rem; }
+.results { list-style: none; margin: 1rem 0; padding: 0; display: grid; gap: 0.4rem; }
+.results li { border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.9rem; background: var(--surface); }
+.results li.result-created { border-left: 4px solid var(--success, #1a7f37); }
+.results li.result-duplicate { border-left: 4px solid var(--accent); }
+.results li.result-error { border-left: 4px solid var(--danger); color: var(--danger); }
+.status-filter { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; padding: 0; list-style: none; }
+.status-filter a.active { font-weight: 600; text-decoration: none; color: var(--fg); }
+.file-view { width: 100%; max-width: 100%; border: 1px solid var(--border); margin-top: 1rem; }
+iframe.file-view { height: 75vh; }
+.fingerprint { font-family: ui-monospace, monospace; word-break: break-all; }

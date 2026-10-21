@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ document.original_filename }}</h1>
+  <a href="/inbox">Terug naar alle documenten</a>
+</div>
+<dl class="facts">
+  <dt>Type</dt><dd>{{ kind_label(document.content_type) }}</dd>
+  <dt>Grootte</dt><dd>{{ document.size_bytes|bestandsgrootte }}</dd>
+  <dt>Toegevoegd op</dt><dd>{{ document.received_at|datum_tijd }}</dd>
+  <dt>Bron</dt><dd>{{ SOURCE_LABELS.get(document.source, document.source) }}</dd>
+  <dt>Status</dt>
+  <dd>
+    <span class="badge badge-{{ document.status }}">{{ status_label }}</span>
+    {% if document.status == "nieuw" %}{{ info("status_nieuw") }} Nog niet verwerkt.
+    {% elif document.status == "herkend" %}{{ info("status_herkend") }}
+    {% else %}{{ info("status_geboekt") }}
+    {% endif %}
+  </dd>
+  {% if document.status == "geboekt" and document.journal_entry_id %}
+  <dt>Boeking {{ info("boeking") }}</dt><dd><a href="/boeken/{{ document.journal_entry_id }}">Bekijk de boeking</a></dd>
+  {% endif %}
+  <dt>Vingerafdruk van het bestand {{ info("vingerafdruk") }}</dt><dd><span class="fingerprint">{{ document.sha256 }}</span></dd>
+</dl>
+<p class="hint">Dit bestand wordt bewaard en nooit verwijderd (bewaarplicht {{ info("bewaarplicht") }}).</p>
+<p><a class="btn btn-secondary" href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand</a></p>
+{% if document.content_type == "application/pdf" %}
+<iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>
+{% else %}
+<img class="file-view" src="/inbox/{{ document.id }}/bestand" alt="{{ document.original_filename }}">
+{% endif %}
+{% endblock %}
