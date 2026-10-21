@@ -211,7 +211,7 @@ def test_mark_booked_requires_existing_entry(session, storage):
     d = add_document(session, storage, PDF, "a.pdf").document
     with pytest.raises(DocumentNotFoundError) as exc:
         mark_booked(session, d.id, 12345)
-    assert exc.value.message == "Deze boeking bestaat niet."
+    assert exc.value.message == "Deze boeking bestaat niet. Kies een bestaande boeking."
     assert d.status == "nieuw"
 
 
