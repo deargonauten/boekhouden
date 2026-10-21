@@ -23,8 +23,8 @@
     <td>{{ e.booking_date.strftime("%d-%m-%Y") }}</td>
     <td>{{ e.journal_code }}</td>
     <td>{{ e.description }}
-      {% if e.kind == "storno" %}<span class="badge">Storno van {{ e.reverses_entry_number }}</span>{% endif %}
-      {% if e.is_reversed %}<span class="badge badge-muted">Gestorneerd</span>{% endif %}
+      {% if e.kind == "storno" %}<span class="badge">Storno van {{ e.reverses_number }}</span>{% endif %}
+      {% if e.reversed_by_id %}<span class="badge badge-muted">Gestorneerd</span>{% endif %}
     </td>
     <td class="num">{{ e.total_cents|euro }}</td>
   </tr>
