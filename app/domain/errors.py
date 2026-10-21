@@ -172,3 +172,65 @@ InvalidStatusTransitionError = _document_error(
     "InvalidStatusTransitionError", INVALID_STATUS_TRANSITION
 )
 DocumentStorageFailedError = _document_error("DocumentStorageFailedError", DOCUMENT_STORAGE_FAILED)
+
+
+# --- AI-factuurherkenning (uitlezen) ----------------------------------------
+EXTRACTOR_UNAVAILABLE = "EXTRACTOR_UNAVAILABLE"
+EXTRACTION_RATE_LIMITED = "EXTRACTION_RATE_LIMITED"
+EXTRACTION_TIMEOUT = "EXTRACTION_TIMEOUT"
+EXTRACTION_FAILED = "EXTRACTION_FAILED"
+EXTRACTION_NOT_ALLOWED = "EXTRACTION_NOT_ALLOWED"
+EXTRACTION_NOT_FOUND = "EXTRACTION_NOT_FOUND"
+REVIEW_INVALID = "REVIEW_INVALID"
+
+UNAVAILABLE_MESSAGE = (
+    "Het uitlezen kan nog niet: je bent niet ingelogd bij Claude. "
+    "Open Terminal en typ: claude auth login. "
+    "Of zet ANTHROPIC_API_KEY in het bestand .env."
+)
+RATE_LIMITED_MESSAGE = (
+    "Je Claude-limiet is bereikt. Probeer het over een uur nog eens, "
+    "of zet ANTHROPIC_API_KEY in .env om per factuur te betalen."
+)
+FAILED_MESSAGE = "Het uitlezen is niet gelukt. Probeer het opnieuw of vul de gegevens zelf in."
+NOT_ALLOWED_MESSAGE = "Dit document is al geboekt en kan niet opnieuw worden uitgelezen."
+NOT_FOUND_MESSAGE = "Voor dit document is nog niets uitgelezen. Klik op 'Lees factuur uit'."
+
+
+def timeout_message(seconds: int) -> str:
+    return (
+        f"Het uitlezen duurde te lang (meer dan {seconds} seconden). "
+        "Probeer het opnieuw; lukt het niet, vul de factuur dan zelf in."
+    )
+
+
+class ExtractionError(LedgerError):
+    """Base for extraction errors. Technical detail goes to the log, never the UI."""
+
+    code = "EXTRACTION_ERROR"
+
+
+def _extraction_error(name: str, code: str) -> type[ExtractionError]:
+    return type(name, (ExtractionError,), {"code": code})
+
+
+ExtractorUnavailableError = _extraction_error("ExtractorUnavailableError", EXTRACTOR_UNAVAILABLE)
+ExtractionRateLimitedError = _extraction_error(
+    "ExtractionRateLimitedError", EXTRACTION_RATE_LIMITED
+)
+ExtractionTimeoutError = _extraction_error("ExtractionTimeoutError", EXTRACTION_TIMEOUT)
+ExtractionFailedError = _extraction_error("ExtractionFailedError", EXTRACTION_FAILED)
+ExtractionNotAllowedError = _extraction_error("ExtractionNotAllowedError", EXTRACTION_NOT_ALLOWED)
+ExtractionNotFoundError = _extraction_error("ExtractionNotFoundError", EXTRACTION_NOT_FOUND)
+
+
+class ReviewValidationError(ExtractionError):
+    """The nakijken form has problems; `messages` lists every one in Dutch."""
+
+    code = REVIEW_INVALID
+
+    def __init__(self, messages: list[str], fields: dict[str, str] | None = None):
+        self.messages: list[str] = list(messages)
+        # form field name (e.g. "invoice_date", "line-0-amount") -> message, for inline display
+        self.fields: dict[str, str] = dict(fields or {})
+        super().__init__(self.code, " ".join(self.messages))
