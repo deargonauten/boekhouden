@@ -49,7 +49,7 @@ def test_empty_state(client):
     r = client.get("/inbox")
     assert r.status_code == 200
     assert "Je inbox is leeg." in r.text
-    assert "Factuur of bon toevoegen" in r.text
+    assert "Bestand toevoegen" in r.text
     assert "Dit onderdeel wordt later gebouwd" not in r.text
 
 
@@ -306,8 +306,10 @@ def test_list_layout_uses_design_system(client):
     set_status(client, 2, "herkend")
     html = client.get("/inbox").text
     assert 'href="/static/css/inbox.css"' in html
-    assert re.search(r'<a class="btn" href="#upload">', html) and 'id="upload"' in html
-    assert "Sleep bestanden hierheen of kies een bestand" in html
+    assert re.search(r'<a class="btn" href="#upload" data-modal-open="#upload">', html)
+    assert '<dialog class="modal" id="upload"' in html and "data-open-on-load" not in html
+    assert "Klik om bestanden toe te voegen of sleep ze hierheen." in html
+    assert "Je bestand wordt bewaard en daarna kun je het laten uitlezen." in html
     assert "pill pill--info" in html and "pill pill--warning" in html
     assert re.search(r'<a class="btn btn-secondary btn-small" href="/inbox/2/nakijken">Nakijken</a>', html)
     assert ">Lees uit<" in html
@@ -339,3 +341,66 @@ def test_inbox_pages_are_plain_language(client, path):
 
     upload(client, ("factuur.pdf", PDF))
     assert_plain_language(client, path)
+
+
+def _stat_values(html):
+    cards = re.findall(r'<section class="stat-card">.*?</section>', html, re.S)
+    out = {}
+    for card in cards:
+        title = re.search(r'stat-card__title">([^<]+)', card).group(1).strip()
+        cells = re.findall(r'stat-cell__label">([^<]+)</div>\s*<div class="stat-cell__value">(?:<a[^>]*>)?(\d+)', card)
+        out[title] = {k: v for k, v in cells}
+    return out
+
+
+def test_stat_cards_match_tab_counts_and_done_rows(client):
+    upload(client, ("a.pdf", PDF), ("b.png", PNG), ("c.jpg", JPEG))
+    set_status(client, 2, "herkend")
+    client.post("/instellingen/boekjaren", data={"year": datetime.now().year})
+    journal = rows(client, "SELECT id FROM journal WHERE code = 'MEM'")[0].id
+    acc = [r.id for r in rows(client, "SELECT id FROM account WHERE code IN ('4200','1210') ORDER BY code")]
+    r = client.post(
+        "/boeken/nieuw",
+        data={
+            "journal_id": str(journal), "booking_date": datetime.now().date().isoformat(),
+            "description": "x", "reference": "", "line_account": [str(acc[1]), str(acc[0])],
+            "line_debit": ["10,00", ""], "line_credit": ["", "10,00"],
+            "line_vat": ["", ""], "line_description": ["", ""],
+        },
+        follow_redirects=False,
+    )
+    set_status(client, 3, "geboekt", int(r.headers["location"].rsplit("/", 1)[1]))
+    html = client.get("/inbox").text
+    assert _stat_values(html) == {
+        "Te verwerken": {"Nieuw": "1", "Herkend": "1"},
+        "Klaar": {"Geboekt": "1", "Totaal": "3"},
+    }
+    counts = dict(re.findall(r'(Alle|Nieuw|Herkend|Geboekt) <span class="tab__count">(\d+)</span>', html))
+    assert counts == {"Alle": "3", "Nieuw": "1", "Herkend": "1", "Geboekt": "1"}
+    assert html.count('class="row--done"') == 1
+    assert 'class="page-header__tabs"' in html and "pager--sticky" in html
+
+
+def test_drawer_trigger_and_partial_for_drawer_target(client):
+    upload(client, ("factuur.pdf", PDF))
+    html = client.get("/inbox").text
+    assert 'id="inbox-drawer-body"' in html
+    assert re.search(r'href="/inbox/1" data-drawer-open="#inbox-drawer" hx-get="/inbox/1" hx-target="#inbox-drawer-body"', html)
+    part = client.get("/inbox/1", headers={"HX-Request": "true", "HX-Target": "inbox-drawer-body"})
+    assert part.status_code == 200
+    assert "<html" not in part.text and "sidebar" not in part.text
+    assert "factuur.pdf" in part.text and "Vingerafdruk van het bestand" in part.text
+    for headers in ({"HX-Request": "true", "HX-Target": "body"}, {}):
+        full = client.get("/inbox/1", headers=headers)
+        assert "<html" in full.text and "Vingerafdruk van het bestand" in full.text
+    missing = client.get("/inbox/999", headers={"HX-Target": "inbox-drawer-body"})
+    assert missing.status_code == 404
+
+
+def test_upload_error_reopens_modal_with_message_inside(client):
+    r = client.post("/inbox/upload", data={})
+    assert r.status_code == 422
+    dialog = re.search(r'<dialog class="modal" id="upload".*?</dialog>', r.text, re.S).group(0)
+    assert "data-open-on-load" in dialog
+    assert "Je hebt nog geen bestand gekozen." in dialog and 'role="alert"' in dialog
+    assert 'action="/inbox/upload"' in dialog

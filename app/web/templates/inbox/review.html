@@ -8,7 +8,7 @@
 {%- endmacro %}
 {% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
 {% block content %}
-{{ page_header("Nakijken: " ~ document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Nakijken", None)], term="nakijken",
+{{ page_header("Nakijken: " ~ document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Nakijken", None)], term="nakijken", icon_name="file",
    lead="Links zie je het originele bestand, rechts wat het programma eruit heeft gelezen. Controleer vooral de gemarkeerde velden.") }}
 
 {% if saved_notice %}{{ notice(saved_notice, "success") }}{% endif %}
@@ -150,7 +150,7 @@
       <section class="card" aria-labelledby="sec-totals">
         <div class="card__header"><h2 id="sec-totals">Totalen op de factuur</h2></div>
         <div class="card__body stack">
-          <div class="form-grid form-grid--3">
+          <div class="totals-block">
             <div class="field">
               <label for="total_excl">Bedrag zonder BTW</label>
               <input id="total_excl" name="total_excl" value="{{ values.total_excl }}" inputmode="decimal" class="num" placeholder="0,00">{{ flagged(flags.get("total_excl")) }}

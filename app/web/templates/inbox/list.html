@@ -1,24 +1,35 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info with context %}
-{% from "partials/_ui.html" import page_header, tabs, pill, pager, empty_state, notice, icon with context %}
+{% from "partials/_ui.html" import page_header, stat_cards, pill, pager, empty_state, notice, icon, modal, drawer, dropzone with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
 {% block content %}
-{{ page_header("Inbox", breadcrumb=[("Inbox", None)], action_label="Bestand toevoegen", action_href="#upload", term="inbox",
-   lead="Hier staan de facturen en bonnen die je nog moet verwerken.") }}
+{% set only_errors = results and (results|rejectattr("kind", "eq", "error")|list|length == 0) %}
+{% call page_header("Inbox", breadcrumb=[("Inbox", None)], term="inbox", icon_name="inbox",
+   lead="Hier staan de facturen en bonnen die je nog moet verwerken.",
+   tab_items=[
+    ("Alle", "/inbox", not status_filter, total),
+    ("Nieuw", "/inbox?status=nieuw", status_filter == "nieuw", counts.nieuw, "status_nieuw"),
+    ("Herkend", "/inbox?status=herkend", status_filter == "herkend", counts.herkend, "status_herkend"),
+    ("Geboekt", "/inbox?status=geboekt", status_filter == "geboekt", counts.geboekt, "status_geboekt"),
+   ], tab_label="Filter op status") %}
+<a class="btn" href="#upload" data-modal-open="#upload">{{ icon("plus") }}Bestand toevoegen</a>
+{% endcall %}
 
-<section class="card" id="upload" aria-labelledby="upload-title">
-  <form method="post" action="/inbox/upload" enctype="multipart/form-data" class="upload-form" hx-boost="false">
-    <div class="card__header"><h2 id="upload-title">Factuur of bon toevoegen</h2></div>
-    <div class="card__body stack">
-      <label for="files" class="dropzone-label">Sleep bestanden hierheen of kies een bestand</label>
-      <input id="files" class="dropzone" type="file" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*">
-      <p class="hint">PDF of foto (JPEG, PNG, WebP), maximaal 20 MB per bestand. Je kunt meerdere bestanden tegelijk kiezen. Bestanden worden bewaard en nooit verwijderd. Waarom? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
-      <div><button type="submit" class="btn">{{ icon("upload") }}Toevoegen aan inbox</button></div>
-    </div>
-  </form>
-</section>
+{% call modal("upload", "Bestand toevoegen", open=only_errors) %}
+<form method="post" action="/inbox/upload" enctype="multipart/form-data" class="upload-form" hx-boost="false">
+  {% if only_errors %}{% include "inbox/_results.html" %}{% endif %}
+  {{ dropzone("files", ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*", "Kies een of meer bestanden", "PDF of foto (JPEG, PNG, WebP), maximaal 20 MB per bestand.") }}
+  <p class="hint">Je bestand wordt bewaard en daarna kun je het laten uitlezen. Bestanden worden nooit verwijderd. Waarom? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
+  <div class="modal__footer">
+    <button type="button" class="btn btn-secondary" data-modal-close>Annuleren</button>
+    <button type="submit" class="btn">{{ icon("upload") }}Toevoegen aan inbox</button>
+  </div>
+</form>
+{% endcall %}
 
-{% if results %}{% include "inbox/_results.html" %}{% endif %}
+{% call drawer("inbox-drawer", "Document") %}<p class="hint">Het document wordt geladen...</p>{% endcall %}
+
+{% if results and not only_errors %}{% include "inbox/_results.html" %}{% endif %}
 
 {% if request.query_params.get("melding") == "klaar" %}{{ notice("Klaar met nakijken. De volgende stap is boeken.", "success") }}{% endif %}
 {% include "inbox/_extract_banner.html" %}
@@ -32,13 +43,16 @@
 </div>
 {% endif %}
 
+{{ stat_cards([
+  {"title": "Te verwerken", "cells": [
+    {"label": "Nieuw", "value": counts.nieuw|string, "tone": "warning" if counts.nieuw else None, "href": "/inbox?status=nieuw"},
+    {"label": "Herkend", "value": counts.herkend|string, "href": "/inbox?status=herkend"}]},
+  {"title": "Klaar", "cells": [
+    {"label": "Geboekt", "value": counts.geboekt|string, "tone": "success" if counts.geboekt else None, "href": "/inbox?status=geboekt"},
+    {"label": "Totaal", "value": total|string, "href": "/inbox"}]},
+]) }}
+
 <div class="card card--flush">
-  {{ tabs([
-    ("Alle", "/inbox", not status_filter, total),
-    ("Nieuw", "/inbox?status=nieuw", status_filter == "nieuw", counts.nieuw, "status_nieuw"),
-    ("Herkend", "/inbox?status=herkend", status_filter == "herkend", counts.herkend, "status_herkend"),
-    ("Geboekt", "/inbox?status=geboekt", status_filter == "geboekt", counts.geboekt, "status_geboekt"),
-  ], "Filter op status") }}
   {% if counts.nieuw %}
   <div class="toolbar">
     <form method="post" action="/inbox/uitlezen-alles" class="extract-form" hx-disabled-elt="find button" hx-indicator="#extract-busy-all">
@@ -55,7 +69,7 @@
     {% if status_filter %}
     {{ empty_state("Niets gevonden", "Geen documenten met deze status.", "Wis filters", "/inbox", "search") }}
     {% else %}
-    {{ empty_state("Nog niets om te verwerken", "Je inbox is leeg. Voeg hier de facturen en bonnen toe die je nog moet verwerken. Daarna kun je ze laten uitlezen en boeken.", "Bestand toevoegen", "#upload", "inbox") }}
+    {{ empty_state("Nog niets om te verwerken", "Je inbox is leeg. Gebruik de knop 'Bestand toevoegen' om de facturen en bonnen toe te voegen die je nog moet verwerken. Daarna kun je ze laten uitlezen en boeken.", None, None, "inbox") }}
     {% endif %}
   {% else %}
   <div class="table-wrap">
@@ -65,14 +79,15 @@
     </tr></thead>
     <tbody>
     {% for d in documents %}
-    <tr>
+    <tr{% if d.status == "geboekt" %} class="row--done"{% endif %}>
       <td><a class="file-link" href="/inbox/{{ d.id }}">{{ icon("file", 16) }}<span>{{ d.original_filename }}</span></a></td>
       <td>{{ kind_label(d.content_type) }}</td>
       <td class="nowrap">{{ d.size_bytes|bestandsgrootte }}</td>
       <td class="nowrap">{{ d.received_at|datum_tijd }}</td>
       <td>{{ SOURCE_LABELS.get(d.source, d.source) }}</td>
       <td>{{ pill(STATUS_LABELS[d.status], {"nieuw": "info", "herkend": "warning", "geboekt": "success"}.get(d.status, "neutral")) }}</td>
-      <td>
+      <td class="cluster">
+        <a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}" data-drawer-open="#inbox-drawer" hx-get="/inbox/{{ d.id }}" hx-target="#inbox-drawer-body" hx-push-url="false" hx-boost="false" aria-label="Bekijken: {{ d.original_filename }}">Bekijken</a>
         {% if d.status == "nieuw" %}{% with document=d, compact=true, label="Lees uit" %}{% include "inbox/_extract_button.html" %}{% endwith %}
         {% elif d.status == "herkend" %}<a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}/nakijken">Nakijken</a>{% endif %}
       </td>
@@ -81,7 +96,7 @@
     </tbody>
   </table>
   </div>
-  {{ pager(1, documents|length, documents|length, "/inbox", {"status": status_filter}, "documenten") }}
+  {{ pager(1, documents|length, documents|length, "/inbox", {"status": status_filter}, "documenten", sticky=true) }}
   {% endif %}
 </div>
 {% endblock %}

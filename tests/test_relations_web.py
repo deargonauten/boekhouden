@@ -178,8 +178,10 @@ def test_list_uses_tabs_pills_and_icon_actions(client):
     add(client, name="Beide", is_customer="1", is_supplier="1")
     html = client.get("/relaties").text
     assert 'class="tabs"' in html and "Klanten" in html and "Leveranciers" in html
-    assert html.count('aria-current="page"') == 2  # sidebar + active tab
+    assert html.count('aria-current="page"') == 3  # sidebar + active tab + active toggle
     assert "pill--success" in html and ">Actief<" in html
+    assert 'class="page-header__tabs"' in html and 'class="segmented segmented--small"' in html
+    assert "row--done" not in html and "pager--sticky" in html
     assert 'aria-label="Relatie bewerken"' in html and 'aria-label="Relatie archiveren"' in html
     assert "Toont 1-1 van 1 relaties" in html
     assert 'href="/static/css/relations.css"' in html
@@ -190,7 +192,11 @@ def test_soort_tab_is_current_and_keeps_params(client):
     html = client.get("/relaties?soort=klant&q=klant&gearchiveerd=1").text
     assert re.search(r'<a href="[^"]*soort=klant[^"]*" aria-current="page"', html)
     assert re.search(r'<a href="/relaties\?q=klant&amp;gearchiveerd=1"', html)
-    assert re.search(r'name="gearchiveerd"[^>]*\schecked', html)
+    # segmented toggle: archived option is current and the active one links back without gearchiveerd
+    assert re.search(r'<a href="[^"]*soort=klant[^"]*gearchiveerd=1[^"]*"|<a href="[^"]*gearchiveerd=1[^"]*soort=klant[^"]*"', html)
+    assert re.search(r'<a href="[^"]*" aria-current="page">Ook gearchiveerd</a>', html)
+    assert re.search(r'<a href="(?![^"]*gearchiveerd)[^"]*soort=klant[^"]*q=klant[^"]*">Actieve relaties</a>', html)
+    assert re.search(r'type="hidden" name="gearchiveerd" value="1"', html)
 
 
 def test_pagination_50_per_page_and_total(client):
@@ -248,3 +254,12 @@ def test_relations_pages_are_plain_language(client, path):
 
     add(client)
     assert_plain_language(client, path)
+
+
+def test_segmented_toggle_keeps_soort_q_and_resets_page(client):
+    add_many(client, 53, is_customer="1", is_supplier="")
+    html = client.get("/relaties?soort=klant&q=Relatie&page=2").text
+    m = re.search(r'<a href="([^"]*)">Ook gearchiveerd</a>', html)
+    assert m
+    href = m.group(1).replace("&amp;", "&")
+    assert "soort=klant" in href and "q=Relatie" in href and "gearchiveerd=1" in href and "page=" not in href

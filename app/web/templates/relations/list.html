@@ -1,26 +1,30 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info with context %}
-{% from "partials/_ui.html" import page_header, tabs, pill, pager, empty_state, notice, icon with context %}
+{% from "partials/_ui.html" import page_header, segmented, pill, pager, empty_state, notice, icon with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/relations.css">{% endblock %}
 {% block content %}
-{{ page_header("Relaties", breadcrumb=[("Relaties", None)], action_label="Relatie toevoegen", action_href="/relaties/nieuw", term="relaties",
-   lead="Hier staan de bedrijven en personen met wie je zakendoet: je klanten en je leveranciers.") }}
-{% if flash %}{{ notice(flash, "success") }}{% endif %}
 {% set archived = "1" if include_archived else "" %}
-<div class="card card--flush">
-  {{ tabs([
+{{ page_header("Relaties", breadcrumb=[("Relaties", None)], action_label="Relatie toevoegen", action_href="/relaties/nieuw", term="relaties", icon_name="users",
+   lead="Hier staan de bedrijven en personen met wie je zakendoet: je klanten en je leveranciers.",
+   tab_items=[
     ("Alle relaties", page_url("/relaties", {"q": q, "gearchiveerd": archived}, 1), not soort),
     ("Klanten", page_url("/relaties", {"soort": "klant", "q": q, "gearchiveerd": archived}, 1), soort == "klant", None, "klant"),
     ("Leveranciers", page_url("/relaties", {"soort": "leverancier", "q": q, "gearchiveerd": archived}, 1), soort == "leverancier", None, "leverancier"),
-  ], "Filter op soort relatie") }}
+   ], tab_label="Filter op soort relatie") }}
+{% if flash %}{{ notice(flash, "success") }}{% endif %}
+<div class="card card--flush">
   <form class="toolbar" method="get" action="/relaties" role="search" hx-boost="false">
     <div class="toolbar__search">
       {{ icon("search") }}
       <input type="search" name="q" value="{{ q }}" placeholder="Zoek op naam, nummer of plaats" aria-label="Zoek op naam, nummer of plaats">
     </div>
     {% if soort %}<input type="hidden" name="soort" value="{{ soort }}">{% endif %}
+    {% if include_archived %}<input type="hidden" name="gearchiveerd" value="1">{% endif %}
     <div class="toolbar__filters">
-      <label class="switch"><input type="checkbox" name="gearchiveerd" value="1"{% if include_archived %} checked{% endif %} onchange="this.form.submit()"> <span>Toon ook gearchiveerde relaties {{ info("archiveren") }}</span></label>
+      {{ segmented([
+        ("Actieve relaties", page_url("/relaties", {"soort": soort, "q": q}, 1), not include_archived),
+        ("Ook gearchiveerd", page_url("/relaties", {"soort": soort, "q": q, "gearchiveerd": "1"}, 1), include_archived),
+      ], "Welke relaties tonen", small=true) }}{{ info("archiveren") }}
     </div>
     <div class="toolbar__spacer"></div>
     <button type="submit" class="btn btn-secondary">Zoeken</button>
@@ -64,7 +68,7 @@
     </tbody>
   </table>
   </div>
-  {{ pager(page, per_page, total, "/relaties", {"soort": soort, "q": q, "gearchiveerd": archived}, "relaties") }}
+  {{ pager(page, per_page, total, "/relaties", {"soort": soort, "q": q, "gearchiveerd": archived}, "relaties", sticky=true) }}
   {% endif %}
 </div>
 {% endblock %}

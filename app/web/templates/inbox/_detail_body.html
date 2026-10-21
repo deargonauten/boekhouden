@@ -1,0 +1,42 @@
+{# Needs: document, status_label. Optional: in_drawer. Shared by the inbox drawer and the full detail page. #}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import pill with context %}
+{% if in_drawer %}<h3 class="drawer-filename">{{ document.original_filename }}</h3>
+<p class="cluster"><a class="btn btn-secondary btn-small" href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand</a>{% if document.status == "herkend" %}<a class="btn btn-small" href="/inbox/{{ document.id }}/nakijken">Nakijken</a>{% endif %}<a href="/inbox/{{ document.id }}">Open op een eigen pagina</a></p>{% endif %}
+<div class="stack">
+  <section class="card" aria-labelledby="facts-title">
+    <div class="card__header"><h2 id="facts-title">Gegevens van het bestand</h2></div>
+    <div class="card__body">
+      <dl class="facts">
+        <dt>Type</dt><dd>{{ kind_label(document.content_type) }}</dd>
+        <dt>Grootte</dt><dd>{{ document.size_bytes|bestandsgrootte }}</dd>
+        <dt>Toegevoegd op</dt><dd>{{ document.received_at|datum_tijd }}</dd>
+        <dt>Bron</dt><dd>{{ SOURCE_LABELS.get(document.source, document.source) }}</dd>
+        <dt>Status</dt>
+        <dd>
+          {{ pill(status_label, {"nieuw": "info", "herkend": "warning", "geboekt": "success"}.get(document.status, "neutral")) }}
+          {% if document.status == "nieuw" %}{{ info("status_nieuw") }} Nog niet verwerkt.
+          {% elif document.status == "herkend" %}{{ info("status_herkend") }}
+          {% else %}{{ info("status_geboekt") }}
+          {% endif %}
+        </dd>
+        {% if document.status == "geboekt" and document.journal_entry_id %}
+        <dt>Boeking {{ info("boeking") }}</dt><dd><a href="/boeken/{{ document.journal_entry_id }}">Bekijk de boeking</a></dd>
+        {% endif %}
+        <dt>Vingerafdruk van het bestand {{ info("vingerafdruk") }}</dt><dd><span class="fingerprint">{{ document.sha256 }}</span></dd>
+      </dl>
+      <p class="hint">Dit bestand wordt bewaard en nooit verwijderd (bewaarplicht {{ info("bewaarplicht") }}).</p>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="preview-title">
+    <div class="card__header"><h2 id="preview-title">Het bestand</h2></div>
+    <div class="card__body">
+      {% if document.content_type == "application/pdf" %}
+      <iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>
+      {% else %}
+      <img class="file-view" src="/inbox/{{ document.id }}/bestand" alt="{{ document.original_filename }}">
+      {% endif %}
+    </div>
+  </section>
+</div>

@@ -1,15 +1,13 @@
 /* Inbox, document detail and review: screen-specific layout only; shared looks live in app.css. */
 
-/* Upload drop-zone: the native file input is the drop target, styled as a dashed area. */
-.dropzone-label { font-weight: 600; }
-input[type="file"].dropzone {
-  display: block; width: 100%; box-sizing: border-box;
-  padding: var(--space-7) var(--space-5);
-  border: 2px dashed var(--border-strong); border-radius: var(--radius);
-  background: var(--surface-2); color: var(--muted); cursor: pointer;
-}
-input[type="file"].dropzone:hover { border-color: var(--primary); background: var(--primary-soft); }
-input[type="file"].dropzone:focus-visible { border-color: var(--primary); box-shadow: var(--focus-ring); outline: none; }
+/* Upload modal: the dropzone itself lives in app.css; only spacing here. */
+.upload-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.upload-form .results { margin-bottom: 0; }
+
+/* Drawer with document facts */
+.drawer-filename { margin: 0 0 var(--space-3); overflow-wrap: anywhere; }
+.drawer__body .file-view { width: 100%; }
+.drawer__body .facts dd { overflow-wrap: anywhere; }
 
 .results { margin-bottom: var(--space-4); }
 .results .notice, .results .alert { margin-bottom: 0; }
@@ -30,6 +28,11 @@ input[type="file"].dropzone:focus-visible { border-color: var(--primary); box-sh
 .review-grid { gap: var(--space-5); }
 .review-doc { margin: 0; }
 .review-doc iframe.file-view { height: 78vh; }
+/* Totals block: right-aligned stack of the three invoice totals. */
+.totals-block { display: grid; gap: var(--space-3); margin-inline-start: auto; width: min(100%, 22rem); }
+.totals-block .field { display: grid; grid-template-columns: 1fr 9rem; align-items: center; gap: var(--space-3); }
+.totals-block .field input { width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
+.totals-block .flag-item { grid-column: 1 / -1; }
 .review-form { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
 .review-form .notice { margin-bottom: 0; }
 .review-form .stack { gap: var(--space-4); }

@@ -2,7 +2,7 @@
 {% from "partials/_ui.html" import page_header, error_box, icon with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
 {% block content %}
-{% call page_header("Bestand ontbreekt", breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Bestand ontbreekt", None)]) %}
+{% call page_header("Bestand ontbreekt", breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Bestand ontbreekt", None)], icon_name="alert") %}
 <a class="btn btn-secondary" href="/inbox/{{ document.id }}">Terug naar het document</a>
 {% endcall %}
 {{ error_box(message) }}

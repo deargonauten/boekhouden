@@ -3,7 +3,7 @@
 {% from "partials/_ui.html" import page_header with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/relations.css">{% endblock %}
 {% block content %}
-{{ page_header(title, breadcrumb=[("Relaties", "/relaties"), (title, None)],
+{{ page_header(title, breadcrumb=[("Relaties", "/relaties"), (title, None)], icon_name="users",
    lead="Leg vast met wie je zakendoet. Alleen de naam en de soort relatie zijn verplicht; de rest vul je in als je het weet, dan herkent het programma de relatie later vanzelf op facturen.") }}
 {% include "relations/_error.html" %}
 <form method="post" action="{% if contact %}/relaties/{{ contact.id }}/bewerken{% else %}/relaties/nieuw{% endif %}" class="stack relation-form" hx-boost="false">

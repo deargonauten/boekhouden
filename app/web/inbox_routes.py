@@ -160,6 +160,14 @@ def document_detail(
     document = _load(session, document_id)
     if document is None:
         return web.not_found_response(request)
+    if web.is_drawer_request(request, "inbox-drawer"):
+        return _render(
+            request,
+            "inbox/_detail_body.html",
+            document=document,
+            status_label=STATUS_LABELS[document.status],
+            in_drawer=True,
+        )
     return _render(
         request,
         "inbox/detail.html",
