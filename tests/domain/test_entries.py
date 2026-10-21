@@ -50,7 +50,7 @@ def test_message_is_dutch():
     lines = [NewLine(1, debit_cents=1001), NewLine(2, credit_cents=1000)]
     with pytest.raises(LedgerError) as exc:
         validate_entry(make_entry(lines))
-    assert "evenwicht" in exc.value.message
+    assert "Debet en credit zijn niet gelijk" in exc.value.message
 
 
 def test_too_few_lines():
