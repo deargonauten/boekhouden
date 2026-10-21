@@ -7,18 +7,18 @@
 {% include "ledger/_error.html" %}
 <dl class="facts">
   <dt>Datum</dt><dd>{{ entry.booking_date.strftime("%d-%m-%Y") }}</dd>
-  <dt>Dagboek</dt><dd>{{ entry.journal_code }} {{ entry.journal_name }}</dd>
+  <dt>Dagboek</dt><dd>{{ detail.journal_code }} {{ detail.journal_name }}</dd>
   <dt>Omschrijving</dt><dd>{{ entry.description }}</dd>
   {% if entry.reference %}<dt>Referentie</dt><dd>{{ entry.reference }}</dd>{% endif %}
-  <dt>Totaal</dt><dd>{{ entry.total_cents|euro }}</dd>
-  {% if entry.reverses_entry_id %}<dt>Storno van</dt><dd><a href="/boeken/{{ entry.reverses_entry_id }}">{{ entry.reverses_entry_number }}</a></dd>{% endif %}
-  {% if entry.reversed_by_id %}<dt>Gestorneerd door</dt><dd><a href="/boeken/{{ entry.reversed_by_id }}">{{ entry.reversed_by_number }}</a></dd>{% endif %}
+  <dt>Totaal</dt><dd>{{ detail.total_cents|euro }}</dd>
+  {% if detail.original %}<dt>Storno van</dt><dd><a href="/boeken/{{ detail.original.id }}">{{ detail.original.entry_number }}</a></dd>{% endif %}
+  {% if detail.reversed_by %}<dt>Gestorneerd door</dt><dd><a href="/boeken/{{ detail.reversed_by.id }}">{{ detail.reversed_by.entry_number }}</a></dd>{% endif %}
 </dl>
 <div class="table-wrap">
 <table class="data">
   <thead><tr><th>#</th><th>Grootrekening</th><th class="num">Debet</th><th class="num">Credit</th><th>Btw-code</th><th>Omschrijving</th></tr></thead>
   <tbody>
-  {% for l in entry.lines %}
+  {% for l in detail.lines %}
   <tr>
     <td>{{ l.line_no }}</td>
     <td>{{ l.account_code }} {{ l.account_name }}</td>

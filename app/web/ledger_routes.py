@@ -219,15 +219,17 @@ def entry_create(
     )
 
 
-def _detail(request, entry, *, error=None, status=200):
+def _detail(request, detail, *, error=None, status=200):
+    entry = detail.entry
     return _render(
         request,
         "ledger/entry_detail.html",
         status,
         title=entry.entry_number,
         entry=entry,
+        detail=detail,
         error=error,
-        reversible=entry.kind != "storno" and entry.reversed_by_id is None,
+        reversible=detail.is_reversible,
         today=date.today().isoformat(),
     )
 
