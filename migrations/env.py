@@ -4,6 +4,7 @@ from alembic import context
 from sqlalchemy import create_engine
 
 from app.config import ensure_data_dirs, get_settings
+import app.models  # noqa: F401  (registers models on Base.metadata)
 from app.db import Base
 
 config = context.config
