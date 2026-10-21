@@ -141,3 +141,34 @@ DuplicateKvkError = _relation_error("DuplicateKvkError", DUPLICATE_KVK)
 DuplicateBtwNumberError = _relation_error("DuplicateBtwNumberError", DUPLICATE_BTW_NUMBER)
 DuplicateIbanError = _relation_error("DuplicateIbanError", DUPLICATE_IBAN)
 ContactNotFoundError = _relation_error("ContactNotFoundError", CONTACT_NOT_FOUND)
+
+
+# --- Documenten (inbox) ------------------------------------------------------
+UNSUPPORTED_FILE_TYPE = "UNSUPPORTED_FILE_TYPE"
+FILE_TOO_LARGE = "FILE_TOO_LARGE"
+EMPTY_FILE = "EMPTY_FILE"
+NO_FILE_SELECTED = "NO_FILE_SELECTED"
+DOCUMENT_NOT_FOUND = "DOCUMENT_NOT_FOUND"
+INVALID_STATUS_TRANSITION = "INVALID_STATUS_TRANSITION"
+DOCUMENT_STORAGE_FAILED = "DOCUMENT_STORAGE_FAILED"
+
+
+class DocumentError(LedgerError):
+    """Base for document (inbox) errors."""
+
+    code = "DOCUMENT_ERROR"
+
+
+def _document_error(name: str, code: str) -> type[DocumentError]:
+    return type(name, (DocumentError,), {"code": code})
+
+
+UnsupportedFileTypeError = _document_error("UnsupportedFileTypeError", UNSUPPORTED_FILE_TYPE)
+FileTooLargeError = _document_error("FileTooLargeError", FILE_TOO_LARGE)
+EmptyFileError = _document_error("EmptyFileError", EMPTY_FILE)
+NoFileSelectedError = _document_error("NoFileSelectedError", NO_FILE_SELECTED)
+DocumentNotFoundError = _document_error("DocumentNotFoundError", DOCUMENT_NOT_FOUND)
+InvalidStatusTransitionError = _document_error(
+    "InvalidStatusTransitionError", INVALID_STATUS_TRANSITION
+)
+DocumentStorageFailedError = _document_error("DocumentStorageFailedError", DOCUMENT_STORAGE_FAILED)
