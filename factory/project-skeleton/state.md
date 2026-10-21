@@ -1,6 +1,6 @@
 # State: project-skeleton
 
-Step: 3 (review round 2, code lens only)
+Step: 4 (approval)
 Branch: factory/project-skeleton
 Review round: 2
 Human rework rounds: 0
