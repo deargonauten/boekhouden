@@ -1,121 +1,185 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, pill, notice, error_box, icon with context %}
 {% macro flagged(items) -%}
 {%- for f in items or [] -%}
-<span class="flag flag-{{ f.level }}">{{ level_labels.get(f.level, "Let op") }}</span> <span class="flag-reason">{{ f.reason }}</span><br>
+<div class="flag-item">{{ pill(level_labels.get(f.level, "Let op"), {"low": "danger", "medium": "warning"}.get(f.level, "neutral")) }} <span class="flag-reason">{{ f.reason }}</span></div>
 {%- endfor -%}
 {%- endmacro %}
+{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>Nakijken: {{ document.original_filename }} {{ info("nakijken") }}</h1>
-  <a href="/inbox/{{ document.id }}">Terug naar het document</a>
-</div>
-<p class="lead">Links zie je het originele bestand, rechts wat het programma eruit heeft gelezen. Controleer vooral de gemarkeerde velden.</p>
+{{ page_header("Nakijken: " ~ document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Nakijken", None)], term="nakijken",
+   lead="Links zie je het originele bestand, rechts wat het programma eruit heeft gelezen. Controleer vooral de gemarkeerde velden.") }}
 
-{% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
-{% if errors %}
-<div class="alert" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
-{% endif %}
+{% if saved_notice %}{{ notice(saved_notice, "success") }}{% endif %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
 
 <div class="review-grid">
-  <section class="review-doc" aria-label="Origineel bestand">
-    {% if document.content_type == "application/pdf" %}
-    <iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>
-    {% else %}
-    <img class="file-view" src="/inbox/{{ document.id }}/bestand" alt="{{ document.original_filename }}">
-    {% endif %}
-    <p><a href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand in een nieuw tabblad</a></p>
+  <section class="review-doc card" aria-label="Origineel bestand">
+    <div class="card__body">
+      {% if document.content_type == "application/pdf" %}
+      <iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>
+      {% else %}
+      <img class="file-view" src="/inbox/{{ document.id }}/bestand" alt="{{ document.original_filename }}">
+      {% endif %}
+      <p><a href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand in een nieuw tabblad</a></p>
+    </div>
   </section>
 
   <section class="review-form">
   {% if not extraction %}
-    <h2>Nog niet uitgelezen</h2>
-    <p>Voor dit document is nog niets uitgelezen. Klik op 'Lees factuur uit' en het programma vult de gegevens voor je in.</p>
-    {% include "inbox/_extract_banner.html" %}
-    {% if document.status != "geboekt" %}{% with label="Lees factuur uit" %}{% include "inbox/_extract_button.html" %}{% endwith %}{% endif %}
+    <div class="card"><div class="card__body stack">
+      <h2>Nog niet uitgelezen</h2>
+      <p>Voor dit document is nog niets uitgelezen. Klik op 'Lees factuur uit' en het programma vult de gegevens voor je in.</p>
+      {% include "inbox/_extract_banner.html" %}
+      {% if document.status != "geboekt" %}{% with label="Lees factuur uit" %}{% include "inbox/_extract_button.html" %}{% endwith %}{% endif %}
+    </div></div>
 
   {% elif extraction.status != "ok" %}
-    <h2>Het uitlezen is niet gelukt</h2>
-    <div class="alert" role="alert"><p>{{ extraction.error_message or "Het uitlezen is niet gelukt. Probeer het opnieuw of vul de gegevens zelf in." }}</p></div>
-    {% include "inbox/_extract_banner.html" %}
-    {% if document.status != "geboekt" %}{% with label="Opnieuw proberen" %}{% include "inbox/_extract_button.html" %}{% endwith %}{% endif %}
+    <div class="card"><div class="card__body stack">
+      <h2>Het uitlezen is niet gelukt</h2>
+      {{ error_box(extraction.error_message or "Het uitlezen is niet gelukt. Probeer het opnieuw of vul de gegevens zelf in.") }}
+      {% include "inbox/_extract_banner.html" %}
+      {% if document.status != "geboekt" %}{% with label="Opnieuw proberen" %}{% include "inbox/_extract_button.html" %}{% endwith %}{% endif %}
+    </div></div>
 
   {% else %}
-    <p class="check-summary {{ 'has-flags' if check_count else 'all-ok' }}">
-      {% if check_count %}<strong>{{ check_count }} {{ "veld" if check_count == 1 else "velden" }} om te controleren</strong> {{ info("vertrouwen") }}
-      {% else %}Alles lijkt in orde, maar kijk het even na. {{ info("vertrouwen") }}{% endif %}
-    </p>
-    <p class="supplier-match">
-      {% if contact %}Bekende leverancier: <strong>{{ contact.name }}</strong> {{ info("leverancier") }}
-      {% else %}Nieuwe leverancier: wordt aangemaakt als je op Klaar met nakijken klikt. {{ info("leverancier") }}{% endif %}
-    </p>
+    {% if check_count %}
+    <div class="notice notice--warning check-summary has-flags" role="status">{{ icon("alert") }}<div><strong>{{ check_count }} {{ "veld" if check_count == 1 else "velden" }} om te controleren</strong> {{ info("vertrouwen") }}</div></div>
+    {% else %}
+    <div class="notice notice--success check-summary all-ok" role="status">{{ icon("check") }}<div>Alles lijkt in orde, maar kijk het even na. {{ info("vertrouwen") }}</div></div>
+    {% endif %}
     {% if extraction.kind == "credit_note" %}
-    <p class="notice">Dit is een creditnota {{ info("creditnota") }}. De bedragen staan positief, zoals op de factuur.</p>
+    <div class="notice notice--info" role="status">{{ icon("info") }}<div>Dit is een creditnota {{ info("creditnota") }}. De bedragen staan positief, zoals op de factuur.</div></div>
     {% endif %}
     {% if other_flags %}<div class="flag-list">{{ flagged(other_flags) }}</div>{% endif %}
     {% if extraction.notes %}<p class="hint">Opmerking van het programma: {{ extraction.notes }}</p>{% endif %}
 
     <form method="post" action="/inbox/{{ document.id }}/nakijken" class="stack" hx-boost="false">
       <input type="hidden" name="kind" value="{{ extraction.kind }}">
-      <fieldset class="fields review-fields">
-        <legend>Van welke leverancier? {{ info("leverancier") }}</legend>
-        <label class="grow">Naam <input name="supplier_name" value="{{ values.supplier_name }}" maxlength="255">{{ flagged(flags.get("supplier_name")) }}</label>
-        <label>KvK-nummer {{ info("kvk") }} <input name="supplier_kvk" value="{{ values.supplier_kvk }}" inputmode="numeric">{{ flagged(flags.get("supplier_kvk")) }}</label>
-        <label>Btw-nummer {{ info("btw_nummer") }} <input name="supplier_btw_number" value="{{ values.supplier_btw_number }}">{{ flagged(flags.get("supplier_btw_number")) }}</label>
-        <label>IBAN {{ info("iban") }} <input name="supplier_iban" value="{{ values.supplier_iban }}">{{ flagged(flags.get("supplier_iban")) }}</label>
-        <label class="grow">Adres <input name="supplier_address_line" value="{{ values.supplier_address_line }}">{{ flagged(flags.get("supplier_address_line")) }}</label>
-        <label>Postcode <input name="supplier_postal_code" value="{{ values.supplier_postal_code }}">{{ flagged(flags.get("supplier_postal_code")) }}</label>
-        <label>Plaats <input name="supplier_city" value="{{ values.supplier_city }}">{{ flagged(flags.get("supplier_city")) }}</label>
-        <label>Land <input name="supplier_country" value="{{ values.supplier_country }}" maxlength="2" placeholder="NL">{{ flagged(flags.get("supplier_country")) }}</label>
-      </fieldset>
 
-      <fieldset class="fields review-fields">
-        <legend>Over de factuur</legend>
-        <label>Factuurnummer <input name="invoice_number" value="{{ values.invoice_number }}">{{ flagged(flags.get("invoice_number")) }}</label>
-        <label>Factuurdatum {{ info("factuurdatum") }} <input name="invoice_date" value="{{ values.invoice_date }}" placeholder="dd-mm-jjjj">{{ flagged(flags.get("invoice_date")) }}</label>
-        <label>Vervaldatum <input name="due_date" value="{{ values.due_date }}" placeholder="dd-mm-jjjj">{{ flagged(flags.get("due_date")) }}</label>
-        <label>Valuta <input name="currency" value="{{ values.currency }}" maxlength="3" class="short">{{ flagged(flags.get("currency")) }}</label>
-      </fieldset>
+      <section class="card" aria-labelledby="sec-supplier">
+        <div class="card__header"><h2 id="sec-supplier">Van welke leverancier? {{ info("leverancier") }}</h2></div>
+        <div class="card__body stack">
+          <p class="supplier-match">
+            {% if contact %}Bekende leverancier: <strong>{{ contact.name }}</strong> {{ info("leverancier") }}
+            {% else %}Nieuwe leverancier: wordt aangemaakt als je op Klaar met nakijken klikt. {{ info("leverancier") }}{% endif %}
+          </p>
+          <div class="form-grid">
+            <div class="field span-2">
+              <label for="supplier_name">Naam</label>
+              <input id="supplier_name" name="supplier_name" value="{{ values.supplier_name }}" maxlength="255">{{ flagged(flags.get("supplier_name")) }}
+            </div>
+            <div class="field">
+              <label for="supplier_kvk">KvK-nummer {{ info("kvk") }}</label>
+              <input id="supplier_kvk" name="supplier_kvk" value="{{ values.supplier_kvk }}" inputmode="numeric">{{ flagged(flags.get("supplier_kvk")) }}
+            </div>
+            <div class="field">
+              <label for="supplier_btw_number">Btw-nummer {{ info("btw_nummer") }}</label>
+              <input id="supplier_btw_number" name="supplier_btw_number" value="{{ values.supplier_btw_number }}">{{ flagged(flags.get("supplier_btw_number")) }}
+            </div>
+            <div class="field span-2">
+              <label for="supplier_iban">IBAN {{ info("iban") }}</label>
+              <input id="supplier_iban" name="supplier_iban" value="{{ values.supplier_iban }}">{{ flagged(flags.get("supplier_iban")) }}
+            </div>
+            <div class="field span-2">
+              <label for="supplier_address_line">Adres</label>
+              <input id="supplier_address_line" name="supplier_address_line" value="{{ values.supplier_address_line }}">{{ flagged(flags.get("supplier_address_line")) }}
+            </div>
+            <div class="field">
+              <label for="supplier_postal_code">Postcode</label>
+              <input id="supplier_postal_code" name="supplier_postal_code" value="{{ values.supplier_postal_code }}">{{ flagged(flags.get("supplier_postal_code")) }}
+            </div>
+            <div class="field">
+              <label for="supplier_city">Plaats</label>
+              <input id="supplier_city" name="supplier_city" value="{{ values.supplier_city }}">{{ flagged(flags.get("supplier_city")) }}
+            </div>
+            <div class="field">
+              <label for="supplier_country">Land</label>
+              <input id="supplier_country" name="supplier_country" value="{{ values.supplier_country }}" maxlength="2" placeholder="NL">{{ flagged(flags.get("supplier_country")) }}
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <h2>Wat is er uitgegeven?</h2>
-      <div class="table-wrap">
-      <table class="data review-lines">
-        <thead><tr>
-          <th>Omschrijving</th>
-          <th>{{ term_label("grootrekening", "Op welke rekening boeken?") }}</th>
-          <th class="num">Bedrag zonder BTW</th>
-          <th>BTW-tarief {{ info("btw_tarief") }}</th>
-          <th class="num">Hoeveel BTW? {{ info("btw") }}</th>
-          <th><span class="visually-hidden">Verwijderen</span></th>
-        </tr></thead>
-        <tbody id="review-line-rows">
-          {% for ln in values.lines %}{% with line=ln, flags=line_flags[loop.index0] %}{% include "inbox/_review_line.html" %}{% endwith %}{% endfor %}
-        </tbody>
-      </table>
-      </div>
-      <p class="actions"><button type="button" class="btn btn-secondary" hx-get="/inbox/{{ document.id }}/nakijken/regel" hx-target="#review-line-rows" hx-swap="beforeend">Regel toevoegen</button></p>
-      <p class="hint">Staat er 'BTW verlegd' {{ info("verlegd") }} op de factuur? Kies dan het bijbehorende tarief en laat het BTW-bedrag leeg.</p>
+      <section class="card" aria-labelledby="sec-invoice">
+        <div class="card__header"><h2 id="sec-invoice">Over de factuur</h2></div>
+        <div class="card__body form-grid">
+          <div class="field">
+            <label for="invoice_number">Factuurnummer</label>
+            <input id="invoice_number" name="invoice_number" value="{{ values.invoice_number }}">{{ flagged(flags.get("invoice_number")) }}
+          </div>
+          <div class="field">
+            <label for="currency">Valuta</label>
+            <input id="currency" name="currency" value="{{ values.currency }}" maxlength="3" class="short">{{ flagged(flags.get("currency")) }}
+          </div>
+          <div class="field">
+            <label for="invoice_date">Factuurdatum {{ info("factuurdatum") }}</label>
+            <input id="invoice_date" name="invoice_date" value="{{ values.invoice_date }}" placeholder="dd-mm-jjjj">{{ flagged(flags.get("invoice_date")) }}
+          </div>
+          <div class="field">
+            <label for="due_date">Vervaldatum</label>
+            <input id="due_date" name="due_date" value="{{ values.due_date }}" placeholder="dd-mm-jjjj">{{ flagged(flags.get("due_date")) }}
+          </div>
+        </div>
+      </section>
 
-      <fieldset class="fields review-fields">
-        <legend>Totalen op de factuur</legend>
-        <label>Bedrag zonder BTW <input name="total_excl" value="{{ values.total_excl }}" inputmode="decimal" class="num" placeholder="0,00">{{ flagged(flags.get("total_excl")) }}</label>
-        <label>Totaal BTW <input name="total_vat" value="{{ values.total_vat }}" inputmode="decimal" class="num" placeholder="0,00">{{ flagged(flags.get("total_vat")) }}</label>
-        <label>Totaal incl. BTW <input name="total_incl" value="{{ values.total_incl }}" inputmode="decimal" class="num" placeholder="0,00">{{ flagged(flags.get("total_incl")) }}</label>
-      </fieldset>
-      {% if flags.get("totals") %}<div class="flag-list">{{ flagged(flags.get("totals")) }}</div>{% endif %}
-      <label class="check"><input type="checkbox" name="totals_override" value="1"{% if values.totals_override %} checked{% endif %}> Het totaal klopt niet met de regels, ik weet het</label>
+      <section class="card card--flush" aria-labelledby="sec-lines">
+        <div class="card__header"><h2 id="sec-lines">Wat is er uitgegeven?</h2></div>
+        <div class="table-wrap">
+        <table class="data review-lines">
+          <thead><tr>
+            <th>Omschrijving</th>
+            <th>{{ term_label("grootrekening", "Op welke rekening boeken?") }}</th>
+            <th class="num">Bedrag zonder BTW</th>
+            <th>BTW-tarief {{ info("btw_tarief") }}</th>
+            <th class="num">Hoeveel BTW? {{ info("btw") }}</th>
+            <th><span class="visually-hidden">Verwijderen</span></th>
+          </tr></thead>
+          <tbody id="review-line-rows">
+            {% for ln in values.lines %}{% with line=ln, flags=line_flags[loop.index0] %}{% include "inbox/_review_line.html" %}{% endwith %}{% endfor %}
+          </tbody>
+        </table>
+        </div>
+        <div class="card__footer stack">
+          <div><button type="button" class="btn btn-secondary" hx-get="/inbox/{{ document.id }}/nakijken/regel" hx-target="#review-line-rows" hx-swap="beforeend">{{ icon("plus") }}Regel toevoegen</button></div>
+          <p class="hint">Staat er 'BTW verlegd' {{ info("verlegd") }} op de factuur? Kies dan het bijbehorende tarief en laat het BTW-bedrag leeg.</p>
+        </div>
+      </section>
 
-      <p class="actions">
+      <section class="card" aria-labelledby="sec-totals">
+        <div class="card__header"><h2 id="sec-totals">Totalen op de factuur</h2></div>
+        <div class="card__body stack">
+          <div class="form-grid form-grid--3">
+            <div class="field">
+              <label for="total_excl">Bedrag zonder BTW</label>
+              <input id="total_excl" name="total_excl" value="{{ values.total_excl }}" inputmode="decimal" class="num" placeholder="0,00">{{ flagged(flags.get("total_excl")) }}
+            </div>
+            <div class="field">
+              <label for="total_vat">Totaal BTW</label>
+              <input id="total_vat" name="total_vat" value="{{ values.total_vat }}" inputmode="decimal" class="num" placeholder="0,00">{{ flagged(flags.get("total_vat")) }}
+            </div>
+            <div class="field">
+              <label for="total_incl">Totaal incl. BTW</label>
+              <input id="total_incl" name="total_incl" value="{{ values.total_incl }}" inputmode="decimal" class="num" placeholder="0,00">{{ flagged(flags.get("total_incl")) }}
+            </div>
+          </div>
+          {% if flags.get("totals") %}<div class="flag-list">{{ flagged(flags.get("totals")) }}</div>{% endif %}
+          <label class="check"><input type="checkbox" name="totals_override" value="1"{% if values.totals_override %} checked{% endif %}> Het totaal klopt niet met de regels, ik weet het</label>
+        </div>
+      </section>
+
+      <div class="form-actions">
         <button type="submit" name="actie" value="opslaan" class="btn btn-secondary">Opslaan</button>
-        <button type="submit" name="actie" value="klaar" class="btn">Klaar met nakijken</button>
+        <button type="submit" name="actie" value="klaar" class="btn">{{ icon("check") }}Klaar met nakijken</button>
         <a href="/inbox">Annuleren</a>
-      </p>
+      </div>
     </form>
     {% if document.status != "geboekt" %}
     <details class="reextract">
       <summary>Opnieuw uitlezen</summary>
       <p class="hint">Je aanpassingen worden vervangen door een nieuwe uitlezing.</p>
-      {% with label="Opnieuw uitlezen", confirm="Opnieuw uitlezen? Wat je hebt aangepast worden vervangen." %}{% include "inbox/_extract_button.html" %}{% endwith %}
+      {% with label="Opnieuw uitlezen", confirm="Opnieuw uitlezen? Wat je hebt aangepast worden vervangen.", secondary=true %}{% include "inbox/_extract_button.html" %}{% endwith %}
     </details>
     {% endif %}
   {% endif %}

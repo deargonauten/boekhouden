@@ -1,0 +1,19 @@
+/* Relaties: only screen-specific layout; shared looks live in app.css. */
+.contact-name { display: inline-flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.contact-name a { color: var(--fg); font-weight: 600; text-decoration: none; }
+.contact-name a:hover { color: var(--primary); text-decoration: underline; }
+.avatar {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary-soft); color: var(--primary); font-size: var(--text-sm); font-weight: 700;
+}
+tr.inactive .avatar { background: var(--surface-2); color: var(--muted); }
+.relation-form { max-width: 48rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); }
+.form-grid .span-2 { grid-column: 1 / -1; }
+.form-grid .field input { width: 100%; }
+.role-options { display: flex; flex-direction: column; gap: var(--space-3); border: 0; padding: 0; margin: 0; }
+.role-options legend { padding: 0; margin-bottom: var(--space-2); font-weight: 500; }
+@media (max-width: 599px) {
+  .form-grid { grid-template-columns: minmax(0, 1fr); }
+}

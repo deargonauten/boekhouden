@@ -321,7 +321,7 @@ def _review_page(
     status: int = 200,
     values: dict | None = None,
     errors: list[str] | None = None,
-    notice: str | None = None,
+    saved_notice: str | None = None,
 ):
     try:
         extraction = get_extraction(session, document.id)
@@ -332,7 +332,7 @@ def _review_page(
         "document": document,
         "extraction": extraction,
         "errors": errors or [],
-        "notice": notice,
+        "saved_notice": saved_notice,
         "no_account_hint": NO_ACCOUNT_HINT,
         "level_labels": LEVEL_LABELS,
         "field_labels": FIELD_LABELS,
@@ -371,7 +371,7 @@ def review_page(
     document = _load(session, document_id)
     if document is None:
         return web.not_found_response(request)
-    return _review_page(request, session, document, notice=SAVED_MESSAGE if melding == "opgeslagen" else None)
+    return _review_page(request, session, document, saved_notice=SAVED_MESSAGE if melding == "opgeslagen" else None)
 
 
 @router.get("/inbox/{document_id:int}/nakijken/regel")

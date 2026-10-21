@@ -1,42 +1,62 @@
 {% extends "base.html" %}
-{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, pill, error_box, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>{{ document.original_filename }}</h1>
-  <a href="/inbox">Terug naar alle documenten</a>
-</div>
-<dl class="facts">
-  <dt>Type</dt><dd>{{ kind_label(document.content_type) }}</dd>
-  <dt>Grootte</dt><dd>{{ document.size_bytes|bestandsgrootte }}</dd>
-  <dt>Toegevoegd op</dt><dd>{{ document.received_at|datum_tijd }}</dd>
-  <dt>Bron</dt><dd>{{ SOURCE_LABELS.get(document.source, document.source) }}</dd>
-  <dt>Status</dt>
-  <dd>
-    <span class="badge badge-{{ document.status }}">{{ status_label }}</span>
-    {% if document.status == "nieuw" %}{{ info("status_nieuw") }} Nog niet verwerkt.
-    {% elif document.status == "herkend" %}{{ info("status_herkend") }}
-    {% else %}{{ info("status_geboekt") }}
-    {% endif %}
-  </dd>
-  {% if document.status == "geboekt" and document.journal_entry_id %}
-  <dt>Boeking {{ info("boeking") }}</dt><dd><a href="/boeken/{{ document.journal_entry_id }}">Bekijk de boeking</a></dd>
+{% call page_header(document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, None)]) %}
+<a class="btn btn-secondary" href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">{{ icon("file") }}Open origineel bestand</a>
+{% endcall %}
+
+<div class="stack">
+  <section class="card" aria-labelledby="facts-title">
+    <div class="card__header"><h2 id="facts-title">Gegevens van het bestand</h2></div>
+    <div class="card__body">
+      <dl class="facts">
+        <dt>Type</dt><dd>{{ kind_label(document.content_type) }}</dd>
+        <dt>Grootte</dt><dd>{{ document.size_bytes|bestandsgrootte }}</dd>
+        <dt>Toegevoegd op</dt><dd>{{ document.received_at|datum_tijd }}</dd>
+        <dt>Bron</dt><dd>{{ SOURCE_LABELS.get(document.source, document.source) }}</dd>
+        <dt>Status</dt>
+        <dd>
+          {{ pill(status_label, {"nieuw": "info", "herkend": "warning", "geboekt": "success"}.get(document.status, "neutral")) }}
+          {% if document.status == "nieuw" %}{{ info("status_nieuw") }} Nog niet verwerkt.
+          {% elif document.status == "herkend" %}{{ info("status_herkend") }}
+          {% else %}{{ info("status_geboekt") }}
+          {% endif %}
+        </dd>
+        {% if document.status == "geboekt" and document.journal_entry_id %}
+        <dt>Boeking {{ info("boeking") }}</dt><dd><a href="/boeken/{{ document.journal_entry_id }}">Bekijk de boeking</a></dd>
+        {% endif %}
+        <dt>Vingerafdruk van het bestand {{ info("vingerafdruk") }}</dt><dd><span class="fingerprint">{{ document.sha256 }}</span></dd>
+      </dl>
+      <p class="hint">Dit bestand wordt bewaard en nooit verwijderd (bewaarplicht {{ info("bewaarplicht") }}).</p>
+    </div>
+  </section>
+
+  {% if extract_error %}{{ error_box(extract_error) }}{% endif %}
+  {% if document.status != "geboekt" %}
+  <section class="card" aria-labelledby="next-title">
+    <div class="card__header"><h2 id="next-title">Volgende stap</h2></div>
+    <div class="card__body stack">
+      {% include "inbox/_extract_banner.html" %}
+      {% if document.status == "nieuw" %}
+      {% include "inbox/_extract_button.html" %}
+      {% else %}
+      <p class="cluster"><a class="btn" href="/inbox/{{ document.id }}/nakijken">Nakijken</a> {{ info("nakijken") }}</p>
+      {% endif %}
+    </div>
+  </section>
   {% endif %}
-  <dt>Vingerafdruk van het bestand {{ info("vingerafdruk") }}</dt><dd><span class="fingerprint">{{ document.sha256 }}</span></dd>
-</dl>
-<p class="hint">Dit bestand wordt bewaard en nooit verwijderd (bewaarplicht {{ info("bewaarplicht") }}).</p>
-{% if extract_error %}<div class="alert" role="alert"><p>{{ extract_error }}</p></div>{% endif %}
-{% if document.status != "geboekt" %}
-{% include "inbox/_extract_banner.html" %}
-{% if document.status == "nieuw" %}
-{% include "inbox/_extract_button.html" %}
-{% else %}
-<p><a class="btn" href="/inbox/{{ document.id }}/nakijken">Nakijken</a> {{ info("nakijken") }}</p>
-{% endif %}
-{% endif %}
-<p><a class="btn btn-secondary" href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand</a></p>
-{% if document.content_type == "application/pdf" %}
-<iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>
-{% else %}
-<img class="file-view" src="/inbox/{{ document.id }}/bestand" alt="{{ document.original_filename }}">
-{% endif %}
+
+  <section class="card" aria-labelledby="preview-title">
+    <div class="card__header"><h2 id="preview-title">Het bestand</h2></div>
+    <div class="card__body">
+      {% if document.content_type == "application/pdf" %}
+      <iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>
+      {% else %}
+      <img class="file-view" src="/inbox/{{ document.id }}/bestand" alt="{{ document.original_filename }}">
+      {% endif %}
+    </div>
+  </section>
+</div>
 {% endblock %}

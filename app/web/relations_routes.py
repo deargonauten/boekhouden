@@ -15,7 +15,7 @@ from app.domain.relations import (
     create_contact,
     format_iban,
     get_contact,
-    list_contacts,
+    list_contacts_page,
     set_contact_active,
     update_contact,
 )
@@ -23,6 +23,7 @@ from app.domain.relations import (
 router = APIRouter(include_in_schema=False)
 
 SOORT_TO_ROLE = {"klant": "customer", "leverancier": "supplier"}
+PER_PAGE = 50
 FORM_FIELDS = (
     "name", "kvk", "btw_number", "iban", "address_line", "postal_code",
     "city", "country", "email", "phone", "notes",
@@ -95,31 +96,37 @@ def contacts_list(
     soort: str = "",
     q: str = "",
     gearchiveerd: str = "",
+    page: str = "1",
     toegevoegd: int | None = None,
     bijgewerkt: int | None = None,
     session: Session = Depends(get_session),
 ):
     include_archived = gearchiveerd == "1"
-    contacts = list_contacts(
+    result = list_contacts_page(
         session,
         role=SOORT_TO_ROLE.get(soort),
         q=q.strip() or None,
         include_archived=include_archived,
+        page=int(page) if page.strip().isdigit() else 1,
+        per_page=PER_PAGE,
     )
-    notice = None
+    flash = None
     for contact_id, verb in ((toegevoegd, "toegevoegd"), (bijgewerkt, "bijgewerkt")):
         found = _load(session, contact_id) if contact_id else None
         if found:
-            notice = f"Relatie {found.name} is {verb}."
+            flash = f"Relatie {found.name} is {verb}."
     return _render(
         request,
         "relations/list.html",
         title="Relaties",
-        contacts=contacts,
+        contacts=result.items,
+        page=result.page,
+        per_page=result.per_page,
+        total=result.total,
         soort=soort if soort in SOORT_TO_ROLE else "",
         q=q,
         include_archived=include_archived,
-        notice=notice,
+        flash=flash,
         filtered=bool(q.strip() or soort in SOORT_TO_ROLE or include_archived),
     )
 

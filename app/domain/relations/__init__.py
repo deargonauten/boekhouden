@@ -7,9 +7,11 @@ from app.domain.relations.matching import (
     match_or_create_contact,
 )
 from app.domain.relations.service import (
+    ContactPage,
     create_contact,
     get_contact,
     list_contacts,
+    list_contacts_page,
     set_contact_active,
     update_contact,
 )

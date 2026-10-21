@@ -189,3 +189,19 @@ def test_no_delete_api():
 
     for mod in (relations, service):
         assert not any("delete" in n.lower() or "remove" in n.lower() for n in dir(mod))
+
+
+def test_list_contacts_page_slices_and_clamps(session):
+    from app.domain.relations import list_contacts_page
+
+    for n in range(5):
+        mk(session, name=f"Naam {n}", is_supplier=True)
+    page = list_contacts_page(session, per_page=2, page=2)
+    assert [c.name for c in page.items] == ["Naam 2", "Naam 3"]
+    assert (page.total, page.page, page.per_page) == (5, 2, 2)
+    assert list_contacts_page(session, per_page=2, page=0).page == 1
+    last = list_contacts_page(session, per_page=2, page=99)
+    assert last.page == 3 and [c.name for c in last.items] == ["Naam 4"]
+    empty = list_contacts_page(session, q="nope", per_page=2, page=5)
+    assert empty.items == [] and empty.total == 0 and empty.page == 1
+    assert list_contacts_page(session, q="naam 1").total == 1

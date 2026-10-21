@@ -408,3 +408,25 @@ def test_extraction_pages_are_plain_language(client):
         f"/inbox/{ok_id}",
     ):
         assert_plain_language(client, url)
+
+
+def test_review_redesign_markup_and_plain_language(client):
+    from tests.web_helpers import assert_plain_language
+
+    doc_id = read_out(client)
+    flags = [{"field": "invoice_date", "level": "medium", "reason": "Controleer de datum"}]
+    with client.app.state.engine.begin() as conn:
+        conn.execute(text("UPDATE invoice_extraction SET flags_json = :f"), {"f": json.dumps(flags)})
+    html = assert_plain_language(client, f"/inbox/{doc_id}/nakijken")
+    assert 'href="/static/css/inbox.css"' in html and 'class="breadcrumb"' in html
+    assert "notice notice--warning" in html and "pill pill--warning" in html
+    for heading in ("Van welke leverancier?", "Over de factuur", "Wat is er uitgegeven?", "Totalen op de factuur"):
+        assert heading in html
+    assert 'class="form-actions"' in html and "Klaar met nakijken" in html
+    assert 'for="supplier_name"' in html
+
+
+def test_review_saved_notice_is_a_status_notice(client):
+    doc_id = read_out(client)
+    html = client.get(f"/inbox/{doc_id}/nakijken?melding=opgeslagen").text
+    assert "notice notice--success" in html and "Opgeslagen." in html

@@ -1,1 +1,2 @@
-{% if errors %}<div class="alert" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+{% from "partials/_ui.html" import error_box with context %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
