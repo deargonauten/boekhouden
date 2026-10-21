@@ -1,35 +1,38 @@
 {% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
 {% block content %}
 <h1>Nieuwe boeking</h1>
+<p class="lead">Met een handmatige boeking leg je zelf vast wat er gebeurd is. {{ info("boeking") }} Elke boeking heeft twee kanten die even groot moeten zijn {{ info("balans_evenwicht") }}: debet {{ info("debet") }} en credit {{ info("credit") }}.</p>
 {% if errors %}
 <div class="alert" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
 {% endif %}
 <form method="post" action="/boeken/nieuw" class="stack" hx-boost="false">
   <div class="fields">
-    <label>Dagboek
+    <label>{{ term_label("dagboek", "In welk dagboek?") }}
       <select name="journal_id" required>
-        <option value="">Kies dagboek</option>
+        <option value="">Kies een dagboek</option>
         {% for j in journals %}<option value="{{ j.id }}"{% if values.journal_id == j.id|string %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
       </select>
     </label>
     <label>Datum <input type="date" name="booking_date" value="{{ values.booking_date }}" required></label>
-    <label class="grow">Omschrijving <input name="description" value="{{ values.description }}" maxlength="255" required></label>
-    <label>Referentie <input name="reference" value="{{ values.reference }}"></label>
+    <label class="grow">Waar gaat het over? (Omschrijving) <input name="description" value="{{ values.description }}" maxlength="255" required></label>
+    <label>Referentie (bijv. factuurnummer) {{ info("referentie") }} <input name="reference" value="{{ values.reference }}"></label>
   </div>
   <div class="table-wrap">
   <table class="data" id="lines">
-    <thead><tr><th>Grootrekening</th><th class="num">Debet</th><th class="num">Credit</th><th>Btw-code</th><th>Omschrijving</th></tr></thead>
+    <thead><tr><th>{{ term_label("grootrekening", "Rekening") }}</th><th class="num">{{ term_label("debet", "Bedrag links") }}</th><th class="num">{{ term_label("credit", "Bedrag rechts") }}</th><th>{{ term_label("btw_code", "Btw-tarief") }}</th><th>Toelichting</th></tr></thead>
     <tbody id="line-rows">
       {% for row in rows %}{% include "ledger/_line_row.html" %}{% endfor %}
     </tbody>
     {% if totals %}
     <tfoot>
-      <tr><th>Totaal</th><td class="num">{{ totals.debit|euro }}</td><td class="num">{{ totals.credit|euro }}</td><td colspan="2"></td></tr>
-      <tr><th>Verschil</th><td class="num" colspan="2">{{ totals.difference|euro }}</td><td colspan="2"></td></tr>
+      <tr><th>Totaal debet / credit</th><td class="num">{{ totals.debit|euro }}</td><td class="num">{{ totals.credit|euro }}</td><td colspan="2"></td></tr>
+      <tr><th>Verschil</th><td class="num" colspan="2">{{ totals.difference|abs|euro }}</td><td colspan="2">{% if totals.difference != 0 %}Er ontbreekt {{ totals.difference|abs|euro }} aan de {{ "credit" if totals.difference > 0 else "debet" }}kant.{% endif %}</td></tr>
     </tfoot>
     {% endif %}
   </table>
   </div>
+  <p class="hint">Gaat het om een bedrag met btw? Kies dan bij de regel het btw-tarief {{ info("btw") }}. Anders laat je 'Geen btw' staan.</p>
   <p class="actions">
     <button type="button" class="btn btn-secondary" hx-get="/boeken/nieuw/regel" hx-target="#line-rows" hx-swap="beforeend">Regel toevoegen</button>
     <button type="submit" class="btn">Boeken</button>
