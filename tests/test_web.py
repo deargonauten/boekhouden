@@ -1,10 +1,6 @@
 import re
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.staticfiles import StaticFiles
 
 from app import web
 from app.web.navigation import NAV_ITEMS, mark_active
