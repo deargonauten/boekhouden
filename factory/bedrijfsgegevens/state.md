@@ -2,7 +2,7 @@
 Feature: Bedrijfsgegevens (backlog item 1, feature 35)
 Base branch: main
 Branch: factory/bedrijfsgegevens
-Step: 3 (review round 1) — integrated, 1122 tests pass; 4 reviewers running
+Step: 4 (approval) — all 4 reviews PASS in round 1; approver running
 Spec writer id: a1a57d9ddb15b9eae
 Review round: 1
 Human rework rounds: 0
