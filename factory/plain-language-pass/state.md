@@ -1,6 +1,6 @@
 # State
 feature: Plain-language pass
-step: 4 (approval)
+step: COMPLETED
 branch: factory/plain-language-pass (from main)
 review_round: 1
 human_rework_rounds: 0
