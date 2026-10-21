@@ -13,7 +13,7 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [x] Restyle naar MoneyMonk-achtig design: header band, drawer, modals, stat cards, instellingen-menu, /help, mobiel (done 2026-10-21)
 
 <!-- Open items, op prioriteit (afhankelijkheden meegewogen). Gesorteerd 2026-10-21. -->
-- [~] Bedrijfsgegevens: eigen naam, adres, KvK, BTW-id, IBAN in Instellingen (nodig voor facturen en aangifte) (feature 35)
+- [x] Bedrijfsgegevens: eigen naam, adres, KvK, BTW-id, IBAN in Instellingen (nodig voor facturen en aangifte) (feature 35) (done 2026-10-21)
 - [ ] Grootboek-verfijning: standaard btw-code per rekening als suggestie + "selecteerbaar bij" voor kortere keuzelijsten; btw-codes beheren met rubriek-koppeling (features 32, 33, 20)
 - [ ] Purchase booking flow: approve extracted invoice → inkoopfactuur + journal entry, VAT codes, learned supplier→grootboek defaults, crediteuren
 - [ ] Bank statement import: CAMT.053 / MT940 / CSV (ING, Rabobank, ABN AMRO, bunq), bankrekeningen, duplicate detection
