@@ -7,6 +7,15 @@ Local, single-user Dutch bookkeeping for an eenmanszaak/VOF. See `CLAUDE.md` for
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) (plain `pip install -e .` also works)
 
+## Quick start
+
+```sh
+./boekhouden          # setup + migrate + start
+./boekhouden update   # git pull, deps, migrate
+./boekhouden test     # pytest
+./boekhouden help
+```
+
 ## Setup
 
 ```sh

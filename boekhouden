@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# One-line entry point: ./boekhouden [start|update|migrate|test|health|help]
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+setup() {
+  command -v uv >/dev/null || { echo "uv is niet geïnstalleerd: https://docs.astral.sh/uv/" >&2; exit 1; }
+  [ -f .env ] || { cp .env.example .env; echo "→ .env aangemaakt uit .env.example"; }
+  uv sync --quiet
+}
+
+cmd="${1:-start}"
+case "$cmd" in
+  start)    setup; exec ./run.sh ;;                       # deps + .env + migraties + server
+  update)   git pull --ff-only; setup; uv run alembic upgrade head; echo "→ bijgewerkt" ;;
+  migrate)  setup; uv run alembic upgrade head ;;
+  test)     setup; shift; uv run pytest "$@" ;;
+  health)   curl -fsS "http://${APP_HOST:-127.0.0.1}:${APP_PORT:-8000}/health"; echo ;;
+  help|-h|--help)
+    echo "Gebruik: ./boekhouden [start|update|migrate|test|health]"
+    echo "  start    (standaard) installeer deps, maak .env, migreer, start de app"
+    echo "  update   git pull, deps bijwerken, migreren"
+    echo "  migrate  alleen database-migraties uitvoeren"
+    echo "  test     pytest draaien"
+    echo "  health   /health van de draaiende app opvragen" ;;
+  *) echo "Onbekend commando: $cmd (zie ./boekhouden help)" >&2; exit 2 ;;
+esac
