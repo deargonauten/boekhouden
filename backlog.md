@@ -3,7 +3,7 @@
 Format: one feature per line. `/factory next` picks the first `[ ]` item.
 Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 
-- [ ] Project skeleton: FastAPI app, SQLite + Alembic, pytest, base layout (sidebar like MoneyMonk), `.env` config, run script
+- [~] Project skeleton: FastAPI app, SQLite + Alembic, pytest, base layout (sidebar like MoneyMonk), `.env` config, run script
 - [ ] Core ledger: RGS-based grootboekschema seed, dagboeken, double-entry journal entries (integer cents, must balance, append-only with storno), boekjaar/periodes with locking
 - [ ] Relations: contacts (klanten/leveranciers) with KvK, BTW-nummer, IBAN, address; auto-match/create from extracted invoice data
 - [ ] Document inbox: manual upload of PDF/image invoices and receipts, content-addressed storage in `data/documents/`, inbox list with status (nieuw / herkend / geboekt)
