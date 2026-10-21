@@ -1,4 +1,4 @@
-step: REVIEW (round 2)
+step: COMPLETED
 branch: factory/document-inbox
 base: main
 round: 2

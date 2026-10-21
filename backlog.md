@@ -8,8 +8,8 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [x] Plain-language pass: create `app/domain/glossary.py` (term → short Dutch explanation) and an info-icon/tooltip component; retrofit existing screens (sidebar, grootboek, dagboeken, journal entries, periodes) with plain-Dutch labels next to bookkeeping terms, explainers, suggested defaults and plain-Dutch error messages (see CLAUDE.md "usable without bookkeeping knowledge"); test that every term used in templates has a glossary entry (done 2026-10-21)
 - [x] Relations: contacts (klanten/leveranciers) with KvK, BTW-nummer, IBAN, address; auto-match/create from extracted invoice data (done 2026-10-21)
 
-- [~] Document inbox: manual upload of PDF/image invoices and receipts, content-addressed storage in `data/documents/`, inbox list with status (nieuw / herkend / geboekt)
-- [ ] AI invoice extraction via Claude API: supplier details, invoice date, number, lines with amount, VAT rate/amount, suggested grootboek; confidence flags; review screen with PDF side-by-side
+- [x] Document inbox: manual upload of PDF/image invoices and receipts, content-addressed storage in `data/documents/`, inbox list with status (nieuw / herkend / geboekt) (done 2026-10-21)
+- [ ] AI invoice extraction via Claude API: supplier details, invoice date, number, lines with amount, VAT rate/amount, suggested grootboek; confidence flags; review screen with PDF side-by-side. Use OAuth flow - so it can be used within the user's paid plan
 - [ ] Purchase booking flow: approve extracted invoice → inkoopfactuur + journal entry, VAT codes, learned supplier→grootboek defaults, crediteuren
 - [ ] Email intake: IMAP polling of dedicated mailbox, extract attachments (PDF/image, also nested/forwarded .eml), dedupe, feed into inbox
 - [ ] Bank statement import: CAMT.053 / MT940 / CSV (ING, Rabobank, ABN AMRO, bunq), bankrekeningen, duplicate detection
