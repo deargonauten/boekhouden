@@ -5,8 +5,8 @@
    or with a primary action: {% call settings_header("Grootboek") %}<a class="btn" ...>..</a>{% endcall %} #}
 {% from "partials/_ui.html" import page_header with context %}
 {% macro settings_header(current) -%}
-{%- set titles = {"Grootboek": "Rekeningen (grootboek)"} -%}
-{%- set terms = {"Dagboeken": "dagboek"} -%}
+{%- set titles = {"Grootboek": "Rekeningen (grootboek)", "Bedrijfsgegevens": "Jouw bedrijfsgegevens"} -%}
+{%- set terms = {"Dagboeken": "dagboek", "Bedrijfsgegevens": "bedrijfsgegevens"} -%}
 {%- set extra -%}{% if caller is defined %}{{ caller() }}{% endif %}{%- endset -%}
 {%- if extra|trim -%}
 {% call page_header(titles.get(current, current), breadcrumb=[("Instellingen", "/instellingen/grootboek"), (current, None)], term=terms.get(current), icon_name="settings") %}{{ extra }}{% endcall %}

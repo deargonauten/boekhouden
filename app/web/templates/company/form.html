@@ -1,0 +1,96 @@
+{% extends "base_settings.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import notice, error_box with context %}
+{% from "ledger/_settings_nav.html" import settings_header with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/relations.css">{% endblock %}
+{% block settings_header %}{{ settings_header("Bedrijfsgegevens") }}{% endblock %}
+{% block settings_content %}
+<p class="lead">Dit zijn de gegevens van jouw bedrijf. Ze komen straks op je verkoopfacturen en in je btw-aangifte. {{ info("btw") }} {{ info("bedrijfsgegevens") }}</p>
+{% if flash %}{{ notice(flash, "success") }}{% endif %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+{% if missing %}{{ notice("Voor het maken van facturen ontbreekt nog: " ~ missing|join(", ") ~ ".", "warning") }}
+{% else %}{{ notice("Je bedrijfsgegevens zijn compleet voor facturen.", "success") }}{% endif %}
+<form method="post" action="/instellingen/bedrijfsgegevens" class="stack relation-form" hx-boost="false">
+  <section class="card">
+    <div class="card__header"><h2>Wie ben je?</h2></div>
+    <div class="card__body form-grid">
+      <div class="field span-2">
+        <label for="legal_name">Naam van je bedrijf of je eigen naam <span class="required" aria-hidden="true"></span></label>
+        <input id="legal_name" name="legal_name" value="{{ values.legal_name }}" maxlength="200" required>
+      </div>
+      <div class="field">
+        <label for="trade_name">{{ term_label("handelsnaam", "Handelsnaam (als die anders is)") }}</label>
+        <input id="trade_name" name="trade_name" value="{{ values.trade_name }}" maxlength="200">
+      </div>
+      <div class="field">
+        <label for="legal_form">{{ term_label("rechtsvorm", "Soort onderneming") }}</label>
+        <select id="legal_form" name="legal_form">
+          <option value="eenmanszaak"{% if values.legal_form != "vof" %} selected{% endif %}>Eenmanszaak (je werkt alleen)</option>
+          <option value="vof"{% if values.legal_form == "vof" %} selected{% endif %}>VOF (je werkt samen met een partner)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Adres</h2></div>
+    <div class="card__body form-grid">
+      <div class="field span-2">
+        <label for="address_line">Adres (straat en huisnummer)</label>
+        <input id="address_line" name="address_line" value="{{ values.address_line }}">
+      </div>
+      <div class="field">
+        <label for="postal_code">Postcode</label>
+        <input id="postal_code" name="postal_code" value="{{ values.postal_code }}" maxlength="12">
+      </div>
+      <div class="field">
+        <label for="city">Plaats</label>
+        <input id="city" name="city" value="{{ values.city }}">
+      </div>
+      <div class="field">
+        <label for="country">Land (2 letters)</label>
+        <input id="country" name="country" value="{{ values.country }}" maxlength="2" size="3">
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Nummers</h2></div>
+    <div class="card__body form-grid">
+      <div class="field">
+        <label for="kvk">{{ term_label("kvk", "Inschrijfnummer Kamer van Koophandel") }}</label>
+        <input id="kvk" name="kvk" value="{{ values.kvk }}" inputmode="numeric" aria-describedby="kvk-hint">
+        <p class="field__hint hint" id="kvk-hint">8 cijfers, bijvoorbeeld 12345678. Staat op je uittreksel van de Kamer van Koophandel.</p>
+      </div>
+      <div class="field">
+        <label for="btw_id">{{ term_label("btw_id", "Btw-identificatienummer") }}</label>
+        <input id="btw_id" name="btw_id" value="{{ values.btw_id }}" aria-describedby="btw-hint">
+        <p class="field__hint hint" id="btw-hint">Staat op je btw-aangifte en op brieven van de Belastingdienst, bijvoorbeeld NL123456789B01.</p>
+      </div>
+      <div class="field span-2">
+        <label for="iban">{{ term_label("iban", "Bankrekeningnummer") }}</label>
+        <input id="iban" name="iban" value="{{ values.iban }}" aria-describedby="iban-hint">
+        <p class="field__hint hint" id="iban-hint">Komt op je facturen, zodat klanten weten waar ze naartoe moeten betalen.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Contact</h2></div>
+    <div class="card__body form-grid">
+      <div class="field">
+        <label for="email">E-mailadres</label>
+        <input id="email" type="email" name="email" value="{{ values.email }}">
+      </div>
+      <div class="field">
+        <label for="phone">Telefoon</label>
+        <input id="phone" name="phone" value="{{ values.phone }}">
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <button type="submit" class="btn">Opslaan</button>
+  </div>
+</form>
+{% endblock %}

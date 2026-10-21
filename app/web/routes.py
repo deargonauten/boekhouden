@@ -6,6 +6,7 @@ from app.web.ledger_routes import router as ledger_router
 from app.web.inbox_routes import router as inbox_router
 from app.web.extraction_routes import router as extraction_router
 from app.web.relations_routes import router as relations_router
+from app.web.company_routes import router as company_router
 from app.domain.glossary import terms_alphabetical
 from app.web.navigation import NAV_ITEMS, NavItem
 
@@ -13,6 +14,7 @@ router = APIRouter()
 # Registered first: these nav keys are served by the ledger router, not the placeholder.
 router.include_router(ledger_router)
 router.include_router(relations_router)
+router.include_router(company_router)
 router.include_router(inbox_router)
 router.include_router(extraction_router)
 LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox"}

@@ -64,6 +64,10 @@ class SettingsGroup:
 # Second navigation column on the settings pages (templates/base_settings.html). Only existing pages.
 SETTINGS_NAV: list[SettingsGroup] = [
     SettingsGroup(
+        "Mijn bedrijf",
+        (SettingsItem("Bedrijfsgegevens", "/instellingen/bedrijfsgegevens", "bedrijfsgegevens"),),
+    ),
+    SettingsGroup(
         "Boekhouding",
         (
             SettingsItem("Grootboek", "/instellingen/grootboek", "grootboek"),
