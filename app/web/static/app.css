@@ -273,6 +273,10 @@ html.sidebar-collapsed .sidebar-toggle .icon-expand { display: inline; }
   .sidebar-toggle { display: none; }
   .nav-group--pinned { margin-top: var(--space-3); }
   .content { --edge: var(--space-4); padding-bottom: var(--space-7); }
+  /* No sideways page scroll on phones (tables/tab strips scroll inside their own wrapper):
+     hidden .info-tip bubbles and wide table wrappers must not widen the page. */
+  .content { overflow-x: clip; }
+  .card--flush { contain: paint; }
   .page-header { padding-top: var(--space-4); padding-bottom: var(--space-4); }
   .page-header:has(.page-header__tabs) { padding-bottom: 0; }
   .page-header__title h1 { font-size: 24px; }
@@ -485,7 +489,7 @@ a[aria-current="page"] .tab__count { background: var(--primary-soft); color: var
 .toolbar__spacer { flex: 1 1 0; }
 @media (max-width: 899px) {
   .toolbar { padding: var(--space-3) var(--space-4); flex-direction: column; align-items: stretch; }
-  .toolbar__search { max-width: none; }
+  .toolbar__search { max-width: none; flex: 0 0 auto; }
   .toolbar__spacer { display: none; }
   .tabs, .subnav, .status-filter { padding: 0 var(--space-4); gap: var(--space-4); overflow-x: auto; flex-wrap: nowrap; }
   .tabs .tab, .tabs a { white-space: nowrap; }

@@ -51,3 +51,12 @@
   .settings-form--inline { grid-template-columns: minmax(0, 1fr); }
   .totals-block { padding: var(--space-3) var(--space-4); }
 }
+
+/* Boeking detail "Regels": in the narrow drawer and on phones drop the least important columns
+   (line number, Toelichting) so both amounts stay visible; the rest may scroll inside its wrapper. */
+.drawer .lines-detail .col-nr, .drawer .lines-detail .col-note { display: none; }
+@media (max-width: 899px) {
+  .lines-detail .col-nr, .lines-detail .col-note { display: none; }
+}
+table.data.lines-detail thead th { white-space: normal; }
+table.data.lines-detail td.num { white-space: nowrap; }

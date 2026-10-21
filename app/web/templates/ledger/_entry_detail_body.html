@@ -34,17 +34,17 @@
 <div class="card card--flush">
   <div class="card__header"><h2>Regels</h2></div>
   <div class="table-wrap">
-  <table class="data">
-    <thead><tr><th>#</th><th>{{ term_label("grootrekening", "Rekening") }}</th><th class="num">{{ term_label("debet", "Bedrag links") }}</th><th class="num">{{ term_label("credit", "Bedrag rechts") }}</th><th>{{ term_label("btw_code", "Btw-tarief") }}</th><th>Toelichting</th></tr></thead>
+  <table class="data lines-detail">
+    <thead><tr><th class="col-nr">#</th><th>{{ term_label("grootrekening", "Rekening") }}</th><th class="num">{{ term_label("debet", "Bedrag links") }}</th><th class="num">{{ term_label("credit", "Bedrag rechts") }}</th><th>{{ term_label("btw_code", "Btw-tarief") }}</th><th class="col-note">Toelichting</th></tr></thead>
     <tbody>
     {% for l in detail.lines %}
     <tr>
-      <td>{{ l.line_no }}</td>
+      <td class="col-nr">{{ l.line_no }}</td>
       <td>{{ l.account_code }} {{ l.account_name }}</td>
       <td class="num">{% if l.debit_cents %}{{ l.debit_cents|euro }}{% endif %}</td>
       <td class="num">{% if l.credit_cents %}{{ l.credit_cents|euro }}{% endif %}</td>
       <td>{{ l.vat_code or "" }}</td>
-      <td>{{ l.description or "" }}</td>
+      <td class="col-note">{{ l.description or "" }}</td>
     </tr>
     {% endfor %}
     </tbody>
