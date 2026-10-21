@@ -239,15 +239,17 @@ def entry_create(
 
 def _detail(request, detail, *, error=None, status=200):
     entry = detail.entry
+    drawer = web.is_drawer_request(request, "boeking-drawer")
     return _render(
         request,
-        "ledger/entry_detail.html",
+        "ledger/_entry_detail_body.html" if drawer else "ledger/entry_detail.html",
         status,
         title=entry.entry_number,
         entry=entry,
         detail=detail,
         error=error,
         reversible=detail.is_reversible,
+        in_drawer=drawer,
         today=date.today().isoformat(),
     )
 
@@ -293,7 +295,7 @@ def settings_index() -> RedirectResponse:
     return RedirectResponse("/instellingen/grootboek", status_code=307)
 
 
-def _accounts_page(request, session, *, error=None, status=200, values=None):
+def _accounts_page(request, session, *, error=None, status=200, values=None, add_error=False):
     accounts = ledger.list_accounts(session)
     groups = [
         (label, ACCOUNT_TYPE_TERM[key], [a for a in accounts if a.type == key])
@@ -307,6 +309,7 @@ def _accounts_page(request, session, *, error=None, status=200, values=None):
         groups=groups,
         account_types=ACCOUNT_TYPES,
         error=error,
+        add_error=add_error,
         values=values
         or {
             "code": ledger.suggest_account_code(session, "expense"),
@@ -338,6 +341,7 @@ def accounts_add(
             request,
             session,
             error=exc.message,
+            add_error=True,
             status=_status_for(exc),
             values={"code": code, "name": name, "type": type},
         )
@@ -369,7 +373,7 @@ def _default_cash_account(asset_accounts, journal_type: str) -> str:
     return str(matches[0].id) if len(matches) == 1 else ""
 
 
-def _journals_page(request, session, *, error=None, status=200, values=None):
+def _journals_page(request, session, *, error=None, status=200, values=None, add_error=False):
     accounts = ledger.list_accounts(session)
     asset_accounts = [a for a in accounts if a.type == "asset" and a.is_active]
     return _render(
@@ -383,6 +387,7 @@ def _journals_page(request, session, *, error=None, status=200, values=None):
         journal_type_terms=JOURNAL_TYPE_TERM,
         asset_accounts=asset_accounts,
         error=error,
+        add_error=add_error,
         values=values
         or {
             "code": "",
@@ -422,6 +427,7 @@ def journals_add(
             request,
             session,
             error=exc.message,
+            add_error=True,
             status=_status_for(exc),
             values={"code": code, "name": name, "type": type, "account_id": account_id},
         )

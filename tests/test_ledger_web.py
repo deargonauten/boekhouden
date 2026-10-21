@@ -58,6 +58,7 @@ def test_entries_empty(client):
     assert "Deze pagina is nog in ontwikkeling." not in r.text
     # sidebar item + the active "Alle" tab
     assert r.text.count('aria-current="page"') == 2
+    assert "page-header__icon" in r.text
     assert "Je hebt nog geen boekingen" in r.text
 
 
@@ -321,12 +322,72 @@ def test_dagboek_tabs_for_few_journals(client):
     assert html.count('aria-current="page"') == 2
 
 
-def test_settings_tabs_mark_current(client):
+def test_settings_pages_use_secondary_nav(client):
     for path in ("grootboek", "dagboeken", "boekjaren"):
         html = client.get(f"/instellingen/{path}").text
-        assert 'class="tabs"' in html
-        assert re.search(rf'<a href="/instellingen/{path}" aria-current="page"', html)
+        assert 'class="settings-nav"' in html
+        assert 'class="tabs"' not in html
+        assert "Boekhouding" in html
+        assert re.search(rf'<a class="settings-nav__link" href="/instellingen/{path}" aria-current="page"', html)
+        # sidebar item + settings nav link
         assert html.count('aria-current="page"') == 2
+        assert "page-header__icon" in html
+
+
+def test_drawer_partial_for_drawer_target(year_client):
+    r = post_entry(year_client)
+    url = r.headers["location"]
+    html = year_client.get(url, headers={"HX-Request": "true", "HX-Target": "boeking-drawer-body"}).text
+    assert "<html" not in html and "sidebar" not in html
+    assert "Testboeking" in html and "Stornoboeking maken" in html and "entry-summary" in html
+    for target in ("body", None):
+        headers = {"HX-Request": "true"}
+        if target:
+            headers["HX-Target"] = target
+        full = year_client.get(url, headers=headers).text
+        assert "<html" in full and "Stornoboeking maken" in full and "entry-summary" not in full
+
+
+def test_drawer_partial_unknown_id_is_plain_404(client):
+    r = client.get("/boeken/9999", headers={"HX-Request": "true", "HX-Target": "boeking-drawer-body"})
+    assert r.status_code == 404
+
+
+def test_entries_list_has_drawer_trigger_and_sticky_pager(year_client):
+    post_entry(year_client)
+    html = year_client.get("/boeken").text
+    assert 'data-drawer-open="#boeking-drawer"' in html and 'id="boeking-drawer-body"' in html
+    assert 'hx-target="#boeking-drawer-body"' in html and 'hx-boost="false"' in html
+    assert "pager--sticky" in html
+
+
+def test_storno_row_is_warn(year_client):
+    r = post_entry(year_client)
+    year_client.post(r.headers["location"] + "/storno", data={"datum": ""})
+    html = year_client.get("/boeken").text
+    assert html.count("row--warn") == 1
+
+
+def test_accounts_modal_closed_without_error_open_with_error(client):
+    html = client.get("/instellingen/grootboek").text
+    assert 'id="rekening-toevoegen"' in html and "data-open-on-load" not in html
+    r = client.post("/instellingen/grootboek", data={"code": "12", "name": "X", "type": "expense"})
+    assert r.status_code in (409, 422)
+    assert "data-open-on-load" in r.text
+    modal = r.text[r.text.index('id="rekening-toevoegen"'):]
+    assert 'role="alert"' in modal.split("</dialog>")[0]
+
+
+def test_year_stat_card_counts_and_done_rows(year_client):
+    html = year_client.get("/instellingen/boekjaren").text
+    assert "stat-card" in html and "row--done" not in html
+    assert re.search(r"Open maanden</div>\s*<div class=\"stat-cell__value\">12<", html)
+    pid = scalar(year_client, "SELECT id FROM period ORDER BY id LIMIT 1")
+    year_client.post(f"/instellingen/boekjaren/periodes/{pid}/vergrendel")
+    html = year_client.get("/instellingen/boekjaren").text
+    assert html.count("row--done") == 1
+    assert re.search(r"Open maanden</div>\s*<div class=\"stat-cell__value\">11<", html)
+    assert re.search(r"Maanden op slot</div>\s*<div class=\"stat-cell__value\">1<", html)
 
 
 def test_year_periods_use_pills(year_client):
@@ -356,3 +417,12 @@ def test_ledger_css_is_served_and_uses_tokens_only(client):
     assert r.status_code == 200
     assert not re.search(r"#[0-9a-fA-F]{3,8}\b", r.text)
     assert "/static/css/ledger.css" in client.get("/boeken").text
+
+
+def test_drawer_partial_is_plain_language(year_client):
+    from tests.web_helpers import bare_term_elements, missing_term_keys
+
+    url = post_entry(year_client).headers["location"]
+    html = year_client.get(url, headers={"HX-Request": "true", "HX-Target": "boeking-drawer-body"}).text
+    assert missing_term_keys(html) == []
+    assert bare_term_elements(html) == []

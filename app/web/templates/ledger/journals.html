@@ -1,17 +1,17 @@
-{% extends "base.html" %}
+{% extends "base_settings.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
-{% from "partials/_ui.html" import pill, empty_state, icon with context %}
+{% from "partials/_ui.html" import pill, empty_state, icon, modal, error_box with context %}
 {% from "ledger/_settings_nav.html" import settings_header with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
-{% block content %}
-{{ settings_header("Dagboeken") }}
-<h2 class="section-title">{{ term_label("dagboek", "Dagboeken") }}</h2>
+{% block settings_header %}
+{% call settings_header("Dagboeken") %}<a class="btn" href="#dagboek-toevoegen" data-modal-open="#dagboek-toevoegen">{{ icon("plus") }}Dagboek toevoegen</a>{% endcall %}
+{% endblock %}
+{% block settings_content %}
 <p class="lead">Een dagboek is een map waarin boekingen van dezelfde soort bij elkaar staan, bijvoorbeeld alle bankmutaties.</p>
-{% include "ledger/_error.html" %}
-<div class="card">
-  <details{% if error %} open{% endif %}>
-    <summary>{{ icon("plus", 16) }} Dagboek toevoegen</summary>
-    <form method="post" action="/instellingen/dagboeken" class="card__body settings-form" hx-boost="false">
+{% if error and not add_error %}{{ error_box(error) }}{% endif %}
+{% call modal("dagboek-toevoegen", "Dagboek toevoegen", open=(true if add_error else false), term="dagboek") %}
+  {% if add_error %}{{ error_box(error) }}{% endif %}
+  <form method="post" action="/instellingen/dagboeken" class="settings-form" hx-boost="false">
       <div class="field">
         <label for="jr-code">Code</label>
         <input id="jr-code" name="code" value="{{ values.code }}" maxlength="6" required>
@@ -31,10 +31,12 @@
           {% for a in asset_accounts %}<option value="{{ a.id }}"{% if values.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
         </select>
       </div>
-      <div class="settings-form__submit"><button type="submit" class="btn">Dagboek toevoegen</button></div>
+      <div class="modal__footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Annuleren</button>
+        <button type="submit" class="btn">Dagboek toevoegen</button>
+      </div>
     </form>
-  </details>
-</div>
+{% endcall %}
 <div class="toolbar ledger-search">
   <div class="toolbar__search">
     {{ icon("search") }}
