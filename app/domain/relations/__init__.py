@@ -1,6 +1,11 @@
 """Public relations API (klanten en leveranciers)."""
 
 from app.domain.errors import RelationError
+from app.domain.relations.matching import (
+    ExtractedContact,
+    MatchResult,
+    match_or_create_contact,
+)
 from app.domain.relations.service import (
     create_contact,
     get_contact,
