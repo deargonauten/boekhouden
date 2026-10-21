@@ -24,23 +24,6 @@ PAGES = [
 LABELS = [label for _, label in PAGES]
 
 
-# Local fallback fixture: a minimal app with only the web contract.
-# Remove once tests/conftest.py (Part A) provides the shared `client` fixture.
-@pytest.fixture
-def client():
-    app = FastAPI()
-    app.include_router(web.router)
-    app.mount("/static", StaticFiles(directory=web.STATIC_DIR), name="static")
-
-    @app.exception_handler(StarletteHTTPException)
-    async def _http_exc(request, exc):
-        if exc.status_code == 404:
-            return web.not_found_response(request)
-        raise exc
-
-    return TestClient(app)
-
-
 def sidebar_labels(html):
     nav = re.search(r"<nav.*?</nav>", html, re.S).group(0)
     return re.findall(r'<a [^>]*class="nav-link[^"]*"[^>]*>\s*(.*?)\s*</a>', nav, re.S)
