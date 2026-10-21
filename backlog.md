@@ -16,12 +16,20 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [ ] Bank reconciliation: match transactions to open invoices (IBAN, amount, invoice number in description), manual match, split/partial payments, direct-book without invoice, matching rules
 - [ ] Sales invoices: create/send PDF invoices compliant with Wet OB (gapless numbering, required fields), debiteuren, credit notes, payment terms, reminders
 - [ ] BTW-aangifte: quarterly/monthly report by rubriek, ICP-opgaaf, verlegd/EU handling, KOR option, export for Belastingdienst, period locking after filing
-- [ ] RGS mapping: verify and fill `rgs_code` for all seeded accounts against the official RGS list (referentiegrootboekschema.nl); remove the "TODO verify" note in `app/seed/rgs_accounts.py`; migration to update existing DBs; test that every seeded code is a valid RGS code
+- [ ] (later) RGS mapping: verify and fill `rgs_code` for all seeded accounts against the official RGS list (referentiegrootboekschema.nl); remove the "TODO verify" note in `app/seed/rgs_accounts.py`; migration to update existing DBs; test that every seeded code is a valid RGS code
 - [ ] Reports: grootboekkaarten, proef- en saldibalans, winst-en-verliesrekening, balans, comparison vs previous year
-- [ ] Fixed assets: activa with afschrijvingen, investeringsaftrek-info, automatic depreciation bookings
+- [ ] (later) Fixed assets: activa with afschrijvingen, investeringsaftrek-info, automatic depreciation bookings
 - [ ] Eenmanszaak year-end: privé-onttrekkingen/stortingen, winst uit onderneming overview, urenregistratie (urencriterium), IB-voorbereiding export
-- [ ] Dashboard: cash position, open debiteuren/crediteuren, BTW to pay, inbox counts, quarter/year result
+- [ ] (later) Dashboard: cash position, open debiteuren/crediteuren, BTW to pay, inbox counts, quarter/year result
 - [ ] Backup & export: one-click backup of DB + documents, audit-file export (XAF) and CSV exports, 7-year retention safeguards
 - [x] UI redesign: modern design system, grouped sidebar, cards, tabs/search/pills/pagination on all screens (done 2026-10-21)
 - [x] Restyle naar MoneyMonk-achtig design: header band, drawer, modals, stat cards, instellingen-menu, /help, mobiel (done 2026-10-21)
 - [ ] KvK lookup: automatically fetch company data (name, address, BTW-nummer where available) from the KvK Handelsregister API (Zoeken + Basisprofiel) when a KvK-nummer or name is entered on a relatie, and when match-or-create finds a new supplier from extracted invoice data; API key via `.env` (`KVK_API_KEY`), never committed; suggest-and-confirm (never overwrite silently); graceful offline/no-key fallback; first check feasibility (API access is paid per call and needs a KvK developer account, test environment available) and cache results
+- [ ] Bedrijfsgegevens: eigen naam, adres, KvK, BTW-id, IBAN in Instellingen (nodig voor facturen en aangifte) (feature 35)
+- [ ] Boekjaar-/periodekeuze bovenin die alle schermen volgt (feature 4)
+- [ ] Openingsbalans: beginstanden invoeren bij start (feature 36)
+- [ ] Grootboek-verfijning: standaard btw-code per rekening als suggestie + "selecteerbaar bij" voor kortere keuzelijsten; btw-codes beheren met rubriek-koppeling (features 32, 33, 20)
+- [ ] Controle voordat je aangifte doet ("Klopt dit?"): ongeboekte transacties, boekingen zonder document, onevenwichtige periodes (feature 48)
+
+## Walkthrough uitkomst (2026-10-21)
+Zie feature-candidates.md "Besluiten". Opnemen-items die niet al op de backlog stonden zijn toegevoegd; uitgestelde items (1, 34, 44) zijn als (later) gemarkeerd.

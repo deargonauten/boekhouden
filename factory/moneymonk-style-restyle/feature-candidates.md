@@ -71,3 +71,10 @@ Priority order within each theme is top to bottom. Overall priority top 5: 1 (da
 48. **Controle voordat je aangifte doet ("Klopt dit?")** - Lijst met waarschuwingen: ongeboekte transacties, boekingen zonder document, onevenwichtige periodes. Size M. Backlog: geen. Recommendation: opnemen (goed voor niet-boekhouders).
 49. **Back-up en export in een klik** - Database en documenten. Size M. Backlog: "Backup & export". Recommendation: opnemen.
 50. **Zoeken over alles (relaties, boekingen, bestanden)** - Een zoekveld bovenin. Size M. Backlog: geen. Recommendation: later.
+
+## Besluiten (doorgelopen met de eigenaar, 2026-10-21)
+
+**Opnemen:** 3, 4, 6, 7, 8, 9, 10, 13, 14, 15, 16, 18, 20, 21, 23, 24, 27, 30, 32, 33, 35, 36, 41, 43, 45, 48, 49
+**Later:** 1 (dashboard), 12, 17, 19, 22, 29, 31, 34, 38, 40, 42, 44, 50
+**Niet:** 2, 5, 11, 25, 26, 28, 37, 39, 46
+**Al gedaan:** 47
