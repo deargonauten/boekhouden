@@ -56,6 +56,7 @@
     {% if extraction.notes %}<p class="hint">Opmerking van het programma: {{ extraction.notes }}</p>{% endif %}
 
     <form method="post" action="/inbox/{{ document.id }}/nakijken" class="stack" hx-boost="false">
+      <input type="hidden" name="kind" value="{{ extraction.kind }}">
       <fieldset class="fields review-fields">
         <legend>Van welke leverancier? {{ info("leverancier") }}</legend>
         <label class="grow">Naam <input name="supplier_name" value="{{ values.supplier_name }}" maxlength="255">{{ flagged(flags.get("supplier_name")) }}</label>

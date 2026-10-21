@@ -345,6 +345,23 @@ def test_finish_review_goes_to_inbox_with_next_step(client):
     assert sql(client, "SELECT reviewed_at FROM invoice_extraction")[0][0] is not None
 
 
+@pytest.mark.parametrize("actie", ["opslaan", "klaar"])
+def test_review_keeps_document_kind(client, actie):
+    from dataclasses import replace
+
+    doc_id = read_out(client, FakeExtractor(replace(INVOICE, kind="credit_note")))
+    assert sql(client, "SELECT kind FROM invoice_extraction")[0][0] == "credit_note"
+    html = client.get(f"/inbox/{doc_id}/nakijken").text
+    assert 'name="kind" value="credit_note"' in html
+    r = client.post(
+        f"/inbox/{doc_id}/nakijken",
+        data=review_data(client, actie=actie, kind="credit_note"),
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert sql(client, "SELECT kind FROM invoice_extraction")[0][0] == "credit_note"
+
+
 def test_validation_error_keeps_input_and_explains(client):
     doc_id = read_out(client)
     data = review_data(client, line_amount_excl=["abc"], invoice_number="KEEP-ME")

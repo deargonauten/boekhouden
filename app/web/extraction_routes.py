@@ -402,6 +402,7 @@ def _review_input(form) -> ReviewInput:
     ]
     data = {f: text(f) for f in HEADER_FIELDS}
     data["currency"] = data["currency"] or "EUR"
+    data["kind"] = text("kind") or "invoice"
     return ReviewInput(**data, totals_override=bool(form.get("totals_override")), lines=lines)
 
 
