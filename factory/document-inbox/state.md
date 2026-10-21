@@ -1,4 +1,4 @@
-step: BUILD
+step: REVIEW
 branch: factory/document-inbox
 base: main
 round: 1

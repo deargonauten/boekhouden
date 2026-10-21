@@ -160,7 +160,7 @@ def mark_booked(session: Session, document_id: int, journal_entry_id: int) -> Do
     document = get_document(session, document_id)
     check_transition(document.status, "geboekt")
     if session.get(JournalEntry, journal_entry_id) is None:
-        raise DocumentNotFoundError("Deze boeking bestaat niet.")
+        raise DocumentNotFoundError("Deze boeking bestaat niet. Kies een bestaande boeking.")
     document.status = "geboekt"
     document.journal_entry_id = journal_entry_id
     document.updated_at = _now()
