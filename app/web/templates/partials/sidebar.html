@@ -1,0 +1,11 @@
+<aside class="sidebar">
+  <div class="sidebar-header">Boekhouden</div>
+  <nav aria-label="Hoofdmenu">
+    {% for item in nav_items %}
+    {% if not loop.first and item.group != loop.previtem.group %}
+    <div class="nav-sep{% if item.group == 3 %} nav-pinned{% endif %}"></div>
+    {% endif %}
+    <a class="nav-link{% if item.active %} active{% endif %}{% if item.group == 3 %} nav-pinned{% endif %}" href="{{ item.path }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
+    {% endfor %}
+  </nav>
+</aside>
