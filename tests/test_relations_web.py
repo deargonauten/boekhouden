@@ -167,3 +167,84 @@ def test_no_delete_route_or_button(client):
 @pytest.mark.parametrize("path", ["/relaties", "/relaties/nieuw"])
 def test_pages_render(client, path):
     assert client.get(path).status_code == 200
+
+
+def add_many(client, n, **over):
+    for i in range(n):
+        add(client, name=f"Relatie {i:03d}", **over)
+
+
+def test_list_uses_tabs_pills_and_icon_actions(client):
+    add(client, name="Beide", is_customer="1", is_supplier="1")
+    html = client.get("/relaties").text
+    assert 'class="tabs"' in html and "Klanten" in html and "Leveranciers" in html
+    assert html.count('aria-current="page"') == 2  # sidebar + active tab
+    assert "pill--success" in html and ">Actief<" in html
+    assert 'aria-label="Relatie bewerken"' in html and 'aria-label="Relatie archiveren"' in html
+    assert "Toont 1-1 van 1 relaties" in html
+    assert 'href="/static/css/relations.css"' in html
+
+
+def test_soort_tab_is_current_and_keeps_params(client):
+    add(client, name="Klant Een", is_customer="1", is_supplier="")
+    html = client.get("/relaties?soort=klant&q=klant&gearchiveerd=1").text
+    assert re.search(r'<a href="[^"]*soort=klant[^"]*" aria-current="page"', html)
+    assert re.search(r'<a href="/relaties\?q=klant&amp;gearchiveerd=1"', html)
+    assert re.search(r'name="gearchiveerd"[^>]*\schecked', html)
+
+
+def test_pagination_50_per_page_and_total(client):
+    add_many(client, 53)
+    first = client.get("/relaties").text
+    assert "Toont 1-50 van 53 relaties" in first
+    assert "Relatie 000" in first and "Relatie 049" in first and "Relatie 050" not in first
+    second = client.get("/relaties?page=2").text
+    assert "Toont 51-53 van 53 relaties" in second
+    assert "Relatie 050" in second and "Relatie 049" not in second
+
+
+def test_page_is_clamped_and_garbage_ignored(client):
+    add_many(client, 51)
+    assert "Toont 51-51 van 51 relaties" in client.get("/relaties?page=999").text
+    for bad in ("0", "-3", "abc", ""):
+        r = client.get(f"/relaties?page={bad}")
+        assert r.status_code == 200
+        assert "Toont 1-50 van 51 relaties" in r.text
+
+
+def test_pager_links_keep_filters(client):
+    add_many(client, 51, is_customer="1", is_supplier="")
+    html = client.get("/relaties?soort=klant&q=relatie").text
+    assert re.search(r'href="/relaties\?soort=klant&amp;q=relatie&amp;page=2"', html)
+
+
+def test_no_match_shows_wis_filters(client):
+    add(client)
+    html = client.get("/relaties?q=nietbestaand").text
+    assert "Geen relaties gevonden" in html
+    assert ">Wis filters<" in html and 'href="/relaties"' in html
+
+
+def test_restore_button_for_archived(client):
+    cid = add(client)
+    client.post(f"/relaties/{cid}/archiveren")
+    html = client.get("/relaties?gearchiveerd=1").text
+    assert 'aria-label="Relatie herstellen"' in html and "Gearchiveerd" in html
+
+
+def test_form_has_cards_and_breadcrumb(client):
+    html = client.get("/relaties/nieuw").text
+    for heading in ("Algemeen", "Bedrijfsgegevens", "Adres en contact"):
+        assert f"<h2>{heading}</h2>" in html
+    assert 'class="breadcrumb"' in html and "Nieuwe relatie" in html
+    assert 'class="form-actions"' in html
+
+
+@pytest.mark.parametrize(
+    "path", ["/relaties", "/relaties/nieuw", "/relaties?soort=klant", "/relaties?q=zzz"]
+)
+def test_relations_pages_are_plain_language(client, path):
+    from tests.web_helpers import assert_plain_language
+
+    add(client)
+    assert_plain_language(client, path)

@@ -1,40 +1,85 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/relations.css">{% endblock %}
 {% block content %}
-<h1>{{ title }}</h1>
-<p class="lead">Leg vast met wie je zakendoet. Alleen de naam en de soort relatie zijn verplicht; de rest vul je in als je het weet, dan herkent het programma de relatie later vanzelf op facturen.</p>
+{{ page_header(title, breadcrumb=[("Relaties", "/relaties"), (title, None)],
+   lead="Leg vast met wie je zakendoet. Alleen de naam en de soort relatie zijn verplicht; de rest vul je in als je het weet, dan herkent het programma de relatie later vanzelf op facturen.") }}
 {% include "relations/_error.html" %}
-<form method="post" action="{% if contact %}/relaties/{{ contact.id }}/bewerken{% else %}/relaties/nieuw{% endif %}" class="stack" hx-boost="false">
-  <div class="fields">
-    <label class="grow">Naam <input name="name" value="{{ values.name }}" maxlength="200" required></label>
-  </div>
-  <fieldset class="fields">
-    <legend>Wat is dit voor relatie?</legend>
-    <label class="check"><input type="checkbox" name="is_supplier" value="1"{% if values.is_supplier %} checked{% endif %}> <span>{{ term_label("leverancier", "Iemand bij wie je inkoopt") }}</span></label>
-    <label class="check"><input type="checkbox" name="is_customer" value="1"{% if values.is_customer %} checked{% endif %}> <span>{{ term_label("klant", "Iemand aan wie je verkoopt") }}</span></label>
-  </fieldset>
-  <div class="fields">
-    <label><span>{{ term_label("kvk", "Bedrijfsnummer Kamer van Koophandel") }}</span> <input name="kvk" value="{{ values.kvk }}" inputmode="numeric" aria-describedby="kvk-hint"></label>
-    <label><span>{{ term_label("btw_nummer", "Btw-identificatienummer van het bedrijf") }}</span> <input name="btw_number" value="{{ values.btw_number }}" aria-describedby="btw-hint"></label>
-    <label><span>{{ term_label("iban", "Bankrekeningnummer") }}</span> <input name="iban" value="{{ values.iban }}" aria-describedby="iban-hint"></label>
-  </div>
-  <p class="hint" id="kvk-hint">8 cijfers, staat op de factuur of in het Handelsregister.</p>
-  <p class="hint" id="btw-hint">Begint met NL, bijvoorbeeld NL123456789B01. Buitenlandse nummers mag je ook invullen.</p>
-  <p class="hint" id="iban-hint">Wordt gebruikt om betalingen straks automatisch aan de juiste relatie te koppelen.</p>
-  <div class="fields">
-    <label class="grow">Adres (straat en huisnummer) <input name="address_line" value="{{ values.address_line }}"></label>
-    <label>Postcode <input name="postal_code" value="{{ values.postal_code }}" maxlength="12"></label>
-    <label>Plaats <input name="city" value="{{ values.city }}"></label>
-    <label>Land (2 letters) <input name="country" value="{{ values.country }}" maxlength="2" size="3"></label>
-  </div>
-  <div class="fields">
-    <label>E-mailadres <input type="email" name="email" value="{{ values.email }}"></label>
-    <label>Telefoon <input name="phone" value="{{ values.phone }}"></label>
-    <label class="grow">Notities <input name="notes" value="{{ values.notes }}"></label>
-  </div>
-  <p class="actions">
+<form method="post" action="{% if contact %}/relaties/{{ contact.id }}/bewerken{% else %}/relaties/nieuw{% endif %}" class="stack relation-form" hx-boost="false">
+  <section class="card">
+    <div class="card__header"><h2>Algemeen</h2></div>
+    <div class="card__body stack">
+      <div class="field">
+        <label for="name">Naam <span class="required" aria-hidden="true"></span></label>
+        <input id="name" name="name" value="{{ values.name }}" maxlength="200" required>
+      </div>
+      <fieldset class="role-options">
+        <legend>Wat is dit voor relatie?</legend>
+        <label class="check"><input type="checkbox" name="is_supplier" value="1"{% if values.is_supplier %} checked{% endif %}> <span>{{ term_label("leverancier", "Iemand bij wie je inkoopt") }}</span></label>
+        <label class="check"><input type="checkbox" name="is_customer" value="1"{% if values.is_customer %} checked{% endif %}> <span>{{ term_label("klant", "Iemand aan wie je verkoopt") }}</span></label>
+      </fieldset>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Bedrijfsgegevens</h2></div>
+    <div class="card__body form-grid">
+      <div class="field">
+        <label for="kvk"><span>{{ term_label("kvk", "Bedrijfsnummer Kamer van Koophandel") }}</span></label>
+        <input id="kvk" name="kvk" value="{{ values.kvk }}" inputmode="numeric" aria-describedby="kvk-hint">
+        <p class="field__hint hint" id="kvk-hint">8 cijfers, staat op de factuur of in het Handelsregister.</p>
+      </div>
+      <div class="field">
+        <label for="btw_number"><span>{{ term_label("btw_nummer", "Btw-identificatienummer van het bedrijf") }}</span></label>
+        <input id="btw_number" name="btw_number" value="{{ values.btw_number }}" aria-describedby="btw-hint">
+        <p class="field__hint hint" id="btw-hint">Begint met NL, bijvoorbeeld NL123456789B01. Buitenlandse nummers mag je ook invullen.</p>
+      </div>
+      <div class="field span-2">
+        <label for="iban"><span>{{ term_label("iban", "Bankrekeningnummer") }}</span></label>
+        <input id="iban" name="iban" value="{{ values.iban }}" aria-describedby="iban-hint">
+        <p class="field__hint hint" id="iban-hint">Wordt gebruikt om betalingen straks automatisch aan de juiste relatie te koppelen.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Adres en contact</h2></div>
+    <div class="card__body form-grid">
+      <div class="field span-2">
+        <label for="address_line">Adres (straat en huisnummer)</label>
+        <input id="address_line" name="address_line" value="{{ values.address_line }}">
+      </div>
+      <div class="field">
+        <label for="postal_code">Postcode</label>
+        <input id="postal_code" name="postal_code" value="{{ values.postal_code }}" maxlength="12">
+      </div>
+      <div class="field">
+        <label for="city">Plaats</label>
+        <input id="city" name="city" value="{{ values.city }}">
+      </div>
+      <div class="field">
+        <label for="country">Land (2 letters)</label>
+        <input id="country" name="country" value="{{ values.country }}" maxlength="2" size="3">
+      </div>
+      <div class="field">
+        <label for="email">E-mailadres</label>
+        <input id="email" type="email" name="email" value="{{ values.email }}">
+      </div>
+      <div class="field">
+        <label for="phone">Telefoon</label>
+        <input id="phone" name="phone" value="{{ values.phone }}">
+      </div>
+      <div class="field span-2">
+        <label for="notes">Notities</label>
+        <input id="notes" name="notes" value="{{ values.notes }}">
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
     <button type="submit" class="btn">Opslaan</button>
     <a href="/relaties">Annuleren</a>
-  </p>
+  </div>
 </form>
 {% endblock %}

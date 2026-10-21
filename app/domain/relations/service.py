@@ -6,6 +6,7 @@ relations are archived (`set_contact_active`) so old bookings keep their link.
 """
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -198,3 +199,29 @@ def list_contacts(
     if q and q.strip():
         contacts = [c for c in contacts if _matches(c, q)]
     return contacts
+
+
+@dataclass(frozen=True)
+class ContactPage:
+    items: list[Contact]
+    total: int
+    page: int
+    per_page: int
+
+
+def list_contacts_page(
+    session: Session,
+    *,
+    role: Role | None = None,
+    q: str | None = None,
+    include_archived: bool = False,
+    page: int = 1,
+    per_page: int = 50,
+) -> ContactPage:
+    """One page of list_contacts. Page numbers below 1 become 1, beyond the last the last page."""
+    contacts = list_contacts(session, role=role, q=q, include_archived=include_archived)
+    total = len(contacts)
+    last = max(1, -(-total // per_page))
+    page = min(max(page, 1), last)
+    start = (page - 1) * per_page
+    return ContactPage(items=contacts[start : start + per_page], total=total, page=page, per_page=per_page)

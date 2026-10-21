@@ -1,6 +1,9 @@
 {% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import icon with context %}
 {% set backend = extract_backend(request) %}
-<div class="extract-banner extract-{{ backend }}" role="status">
+<div class="notice notice--{{ 'warning' if backend == 'none' else 'info' }} extract-notice" role="status">
+  {{ icon("alert" if backend == "none" else "info") }}
+  <div>
   {% if backend == "cli" %}
   <p><strong>Uitlezen</strong> {{ info("uitlezen") }} verloopt via je Claude-abonnement {{ info("claude_abonnement") }}.</p>
   {% elif backend == "api" %}
@@ -9,4 +12,5 @@
   <p><strong>Uitlezen</strong> {{ info("uitlezen") }} kan nog niet. Niet ingelogd bij Claude: open Terminal en typ <code>claude auth login</code>. Of zet ANTHROPIC_API_KEY in het bestand .env. {{ info("claude_abonnement") }}</p>
   {% endif %}
   <p class="hint">De inhoud van je factuur wordt naar Claude (Anthropic) gestuurd om uit te lezen.</p>
+  </div>
 </div>

@@ -1,11 +1,12 @@
-<ul class="results" role="status" aria-label="Resultaat van het toevoegen">
+{% from "partials/_ui.html" import icon with context %}
+<div class="results stack" role="group" aria-label="Resultaat van het toevoegen">
 {% for r in results %}
   {% if r.kind == "created" %}
-  <li class="result-created">{{ r.name }} is toegevoegd aan je inbox.</li>
+  <div class="notice notice--success result-created" role="status">{{ icon("check") }}<div>{{ r.name }} is toegevoegd aan je inbox.</div></div>
   {% elif r.kind == "duplicate" %}
-  <li class="result-duplicate">{{ r.name }} staat al in je inbox (geupload op {{ r.document.received_at.strftime("%d-%m-%Y") }}, status {{ r.status_label }}). Het is niet nog een keer opgeslagen. <a href="/inbox/{{ r.document.id }}">Bekijk het bestaande document</a></li>
+  <div class="notice notice--info result-duplicate" role="status">{{ icon("info") }}<div>{{ r.name }} staat al in je inbox (geupload op {{ r.document.received_at.strftime("%d-%m-%Y") }}, status {{ r.status_label }}). Het is niet nog een keer opgeslagen. <a href="/inbox/{{ r.document.id }}">Bekijk het bestaande document</a></div></div>
   {% else %}
-  <li class="result-error" role="alert">{% if r.name %}{{ r.name }}: {% endif %}{{ r.message }}</li>
+  <div class="alert result-error" role="alert"><p>{% if r.name %}{{ r.name }}: {% endif %}{{ r.message }}</p></div>
   {% endif %}
 {% endfor %}
-</ul>
+</div>

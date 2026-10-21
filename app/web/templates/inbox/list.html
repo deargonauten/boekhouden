@@ -1,79 +1,87 @@
 {% extends "base.html" %}
-{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, tabs, pill, pager, empty_state, notice, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>Inbox {{ info("inbox") }}</h1>
-</div>
-<p class="lead">Hier staan de facturen en bonnen die je nog moet verwerken.</p>
+{{ page_header("Inbox", breadcrumb=[("Inbox", None)], action_label="Bestand toevoegen", action_href="#upload", term="inbox",
+   lead="Hier staan de facturen en bonnen die je nog moet verwerken.") }}
 
-<form method="post" action="/inbox/upload" enctype="multipart/form-data" class="upload-form" hx-boost="false">
-  <h2>Factuur of bon toevoegen</h2>
-  <label for="files">Kies een of meer bestanden</label>
-  <input id="files" type="file" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*">
-  <p class="hint">PDF of foto (JPEG, PNG, WebP), maximaal 20 MB per bestand. Je kunt meerdere bestanden tegelijk kiezen. Bestanden worden bewaard en nooit verwijderd. Waarom? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
-  <div class="actions"><button type="submit" class="btn">Toevoegen aan inbox</button></div>
-</form>
+<section class="card" id="upload" aria-labelledby="upload-title">
+  <form method="post" action="/inbox/upload" enctype="multipart/form-data" class="upload-form" hx-boost="false">
+    <div class="card__header"><h2 id="upload-title">Factuur of bon toevoegen</h2></div>
+    <div class="card__body stack">
+      <label for="files" class="dropzone-label">Sleep bestanden hierheen of kies een bestand</label>
+      <input id="files" class="dropzone" type="file" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*">
+      <p class="hint">PDF of foto (JPEG, PNG, WebP), maximaal 20 MB per bestand. Je kunt meerdere bestanden tegelijk kiezen. Bestanden worden bewaard en nooit verwijderd. Waarom? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
+      <div><button type="submit" class="btn">{{ icon("upload") }}Toevoegen aan inbox</button></div>
+    </div>
+  </form>
+</section>
 
 {% if results %}{% include "inbox/_results.html" %}{% endif %}
 
-{% if request.query_params.get("melding") == "klaar" %}<p class="notice" role="status">Klaar met nakijken. De volgende stap is boeken.</p>{% endif %}
+{% if request.query_params.get("melding") == "klaar" %}{{ notice("Klaar met nakijken. De volgende stap is boeken.", "success") }}{% endif %}
 {% include "inbox/_extract_banner.html" %}
-{% if counts.nieuw %}
-<form method="post" action="/inbox/uitlezen-alles" class="extract-form" hx-disabled-elt="find button" hx-indicator="#extract-busy-all">
-  <button type="submit" class="btn">Lees alle nieuwe documenten uit ({{ counts.nieuw if counts.nieuw < 10 else 10 }})</button>
-  <span class="htmx-indicator" id="extract-busy-all" role="status">Bezig met uitlezen, dit duurt 10 tot 60 seconden per document...</span>
-</form>
-{% if counts.nieuw > 10 %}<p class="hint">Per keer worden maximaal 10 documenten uitgelezen. Klik daarna nog een keer voor de rest.</p>{% endif %}
-{% endif %}
 {% if extract_results %}
-<ul class="results" role="status" aria-label="Resultaat van het uitlezen">
+<div class="results stack" role="group" aria-label="Resultaat van het uitlezen">
   {% for r in extract_results %}
-  {% if r.ok %}<li class="result-created">{{ r.name }}: Gelukt - <a href="/inbox/{{ r.id }}/nakijken">bekijk</a></li>
-  {% else %}<li class="result-error" role="alert">{{ r.name }}: Mislukt: {{ r.message }}</li>{% endif %}
+  {% if r.ok %}<div class="notice notice--success result-created" role="status">{{ icon("check") }}<div>{{ r.name }}: Gelukt - <a href="/inbox/{{ r.id }}/nakijken">bekijk</a></div></div>
+  {% else %}<div class="alert result-error" role="alert"><p>{{ r.name }}: Mislukt: {{ r.message }}</p></div>{% endif %}
   {% endfor %}
-  {% if extract_left %}<li class="result-duplicate">Er {{ "is nog 1 document" if extract_left == 1 else "zijn nog " ~ extract_left ~ " documenten" }} niet uitgelezen. Klik nog een keer op 'Lees alle nieuwe documenten uit' om verder te gaan.</li>{% endif %}
-</ul>
-{% endif %}
-
-<ul class="status-filter" aria-label="Filter op status">
-  <li>{% if not status_filter %}<a class="active" href="/inbox" aria-current="page">Alle ({{ total }})</a>{% else %}<a href="/inbox">Alle ({{ total }})</a>{% endif %}</li>
-  <li>{% if status_filter == "nieuw" %}<a class="active" href="/inbox?status=nieuw" aria-current="page">Nieuw ({{ counts.nieuw }})</a>{% else %}<a href="/inbox?status=nieuw">Nieuw ({{ counts.nieuw }})</a>{% endif %} {{ info("status_nieuw") }}</li>
-  <li>{% if status_filter == "herkend" %}<a class="active" href="/inbox?status=herkend" aria-current="page">Herkend ({{ counts.herkend }})</a>{% else %}<a href="/inbox?status=herkend">Herkend ({{ counts.herkend }})</a>{% endif %} {{ info("status_herkend") }}</li>
-  <li>{% if status_filter == "geboekt" %}<a class="active" href="/inbox?status=geboekt" aria-current="page">Geboekt ({{ counts.geboekt }})</a>{% else %}<a href="/inbox?status=geboekt">Geboekt ({{ counts.geboekt }})</a>{% endif %} {{ info("status_geboekt") }}</li>
-</ul>
-
-{% if not documents %}
-  {% if status_filter %}
-  <p>Geen documenten met deze status.</p>
-  {% else %}
-  <div class="empty">
-    <p>Je inbox is leeg. Voeg hier de facturen en bonnen toe die je nog moet verwerken. Daarna kun je ze laten uitlezen en boeken.</p>
-  </div>
-  {% endif %}
-{% else %}
-{% if capped %}<p class="notice">Je ziet de {{ limit }} nieuwste documenten. Oudere documenten zijn wel bewaard.</p>{% endif %}
-<div class="table-wrap">
-<table class="data">
-  <thead><tr>
-    <th>Bestand</th><th>Type</th><th>Grootte</th><th>Toegevoegd op</th><th>Bron</th><th>Status</th><th>Actie</th>
-  </tr></thead>
-  <tbody>
-  {% for d in documents %}
-  <tr>
-    <td><a href="/inbox/{{ d.id }}">{{ d.original_filename }}</a></td>
-    <td>{{ kind_label(d.content_type) }}</td>
-    <td>{{ d.size_bytes|bestandsgrootte }}</td>
-    <td>{{ d.received_at|datum_tijd }}</td>
-    <td>{{ SOURCE_LABELS.get(d.source, d.source) }}</td>
-    <td><span class="badge badge-{{ d.status }}">{{ STATUS_LABELS[d.status] }}</span></td>
-    <td>
-      {% if d.status == "nieuw" %}{% with document=d, compact=true %}{% include "inbox/_extract_button.html" %}{% endwith %}
-      {% elif d.status == "herkend" %}<a href="/inbox/{{ d.id }}/nakijken">Nakijken</a>{% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
+  {% if extract_left %}<div class="notice notice--warning result-duplicate" role="status">{{ icon("alert") }}<div>Er {{ "is nog 1 document" if extract_left == 1 else "zijn nog " ~ extract_left ~ " documenten" }} niet uitgelezen. Klik nog een keer op 'Lees alle nieuwe documenten uit' om verder te gaan.</div></div>{% endif %}
 </div>
 {% endif %}
+
+<div class="card card--flush">
+  {{ tabs([
+    ("Alle", "/inbox", not status_filter, total),
+    ("Nieuw", "/inbox?status=nieuw", status_filter == "nieuw", counts.nieuw, "status_nieuw"),
+    ("Herkend", "/inbox?status=herkend", status_filter == "herkend", counts.herkend, "status_herkend"),
+    ("Geboekt", "/inbox?status=geboekt", status_filter == "geboekt", counts.geboekt, "status_geboekt"),
+  ], "Filter op status") }}
+  {% if counts.nieuw %}
+  <div class="toolbar">
+    <form method="post" action="/inbox/uitlezen-alles" class="extract-form" hx-disabled-elt="find button" hx-indicator="#extract-busy-all">
+      <button type="submit" class="btn btn-secondary">Lees alle nieuwe documenten uit ({{ counts.nieuw if counts.nieuw < 10 else 10 }})</button>
+      <span class="htmx-indicator" id="extract-busy-all" role="status">Bezig met uitlezen, dit duurt 10 tot 60 seconden per document...</span>
+    </form>
+    {% if counts.nieuw > 10 %}<span class="hint">Per keer worden maximaal 10 documenten uitgelezen. Klik daarna nog een keer voor de rest.</span>{% endif %}
+  </div>
+  {% endif %}
+  {% if capped %}
+  <div class="card__body inbox-cap">{{ notice("Je ziet de " ~ limit ~ " nieuwste documenten. Oudere documenten zijn wel bewaard.", "info") }}</div>
+  {% endif %}
+  {% if not documents %}
+    {% if status_filter %}
+    {{ empty_state("Niets gevonden", "Geen documenten met deze status.", "Wis filters", "/inbox", "search") }}
+    {% else %}
+    {{ empty_state("Nog niets om te verwerken", "Je inbox is leeg. Voeg hier de facturen en bonnen toe die je nog moet verwerken. Daarna kun je ze laten uitlezen en boeken.", "Bestand toevoegen", "#upload", "inbox") }}
+    {% endif %}
+  {% else %}
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr>
+      <th>Bestand</th><th>Type</th><th>Grootte</th><th>Toegevoegd op</th><th>Bron</th><th>Status</th><th>Actie</th>
+    </tr></thead>
+    <tbody>
+    {% for d in documents %}
+    <tr>
+      <td><a class="file-link" href="/inbox/{{ d.id }}">{{ icon("file", 16) }}<span>{{ d.original_filename }}</span></a></td>
+      <td>{{ kind_label(d.content_type) }}</td>
+      <td class="nowrap">{{ d.size_bytes|bestandsgrootte }}</td>
+      <td class="nowrap">{{ d.received_at|datum_tijd }}</td>
+      <td>{{ SOURCE_LABELS.get(d.source, d.source) }}</td>
+      <td>{{ pill(STATUS_LABELS[d.status], {"nieuw": "info", "herkend": "warning", "geboekt": "success"}.get(d.status, "neutral")) }}</td>
+      <td>
+        {% if d.status == "nieuw" %}{% with document=d, compact=true, label="Lees uit" %}{% include "inbox/_extract_button.html" %}{% endwith %}
+        {% elif d.status == "herkend" %}<a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}/nakijken">Nakijken</a>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {{ pager(1, documents|length, documents|length, "/inbox", {"status": status_filter}, "documenten") }}
+  {% endif %}
+</div>
 {% endblock %}

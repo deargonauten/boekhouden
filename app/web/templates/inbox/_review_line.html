@@ -1,8 +1,9 @@
 {# Needs: line (dict), flags (dict field -> flags), accounts, vat_codes, no_account_hint #}
+{% from "partials/_ui.html" import icon, pill with context %}
 <tr class="line-row">
   <td>
     <input name="line_description" value="{{ line.description }}" aria-label="Wat is er uitgegeven?" maxlength="255">
-    {% for items in flags.values() %}{% for f in items %}<span class="flag flag-{{ f.level }}">{{ level_labels[f.level] if level_labels and f.level in level_labels else "Let op" }}</span> <span class="flag-reason">{{ f.reason }}</span><br>{% endfor %}{% endfor %}
+    {% for items in flags.values() %}{% for f in items %}<div class="flag-item">{{ pill(level_labels[f.level] if level_labels and f.level in level_labels else "Let op", {"low": "danger", "medium": "warning"}.get(f.level, "neutral")) }} <span class="flag-reason">{{ f.reason }}</span></div>{% endfor %}{% endfor %}
   </td>
   <td>
     <select name="line_account_code" aria-label="Op welke rekening boeken?">
@@ -19,5 +20,5 @@
     </select>
   </td>
   <td><input name="line_vat_amount" value="{{ line.vat_amount }}" inputmode="decimal" class="num" aria-label="Hoeveel BTW?" placeholder="0,00"></td>
-  <td><button type="button" class="btn btn-secondary btn-small" onclick="this.closest('tr').remove()">Verwijder regel</button></td>
+  <td><div class="row-actions"><button type="button" class="btn-icon is-danger" aria-label="Regel verwijderen" title="Regel verwijderen: haalt deze regel uit het formulier." onclick="this.closest('tr').remove()">{{ icon("x") }}</button></div></td>
 </tr>

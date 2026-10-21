@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% from "partials/_ui.html" import page_header, error_box, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>Bestand ontbreekt</h1>
-  <a href="/inbox/{{ document.id }}">Terug naar het document</a>
-</div>
-<p class="alert" role="alert">{{ message }}</p>
+{% call page_header("Bestand ontbreekt", breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Bestand ontbreekt", None)]) %}
+<a class="btn btn-secondary" href="/inbox/{{ document.id }}">Terug naar het document</a>
+{% endcall %}
+{{ error_box(message) }}
 {% endblock %}

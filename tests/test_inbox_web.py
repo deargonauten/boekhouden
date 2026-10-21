@@ -164,9 +164,9 @@ def test_filter_counts_and_unknown_value(client):
     upload(client, ("a.pdf", PDF), ("b.png", PNG), ("c.jpg", JPEG))
     set_status(client, 2, "herkend")
     html = client.get("/inbox").text
-    text_ = visible_text(html)
-    assert "Alle (3)" in text_ and "Nieuw (2)" in text_
-    assert "Herkend (1)" in text_ and "Geboekt (0)" in text_
+    counts = dict(re.findall(r'(Alle|Nieuw|Herkend|Geboekt) <span class="tab__count">(\d+)</span>', html))
+    assert counts == {"Alle": "3", "Nieuw": "2", "Herkend": "1", "Geboekt": "0"}
+    assert html.count('aria-current="page"') == 2  # sidebar + active tab
     only = client.get("/inbox?status=herkend").text
     assert "b.png" in only and "a.pdf" not in only
     assert "a.pdf" in client.get("/inbox?status=onzin").text
@@ -299,3 +299,43 @@ def test_no_status_change_route(client):
 def test_html_in_upload_filename_in_detail_is_escaped(client):
     upload(client, ("<b>x</b>.pdf", PDF))
     assert "<b>x</b>" not in client.get("/inbox/1").text
+
+
+def test_list_layout_uses_design_system(client):
+    upload(client, ("a.pdf", PDF), ("b.png", PNG))
+    set_status(client, 2, "herkend")
+    html = client.get("/inbox").text
+    assert 'href="/static/css/inbox.css"' in html
+    assert re.search(r'<a class="btn" href="#upload">', html) and 'id="upload"' in html
+    assert "Sleep bestanden hierheen of kies een bestand" in html
+    assert "pill pill--info" in html and "pill pill--warning" in html
+    assert re.search(r'<a class="btn btn-secondary btn-small" href="/inbox/2/nakijken">Nakijken</a>', html)
+    assert ">Lees uit<" in html
+    assert "Toont 1-2 van 2 documenten" in html
+    assert 'class="breadcrumb"' in html
+
+
+def test_filtered_empty_state_has_wis_filters(client):
+    html = client.get("/inbox?status=geboekt").text
+    assert "Geen documenten met deze status." in html and ">Wis filters<" in html
+
+
+def test_upload_results_are_notices_and_alerts(client):
+    r = upload(client, ("ok.pdf", PDF), ("notitie.txt", b"hallo"))
+    assert 'class="notice notice--success result-created"' in r.text
+    assert 'class="alert result-error" role="alert"' in r.text
+
+
+def test_detail_has_breadcrumb_and_cards(client):
+    upload(client, ("factuur.pdf", PDF))
+    html = client.get("/inbox/1").text
+    assert 'class="breadcrumb"' in html and 'class="facts"' in html
+    assert html.count('class="card"') >= 3
+
+
+@pytest.mark.parametrize("path", ["/inbox", "/inbox?status=nieuw", "/inbox/1", "/inbox/1/nakijken"])
+def test_inbox_pages_are_plain_language(client, path):
+    from tests.web_helpers import assert_plain_language
+
+    upload(client, ("factuur.pdf", PDF))
+    assert_plain_language(client, path)
