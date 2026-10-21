@@ -200,10 +200,10 @@ def assess(
                 f"incl. BTW op de factuur is {format_euro(invoice.total_incl_cents)}.",  # type: ignore[arg-type]
             )
 
-    return _merge(raw)
+    return merge_flags(raw)
 
 
-def _merge(flags: list[Flag]) -> list[Flag]:
+def merge_flags(flags: list[Flag]) -> list[Flag]:
     """One flag per field: highest level, reasons joined (own checks before model doubt)."""
     order: list[str] = []
     by_field: dict[str, list[Flag]] = {}
