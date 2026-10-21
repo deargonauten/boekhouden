@@ -1,3 +1,4 @@
+from app.models.company import CompanyProfile  # noqa: F401
 from app.models.documents import Document  # noqa: F401
 from app.models.extraction import InvoiceExtraction, InvoiceExtractionLine  # noqa: F401
 from app.models.relations import Contact  # noqa: F401

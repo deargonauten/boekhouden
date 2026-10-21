@@ -234,3 +234,38 @@ class ReviewValidationError(ExtractionError):
         # form field name (e.g. "invoice_date", "line-0-amount") -> message, for inline display
         self.fields: dict[str, str] = dict(fields or {})
         super().__init__(self.code, " ".join(self.messages))
+
+
+# --- Bedrijfsgegevens --------------------------------------------------------
+INVALID_COMPANY_KVK = "INVALID_COMPANY_KVK"
+INVALID_COMPANY_BTW_ID = "INVALID_COMPANY_BTW_ID"
+INVALID_COMPANY_IBAN = "INVALID_COMPANY_IBAN"
+INVALID_COMPANY_POSTAL_CODE = "INVALID_COMPANY_POSTAL_CODE"
+INVALID_COMPANY_LEGAL_FORM = "INVALID_COMPANY_LEGAL_FORM"
+COMPANY_NAME_REQUIRED = "COMPANY_NAME_REQUIRED"
+COMPANY_NAME_TOO_LONG = "COMPANY_NAME_TOO_LONG"
+COMPANY_INCOMPLETE = "COMPANY_INCOMPLETE"
+
+
+class CompanyError(RelationError):
+    """Base for bedrijfsgegevens errors; one error can carry many messages (see RelationError)."""
+
+    code = "COMPANY_ERROR"
+
+
+def _company_error(name: str, code: str) -> type[CompanyError]:
+    return type(name, (CompanyError,), {"code": code})
+
+
+InvalidCompanyKvkError = _company_error("InvalidCompanyKvkError", INVALID_COMPANY_KVK)
+InvalidCompanyBtwIdError = _company_error("InvalidCompanyBtwIdError", INVALID_COMPANY_BTW_ID)
+InvalidCompanyIbanError = _company_error("InvalidCompanyIbanError", INVALID_COMPANY_IBAN)
+InvalidCompanyPostalCodeError = _company_error(
+    "InvalidCompanyPostalCodeError", INVALID_COMPANY_POSTAL_CODE
+)
+InvalidCompanyLegalFormError = _company_error(
+    "InvalidCompanyLegalFormError", INVALID_COMPANY_LEGAL_FORM
+)
+CompanyNameRequiredError = _company_error("CompanyNameRequiredError", COMPANY_NAME_REQUIRED)
+CompanyNameTooLongError = _company_error("CompanyNameTooLongError", COMPANY_NAME_TOO_LONG)
+CompanyIncompleteError = _company_error("CompanyIncompleteError", COMPANY_INCOMPLETE)
