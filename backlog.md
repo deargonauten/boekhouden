@@ -14,6 +14,7 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [ ] Bank reconciliation: match transactions to open invoices (IBAN, amount, invoice number in description), manual match, split/partial payments, direct-book without invoice, matching rules
 - [ ] Sales invoices: create/send PDF invoices compliant with Wet OB (gapless numbering, required fields), debiteuren, credit notes, payment terms, reminders
 - [ ] BTW-aangifte: quarterly/monthly report by rubriek, ICP-opgaaf, verlegd/EU handling, KOR option, export for Belastingdienst, period locking after filing
+- [ ] RGS mapping: verify and fill `rgs_code` for all seeded accounts against the official RGS list (referentiegrootboekschema.nl); remove the "TODO verify" note in `app/seed/rgs_accounts.py`; migration to update existing DBs; test that every seeded code is a valid RGS code
 - [ ] Reports: grootboekkaarten, proef- en saldibalans, winst-en-verliesrekening, balans, comparison vs previous year
 - [ ] Fixed assets: activa with afschrijvingen, investeringsaftrek-info, automatic depreciation bookings
 - [ ] Eenmanszaak year-end: privé-onttrekkingen/stortingen, winst uit onderneming overview, urenregistratie (urencriterium), IB-voorbereiding export
