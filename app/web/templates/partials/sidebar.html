@@ -5,7 +5,15 @@
     {% if not loop.first and item.group != loop.previtem.group %}
     <div class="nav-sep{% if item.group == 3 %} nav-pinned{% endif %}"></div>
     {% endif %}
+    {% if item.term_key %}
+    {% set t = explain(item.term_key) %}
+    <div class="nav-entry">
+      <a class="nav-link{% if item.active %} active{% endif %}" href="{{ item.path }}" title="{{ t.explanation }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
+      <span class="nav-sub">{{ t.plain }}</span>
+    </div>
+    {% else %}
     <a class="nav-link{% if item.active %} active{% endif %}{% if item.group == 3 %} nav-pinned{% endif %}" href="{{ item.path }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>
+    {% endif %}
     {% endfor %}
   </nav>
 </aside>

@@ -1,0 +1,122 @@
+"""Central glossary of bookkeeping terms shown in the UI.
+
+Every bookkeeping/tax term that appears on a screen is explained here once
+(plain Dutch first, the term second). Pure Python: no web or DB imports.
+"""
+
+import re
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Term:
+    key: str  # lowercase ascii slug, [a-z_]+
+    term: str  # bookkeeping term as displayed
+    plain: str  # short plain-Dutch phrase
+    explanation: str  # 1-2 sentences, max 220 chars
+    detect: tuple[str, ...] = ()  # regexes (case-insensitive) that signal the term on a screen
+
+    def patterns(self) -> tuple[str, ...]:
+        """Detection regexes; defaults to the whole term as a word."""
+        return self.detect or (rf"\b{re.escape(self.term)}\b",)
+
+
+# A regex that never matches: for terms too generic to demand an icon wherever they occur.
+_NEVER = r"(?!x)x"
+
+_TERMS: list[Term] = [
+    Term("grootboek", "Grootboek", "Lijst met al je rekeningen",
+         "Het grootboek is de complete lijst van rekeningen waarop alles wordt vastgelegd, zoals Bank, Omzet en Kantoorkosten. Het programma stelt meestal zelf de juiste rekening voor."),
+    Term("grootrekening", "Grootrekening", "Rekening",
+         "Eén rekening uit het grootboek, bijvoorbeeld Bank of Kantoorkosten. Bij elke boeking geef je aan op welke rekeningen geld erbij of eraf gaat."),
+    Term("dagboek", "Dagboek", "Map voor boekingen van dezelfde soort",
+         "Een map waarin boekingen van dezelfde soort bij elkaar staan, bijvoorbeeld alle bankmutaties of alle verkoopfacturen.",
+         (r"\bdagboek(en)?\b",)),
+    Term("memoriaal", "Memoriaal", "Overige boekingen",
+         "De map voor boekingen die nergens anders bij horen, zoals correcties of de beginbalans. Hier leg je ook zelf handmatig iets vast."),
+    Term("verkoopdagboek", "Verkoopdagboek", "Verkoopfacturen",
+         "Hier staan de facturen die jij aan klanten stuurt. Zo zie je wat klanten je nog moeten betalen."),
+    Term("inkoopdagboek", "Inkoopdagboek", "Inkoopfacturen",
+         "Hier staan de facturen die jij van leveranciers krijgt. Zo zie je wat je nog moet betalen."),
+    Term("bankdagboek", "Bankdagboek", "Bankmutaties",
+         "Hier staan de bij- en afschrijvingen van één bankrekening. Elke bankrekening heeft zijn eigen map."),
+    Term("kasdagboek", "Kasdagboek", "Contant geld",
+         "Hier staat het geld dat je contant ontvangt of uitgeeft. Het saldo hoort overeen te komen met wat er echt in de kas zit."),
+    Term("boeking", "Boeking", "Vastgelegde gebeurtenis",
+         "Een boeking legt vast dat er geld is ontvangen, uitgegeven of verschoven, met datum en omschrijving. Je kunt een boeking niet wijzigen, maar wel ongedaan maken.",
+         (_NEVER,)),
+    Term("boekstuk", "Boekstuk", "Volgnummer van de boeking",
+         "Het unieke nummer van een boeking, bijvoorbeeld 2026-0001. Zo vind je een boeking altijd terug en ontbreekt er nooit een nummer."),
+    Term("debet", "Debet", "Linkerkant van een boeking",
+         "De ene kant van een boeking. Hier staat waar het geld naartoe gaat of wat je erbij krijgt, zoals geld op je bank of een gemaakte kost."),
+    Term("credit", "Credit", "Rechterkant van een boeking",
+         "De andere kant van een boeking. Hier staat waar het geld vandaan komt, zoals een verkoop of een schuld die erbij komt."),
+    Term("storno", "Storno", "Boeking ongedaan maken",
+         "Een boeking verwijderen mag niet. Met een stornoboeking maak je hem ongedaan: er komt een tegengestelde boeking bij en de eerste blijft zichtbaar."),
+    Term("boekjaar", "Boekjaar", "Jaar van je administratie",
+         "Het jaar waarover je je administratie bijhoudt, meestal een kalenderjaar. Elk boekjaar bestaat uit 12 maanden waarin je kunt boeken."),
+    Term("periode", "Periode", "Maand in een boekjaar",
+         "Een maand van het boekjaar. Is een maand vergrendeld, dan kun je er niets meer in boeken; zo blijven afgesloten cijfers kloppen.",
+         (r"\bperiodes?\b",)),
+    Term("vergrendelen", "Vergrendelen", "Maand dichtzetten",
+         "Je zet een maand definitief op slot. Daarna kun je er niets meer in boeken, wijzigen of ongedaan maken, en je kunt het zelf niet terugdraaien.",
+         (r"\bvergrendel(en)?\b",)),
+    Term("afsluiten", "Afsluiten", "Jaar dichtzetten",
+         "Je zet alle maanden van het jaar op slot. Doe dit pas als je alle boekingen van dat jaar hebt gecontroleerd; terugdraaien kan niet.",
+         (r"\bafsluiten\b",)),
+    Term("btw", "Btw", "Omzetbelasting",
+         "Belasting die je over verkopen rekent en over inkopen betaalt. Het verschil draag je af aan de Belastingdienst, meestal per kwartaal.",
+         (r"\bbtw\b(?!-code)",)),
+    Term("btw_code", "Btw-code", "Btw-tarief van de regel",
+         "Bepaalt welk btw-percentage bij een regel hoort, bijvoorbeeld 21%, 9% of 0%. Hiermee vult het programma later je btw-aangifte in.",
+         (r"\bbtw-code\b",)),
+    Term("rgs", "RGS", "Standaardnummering van rekeningen",
+         "Referentiegrootboekschema: een landelijke standaard voor rekeningnummers en namen, zodat je boekhouder en de Belastingdienst alles herkennen."),
+    Term("activa", "Activa", "Wat je bezit",
+         "Alles wat je bezit of nog tegoed hebt, zoals geld op de bank, een laptop of een factuur die nog betaald moet worden."),
+    Term("passiva", "Passiva", "Wat je schuldig bent",
+         "Alles wat je schuldig bent aan anderen, zoals een nog te betalen factuur of een lening. Ook de btw die je nog moet afdragen hoort hier."),
+    Term("eigen_vermogen", "Eigen vermogen", "Wat van jou is",
+         "Wat er overblijft als je alles wat je schuldig bent aftrekt van wat je bezit. Dit is het geld dat in je onderneming zit."),
+    Term("opbrengsten", "Opbrengsten", "Wat je verdient",
+         "Het geld dat je verdient met je werk of producten, zoals omzet uit verkopen. Dit telt mee voor je winst."),
+    Term("kosten", "Kosten", "Wat je uitgeeft",
+         "Het geld dat je uitgeeft om je bedrijf te laten draaien, zoals kantoorbenodigdheden of huur. Dit verlaagt je winst."),
+    Term("systeemrekening", "Systeemrekening", "Standaardrekening van het programma",
+         "Standaardrekening die het programma zelf nodig heeft; je kunt hem niet hernoemen of verwijderen.",
+         (r"\bsysteem(rekening)?\b",)),
+    Term("debiteuren", "Debiteuren", "Klanten die nog moeten betalen",
+         "Het bedrag dat klanten je nog schuldig zijn voor facturen die je hebt gestuurd."),
+    Term("crediteuren", "Crediteuren", "Leveranciers die je nog moet betalen",
+         "Het bedrag dat je nog moet betalen voor facturen die je hebt ontvangen."),
+    Term("balans_evenwicht", "Debet = credit", "Beide kanten even groot",
+         "Elke boeking heeft twee kanten die samen precies even groot moeten zijn. Is dat niet zo, dan zegt het programma hoeveel er ontbreekt.",
+         (_NEVER,)),
+    Term("referentie", "Referentie", "Kenmerk van de boeking",
+         "Een eigen kenmerk, zoals een factuurnummer, zodat je de boeking later makkelijk terugvindt."),
+    Term("inbox", "Inbox", "Nog te verwerken documenten",
+         "Hier komen facturen en bonnen binnen die nog verwerkt moeten worden, bijvoorbeeld uit je mailbox."),
+    Term("relaties", "Relaties", "Klanten en leveranciers",
+         "De bedrijven en personen met wie je zakendoet: je klanten en je leveranciers."),
+    Term("rapportages", "Rapportages", "Overzichten en cijfers",
+         "Overzichten van je cijfers, zoals winst en verlies en wat je bezit en schuldig bent."),
+    Term("bank", "Bank", "Bij- en afschrijvingen",
+         "Hier verwerk je de bij- en afschrijvingen van je bankrekening."),
+    Term("kas", "Kas", "Contant geld",
+         "Het geld dat je contant hebt, bijvoorbeeld in een kassa of portemonnee van het bedrijf."),
+]
+
+GLOSSARY: dict[str, Term] = {t.key: t for t in _TERMS}
+if len(GLOSSARY) != len(_TERMS):
+    raise RuntimeError("Duplicate glossary key")
+
+
+def get_term(key: str) -> Term:
+    try:
+        return GLOSSARY[key]
+    except KeyError:
+        raise KeyError(f"Unknown glossary key: {key!r}") from None
+
+
+def all_terms() -> list[Term]:
+    return list(GLOSSARY.values())

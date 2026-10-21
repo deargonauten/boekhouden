@@ -1,0 +1,11 @@
+{# Usage: {% from "partials/_info.html" import info, term_label with context %} #}
+{% macro info(key) -%}
+{%- set t = explain(key) -%}
+{%- set n = next_info_id() -%}
+<span class="info" data-term="{{ key }}"><button type="button" class="info-btn" aria-label="Uitleg: {{ t.term }}" aria-describedby="info-{{ key }}-{{ n }}">i</button><span role="tooltip" id="info-{{ key }}-{{ n }}" class="info-tip">{{ t.explanation }}</span></span>
+{%- endmacro %}
+
+{% macro term_label(key, plain=None) -%}
+{%- set t = explain(key) -%}
+{{ plain or t.plain }} ({{ t.term }}) {{ info(key) }}
+{%- endmacro %}
