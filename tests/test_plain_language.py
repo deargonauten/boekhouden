@@ -61,6 +61,13 @@ def seeded(client):
     r = client.post("/boeken/nieuw", data=entry_data(client), follow_redirects=False)
     assert r.status_code == 303
     entry_url = r.headers["location"]
+    c = client.post(
+        "/relaties/nieuw",
+        data={"name": "Jansen Installatie", "is_supplier": "1", "kvk": "12345678"},
+        follow_redirects=False,
+    )
+    assert c.status_code == 303
+    client.contact_id = int(c.headers["location"].rsplit("=", 1)[1])
     entry_id = int(entry_url.rsplit("/", 1)[1])
     s = client.post(f"/boeken/{entry_id}/storno", data={"datum": ""}, follow_redirects=False)
     assert s.status_code == 303
@@ -78,6 +85,10 @@ def pages(c):
         ("/instellingen/grootboek", set()),
         ("/instellingen/dagboeken", set()),
         ("/instellingen/boekjaren", set()),
+        ("/relaties", set()),
+        ("/relaties?gearchiveerd=1", set()),
+        ("/relaties/nieuw", set()),
+        (f"/relaties/{c.contact_id}/bewerken", set()),
         ("/bank", {"bank"}),  # placeholder page: heading is the nav label
     ]
 

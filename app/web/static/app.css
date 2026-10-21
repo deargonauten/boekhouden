@@ -205,3 +205,10 @@ input.num { text-align: right; width: 8rem; }
   font-size: 0.75rem; line-height: 1.25; color: #a9b4c4; /* >= 4.5:1 on both sidebar backgrounds */
 }
 .nav-entry:has(.nav-link.active) .nav-sub { color: var(--sidebar-active-fg); }
+
+/* Relaties */
+.notice { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 1rem; color: var(--fg); }
+.content fieldset.fields { border: 0; padding: 0; }
+.content fieldset.fields legend { padding: 0; color: var(--muted); font-size: 0.85rem; }
+.fields label.check, .filter label.check { flex-direction: row; align-items: center; gap: 0.4rem; }
+.row-actions { display: flex; gap: 0.75rem; align-items: center; white-space: nowrap; }
