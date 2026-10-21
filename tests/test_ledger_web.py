@@ -216,6 +216,14 @@ def test_fiscal_years_page(client):
     assert "hx-confirm" in html
     dup = client.post("/instellingen/boekjaren", data={"year": YEAR})
     assert dup.status_code == 409
+    assert 'role="alert"' in dup.text
+
+
+def test_base_swaps_409_422_responses(client):
+    # hx-boost drops 4xx by default; base.html must opt in so error messages show
+    html = client.get("/instellingen/boekjaren").text
+    assert "htmx:beforeSwap" in html
+    assert "409" in html and "422" in html
 
 
 def test_close_year(year_client):

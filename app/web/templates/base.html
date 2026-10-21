@@ -7,6 +7,13 @@
   <link rel="stylesheet" href="/static/app.css">
   {# htmx 2.0.4, vendored in static/htmx.min.js; no CDN at runtime #}
   <script src="/static/htmx.min.js" defer></script>
+  {# htmx does not swap 4xx by default; our forms return 409/422 with the error message rendered in the page #}
+  <script>
+    document.addEventListener("htmx:beforeSwap", function (e) {
+      var s = e.detail.xhr.status;
+      if (s === 409 || s === 422) { e.detail.shouldSwap = true; e.detail.isError = false; }
+    });
+  </script>
 </head>
 <body hx-boost="true">
   <input type="checkbox" id="nav-toggle" class="nav-toggle-input" aria-hidden="true" tabindex="-1">
