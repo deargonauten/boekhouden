@@ -98,6 +98,7 @@ def pages(c):
         ("/inbox?status=nieuw", set()),
         ("/inbox?status=geboekt", set()),
         ("/inbox/1", set()),
+        ("/inbox/1/nakijken", set()),  # not yet read out; the ok/failed states: tests/test_extraction_web.py
     ]
 
 

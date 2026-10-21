@@ -1,0 +1,7 @@
+{# Needs: document. Optional: label, confirm, compact. #}
+<form method="post" action="/inbox/{{ document.id }}/uitlezen" class="extract-form{% if compact %} compact{% endif %}"
+      hx-disabled-elt="find button" hx-indicator="#extract-busy-{{ document.id }}"
+      {% if confirm %}hx-confirm="{{ confirm }}"{% endif %}>
+  <button type="submit" class="btn{% if compact %} btn-small{% endif %}">{{ label|default("Lees factuur uit") }}</button>
+  <span class="htmx-indicator" id="extract-busy-{{ document.id }}" role="status">Bezig met uitlezen, dit duurt 10 tot 60 seconden...</span>
+</form>
