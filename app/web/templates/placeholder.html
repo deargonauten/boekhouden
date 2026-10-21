@@ -1,5 +1,8 @@
 {% extends "base.html" %}
+{% from "partials/_ui.html" import page_header, empty_state with context %}
 {% block content %}
-<h1>{{ title }}</h1>
-<p>Deze pagina is nog in ontwikkeling.</p>
+{{ page_header(title, [(title, None)]) }}
+<div class="card card--flush">
+  {{ empty_state("Deze pagina is nog in ontwikkeling", "Dit onderdeel komt later. Bekijk ondertussen je binnengekomen bestanden.", "Naar je bestanden", "/inbox", "box") }}
+</div>
 {% endblock %}

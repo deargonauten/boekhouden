@@ -30,7 +30,8 @@ def test_page(client, path, label):
     r = client.get(path)
     assert r.status_code == 200
     assert f"<h1>{label}</h1>" in r.text
-    assert "Deze pagina is nog in ontwikkeling." in r.text
+    assert "Deze pagina is nog in ontwikkeling" in r.text
+    assert 'href="/inbox"' in r.text
     assert sidebar_labels(r.text) == LABELS
     assert r.text.count('aria-current="page"') == 1
     m = re.search(r'<a [^>]*aria-current="page"[^>]*>\s*(.*?)\s*</a>', r.text, re.S)

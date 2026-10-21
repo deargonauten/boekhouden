@@ -8,6 +8,7 @@ class NavItem:
     key: str
     group: int = 0  # visual group; the highest group is pinned to the sidebar bottom
     term_key: str | None = None  # glossary key for the plain-Dutch sub-line
+    icon: str = ""  # icon name for the `icon()` macro in partials/_ui.html
 
 
 @dataclass(frozen=True)
@@ -15,17 +16,24 @@ class MarkedNavItem(NavItem):
     active: bool = False
 
 
+# Section labels shown in the sidebar; groups without a label (the pinned one) show none.
+GROUP_LABELS: dict[int, str] = {
+    0: "Verwerken",
+    1: "Verkoop en inkoop",
+    2: "Aangifte en overzicht",
+}
+
 NAV_ITEMS: list[NavItem] = [
-    NavItem("Inbox", "/inbox", "inbox", 0, "inbox"),
-    NavItem("Boeken", "/boeken", "boeken", 0, "boeking"),
-    NavItem("Bank", "/bank", "bank", 0, "bank"),
-    NavItem("Verkoop", "/verkoop", "verkoop", 1, "debiteuren"),
-    NavItem("Inkoop", "/inkoop", "inkoop", 1, "crediteuren"),
-    NavItem("Relaties", "/relaties", "relaties", 1, "relaties"),
-    NavItem("BTW", "/btw", "btw", 2, "btw"),
-    NavItem("Rapportages", "/rapportages", "rapportages", 2, "rapportages"),
-    NavItem("Activa", "/activa", "activa", 2, "activa"),
-    NavItem("Instellingen", "/instellingen", "instellingen", 3),
+    NavItem("Inbox", "/inbox", "inbox", 0, "inbox", "inbox"),
+    NavItem("Boeken", "/boeken", "boeken", 0, "boeking", "book"),
+    NavItem("Bank", "/bank", "bank", 0, "bank", "bank"),
+    NavItem("Verkoop", "/verkoop", "verkoop", 1, "debiteuren", "receipt"),
+    NavItem("Inkoop", "/inkoop", "inkoop", 1, "crediteuren", "file"),
+    NavItem("Relaties", "/relaties", "relaties", 1, "relaties", "users"),
+    NavItem("BTW", "/btw", "btw", 2, "btw", "percent"),
+    NavItem("Rapportages", "/rapportages", "rapportages", 2, "rapportages", "chart"),
+    NavItem("Activa", "/activa", "activa", 2, "activa", "box"),
+    NavItem("Instellingen", "/instellingen", "instellingen", 3, None, "settings"),
 ]
 
 
@@ -35,6 +43,6 @@ def is_active(item: NavItem, path: str) -> bool:
 
 def mark_active(path: str) -> list[MarkedNavItem]:
     return [
-        MarkedNavItem(i.label, i.path, i.key, i.group, i.term_key, is_active(i, path))
+        MarkedNavItem(i.label, i.path, i.key, i.group, i.term_key, i.icon, is_active(i, path))
         for i in NAV_ITEMS
     ]

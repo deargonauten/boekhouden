@@ -1,0 +1,160 @@
+{#- Boekhouden UI macros (design system contract: factory/ui-redesign/spec.md)
+
+Styleguide. Import what you need:
+  {% from "partials/_ui.html" import page_header, tabs, toolbar_search, pill, pager, empty_state, notice, error_box, icon, row_menu with context %}
+
+  page_header(title, breadcrumb=[], action_label=None, action_href=None, term=None, lead=None)
+      breadcrumb: [(label, href_or_None), ...]; the last item is the current page. Optional
+      {% call page_header(...) %}extra buttons{% endcall %} slot next to the primary action.
+  tabs(items, aria_label)            items: (label, href, active, count_or_None, term_key_or_None)
+  toolbar_search(action, q, placeholder, hidden={})   GET form, name="q", hx-boost="false"
+  pill(label, tone, title=None)      tone: neutral | info | success | warning | danger
+  pager(page, per_page, total, base_url, params={}, noun="resultaten")
+      links keep `params` (empty values dropped); page 1 has no `page` parameter
+  empty_state(title, text, action_label=None, action_href=None, icon_name="inbox")
+  notice(text, tone="info")          role="status"; tone: info | success | warning
+  error_box(text_or_list)            role="alert"
+  icon(name, size=18)                inline SVG; an unknown name raises ValueError
+  row_menu(label)                    {% call row_menu("Meer acties") %}<a>..</a>{% endcall %} (kebab, opens without JS)
+
+Layout classes (app.css): .card .card__header .card__body .card__footer .card--flush, .stack .cluster
+.grid-2, .toolbar (.toolbar__search .toolbar__filters .toolbar__spacer), .table-wrap > table.data
+(th.num td.num .row-actions .btn-icon tr.inactive .table-empty), .field (.field__hint .field__error),
+.switch, .check, .form-actions, .fieldset, .btn .btn-secondary .btn-ghost .btn-danger .btn-small .btn-icon.
+Client-side filter: <input data-filter-table="#tabel-id"> hides non-matching tbody rows.
+-#}
+{% from "partials/_info.html" import info %}
+
+{% macro icon(name, size=18) -%}
+{%- set paths = {
+  "plus": '<path d="M12 5v14M5 12h14"/>',
+  "search": '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  "filter": '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>',
+  "edit": '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+  "archive": '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
+  "restore": '<path d="M4 12a8 8 0 1 0 3-6.2L4 8"/><path d="M4 3v5h5"/>',
+  "lock": '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  "check": '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  "x": '<path d="M6 6l12 12M18 6 6 18"/>',
+  "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+  "chevron-left": '<path d="m15 6-6 6 6 6"/>',
+  "chevron-right": '<path d="m9 6 6 6-6 6"/>',
+  "more": '<circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/>',
+  "inbox": '<path d="M4 13 6.5 5h11L20 13v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>',
+  "book": '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>',
+  "bank": '<path d="M3 9 12 4l9 5zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  "receipt": '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  "users": '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.5 2.6 3.5 5.5"/>',
+  "percent": '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
+  "chart": '<path d="M4 20V4M4 20h16"/><path d="M8 16v-5M12 16V8M16 16v-8"/>',
+  "box": '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',
+  "settings": '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+  "file": '<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/>',
+  "upload": '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/>',
+  "alert": '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17.5v.5"/>',
+  "menu": '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>',
+} -%}
+{%- if name not in paths -%}{{ template_error("Onbekend icoon: " ~ name) }}{%- endif -%}
+<svg class="icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ paths[name]|safe }}</svg>
+{%- endmacro %}
+
+{% macro page_header(title, breadcrumb=[], action_label=None, action_href=None, term=None, lead=None) -%}
+<header class="page-header">
+  <div class="page-header__main">
+    {% if breadcrumb %}
+    <nav class="breadcrumb" aria-label="Kruimelpad">
+      <ol>
+        {% for label, href in breadcrumb %}
+        {% if href and not loop.last %}<li><a href="{{ href }}">{{ label }}</a></li>{% else %}<li><span class="breadcrumb__current">{{ label }}</span></li>{% endif %}
+        {% endfor %}
+      </ol>
+    </nav>
+    {% endif %}
+    <div class="page-header__title"><h1>{{ title }}</h1>{% if term %}{{ info(term) }}{% endif %}</div>
+    {% if lead %}<p class="page-header__lead">{{ lead }}</p>{% endif %}
+  </div>
+  {% if action_label or caller is defined %}
+  <div class="page-header__actions">
+    {% if caller is defined %}{{ caller() }}{% endif %}
+    {% if action_label and action_href %}<a class="btn" href="{{ action_href }}">{{ icon("plus") }}{{ action_label }}</a>{% endif %}
+  </div>
+  {% endif %}
+</header>
+{%- endmacro %}
+
+{% macro tabs(items, aria_label) -%}
+<nav class="tabs" aria-label="{{ aria_label }}">
+  {% for item in items %}
+  {% set count = item[3] if item|length > 3 else None %}
+  {% set term_key = item[4] if item|length > 4 else None %}
+  <span class="tab"><a href="{{ item[1] }}"{% if item[2] %} aria-current="page"{% endif %}>{{ item[0] }}{% if count is not none %} <span class="tab__count">{{ count }}</span>{% endif %}</a>{% if term_key %}{{ info(term_key) }}{% endif %}</span>
+  {% endfor %}
+</nav>
+{%- endmacro %}
+
+{% macro toolbar_search(action, q, placeholder, hidden={}) -%}
+<form class="toolbar__search" method="get" action="{{ action }}" role="search" hx-boost="false">
+  {{ icon("search") }}
+  <input type="search" name="q" value="{{ q or '' }}" placeholder="{{ placeholder }}" aria-label="{{ placeholder }}">
+  {% for k, v in hidden.items() %}{% if v not in (None, "") %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+  <button type="submit" class="visually-hidden">Zoeken</button>
+</form>
+{%- endmacro %}
+
+{% macro pill(label, tone="neutral", title=None) -%}
+<span class="pill pill--{{ tone }}"{% if title %} title="{{ title }}"{% endif %}>{{ label }}</span>
+{%- endmacro %}
+
+{% macro notice(text, tone="info") -%}
+<div class="notice notice--{{ tone }}" role="status">{{ icon("check" if tone == "success" else ("alert" if tone == "warning" else "info")) }}<div>{{ text }}</div></div>
+{%- endmacro %}
+
+{% macro error_box(text_or_list) -%}
+<div class="alert" role="alert">
+  {% if text_or_list is string %}<p>{{ text_or_list }}</p>
+  {% else %}<ul>{% for t in text_or_list %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro empty_state(title, text, action_label=None, action_href=None, icon_name="inbox") -%}
+<div class="empty">
+  <span class="empty__icon">{{ icon(icon_name, 26) }}</span>
+  <p class="empty__title">{{ title }}</p>
+  <p class="empty__text">{{ text }}</p>
+  {% if action_label and action_href %}<a class="btn" href="{{ action_href }}">{{ action_label }}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro pager(page, per_page, total, base_url, params={}, noun="resultaten") -%}
+{%- if total > 0 -%}
+{%- set last = ((total + per_page - 1) // per_page) -%}
+{%- set cur = [[page, 1]|max, last]|min -%}
+<nav class="pager" aria-label="Paginering">
+  <span class="pager__count">Toont {{ (cur - 1) * per_page + 1 }}-{{ [cur * per_page, total]|min }} van {{ total }} {{ noun }}</span>
+  {% if last > 1 %}
+  <div class="pager__pages">
+    {% if cur > 1 %}<a href="{{ page_url(base_url, params, cur - 1) }}" rel="prev">{{ icon("chevron-left", 16) }}Vorige</a>
+    {% else %}<span class="pager__disabled" aria-disabled="true">{{ icon("chevron-left", 16) }}Vorige</span>{% endif %}
+    {% set ns = namespace(prev=0) %}
+    {% for n in range(1, last + 1) %}
+      {% if n == 1 or n == last or (n - cur)|abs <= 1 %}
+        {% if n - ns.prev > 1 %}<span class="pager__gap" aria-hidden="true">&hellip;</span>{% endif %}
+        <a href="{{ page_url(base_url, params, n) }}" aria-label="Pagina {{ n }}"{% if n == cur %} aria-current="page"{% endif %}>{{ n }}</a>
+        {% set ns.prev = n %}
+      {% endif %}
+    {% endfor %}
+    {% if cur < last %}<a href="{{ page_url(base_url, params, cur + 1) }}" rel="next">Volgende{{ icon("chevron-right", 16) }}</a>
+    {% else %}<span class="pager__disabled" aria-disabled="true">Volgende{{ icon("chevron-right", 16) }}</span>{% endif %}
+  </div>
+  {% endif %}
+</nav>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro row_menu(label) -%}
+<details class="menu">
+  <summary class="btn-icon" aria-label="{{ label }}" title="{{ label }}">{{ icon("more") }}</summary>
+  <div class="menu__list">{{ caller() }}</div>
+</details>
+{%- endmacro %}

@@ -1,12 +1,17 @@
+{% from "partials/_ui.html" import icon %}
 <!doctype html>
 <html lang="nl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ title|default("Boekhouden") }}{% endblock %} - Boekhouden</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/app.css">
+  {% block head %}{% endblock %}
+  <script>document.documentElement.classList.add("js");</script>
   {# htmx 2.0.4, vendored in static/htmx.min.js; no CDN at runtime #}
   <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
   {# htmx does not swap 4xx by default; our forms return 409/422 with the error message rendered in the page #}
   <script>
     document.addEventListener("htmx:beforeSwap", function (e) {
@@ -15,12 +20,19 @@
     });
   </script>
 </head>
-<body hx-boost="true">
-  <input type="checkbox" id="nav-toggle" class="nav-toggle-input" aria-hidden="true" tabindex="-1">
-  <label for="nav-toggle" class="nav-toggle-btn">&#9776; Menu</label>
-  {% include "partials/sidebar.html" %}
-  <main class="content">
-    {% block content %}{% endblock %}
-  </main>
+<body hx-boost="true" hx-indicator="#progress-bar">
+  <a class="skip-link" href="#main">Naar de inhoud</a>
+  <div class="progress-bar" id="progress-bar" aria-hidden="true"></div>
+  <div class="app-shell">
+    <div class="topbar">
+      <button type="button" class="btn-icon" data-nav-toggle aria-label="Menu openen of sluiten" aria-controls="sidebar" aria-expanded="false">{{ icon("menu", 20) }}</button>
+      <span class="brand">Boekhouden</span>
+    </div>
+    {% include "partials/sidebar.html" %}
+    <div class="scrim" aria-hidden="true"></div>
+    <main class="content" id="main" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
 </body>
 </html>
