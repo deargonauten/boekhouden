@@ -74,6 +74,7 @@ def test_close_unknown_year(session):
 def test_no_unlock_at_db_level(session, year2025):
     p = list_fiscal_years(session)[0].periods[0]
     lock_period(session, p.id)
+    close_fiscal_year(session, 2025)
     session.commit()
     for sql in [
         f"UPDATE period SET status='open' WHERE id={p.id}",
