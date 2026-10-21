@@ -67,6 +67,8 @@ def seeded(client):
         follow_redirects=False,
     )
     assert c.status_code == 303
+    co = client.post("/instellingen/bedrijfsgegevens", data=COMPANY, follow_redirects=False)
+    assert co.status_code == 303
     client.contact_id = int(c.headers["location"].rsplit("=", 1)[1])
     entry_id = int(entry_url.rsplit("/", 1)[1])
     s = client.post(f"/boeken/{entry_id}/storno", data={"datum": ""}, follow_redirects=False)
@@ -89,6 +91,8 @@ def pages(c):
         ("/instellingen/grootboek", set()),
         ("/instellingen/dagboeken", set()),
         ("/instellingen/boekjaren", set()),
+        ("/instellingen/bedrijfsgegevens", set()),  # filled (seeded)
+        ("/instellingen/bedrijfsgegevens?opgeslagen=1", set()),  # filled, with flash
         ("/relaties", set()),
         ("/relaties?gearchiveerd=1", set()),
         ("/relaties?soort=klant", set()),
@@ -105,6 +109,26 @@ def pages(c):
         ("/inbox/1", set()),
         ("/inbox/1/nakijken", set()),  # not yet read out; the ok/failed states: tests/test_extraction_web.py
     ]
+
+
+COMPANY = {
+    "legal_name": "Jan de Vries", "legal_form": "eenmanszaak", "address_line": "Dorpsstraat 1",
+    "postal_code": "1234ab", "city": "Utrecht", "country": "NL", "kvk": "12345678",
+    "btw_id": "NL123456789B01", "iban": "NL91ABNA0417164300",
+}
+
+
+def test_company_form_empty_is_plain_language(client):
+    html = assert_plain_language(client, "/instellingen/bedrijfsgegevens")
+    assert "Voor het maken van facturen ontbreekt nog" in html
+
+
+def test_company_form_error_state_is_plain_language(client):
+    r = client.post("/instellingen/bedrijfsgegevens", data={**COMPANY, "kvk": "123", "btw_id": "x"})
+    assert r.status_code == 422
+    assert missing_term_keys(r.text) == []
+    assert bare_term_elements(r.text) == []
+    assert 'role="alert"' in r.text
 
 
 def test_empty_inbox_is_plain_language(client):

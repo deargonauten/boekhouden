@@ -47,8 +47,11 @@ def test_is_drawer_request_exact_match():
 
 
 def test_settings_nav_contract():
-    assert [g.label for g in SETTINGS_NAV] == ["Boekhouding"]
-    items = SETTINGS_NAV[0].items
+    assert [g.label for g in SETTINGS_NAV] == ["Mijn bedrijf", "Boekhouding"]
+    assert [(i.label, i.path, i.term_key) for i in SETTINGS_NAV[0].items] == [
+        ("Bedrijfsgegevens", "/instellingen/bedrijfsgegevens", "bedrijfsgegevens"),
+    ]
+    items = SETTINGS_NAV[1].items
     assert [(i.label, i.path, i.term_key) for i in items] == [
         ("Grootboek", "/instellingen/grootboek", "grootboek"),
         ("Dagboeken", "/instellingen/dagboeken", "dagboek"),
@@ -72,10 +75,11 @@ def test_base_settings_renders_secondary_nav_with_active_link():
     html = render_settings("/instellingen/dagboeken")
     nav = re.search(r'<nav class="settings-nav" aria-label="Instellingen">.*?</nav>', html, re.S).group(0)
     assert 'settings-nav__heading">Boekhouding<' in nav
-    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 3
+    assert 'settings-nav__heading">Mijn bedrijf<' in nav
+    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 4
     assert nav.count('aria-current="page"') == 1
     assert re.search(r'href="/instellingen/dagboeken" aria-current="page">Dagboeken', nav)
-    for key in ("grootboek", "dagboek", "boekjaar"):
+    for key in ("bedrijfsgegevens", "grootboek", "dagboek", "boekjaar"):
         assert f'data-term="{key}"' in nav
     assert html.index("<h1>Kop</h1>") < html.index('class="settings-layout"')  # band sits above the columns
     assert '<div class="settings-content">' in html and "<p>Inhoud</p>" in html

@@ -240,7 +240,7 @@ def test_restore_button_for_archived(client):
 
 def test_form_has_cards_and_breadcrumb(client):
     html = client.get("/relaties/nieuw").text
-    for heading in ("Algemeen", "Bedrijfsgegevens", "Adres en contact"):
+    for heading in ("Algemeen", "Gegevens van het bedrijf", "Adres en contact"):
         assert f"<h2>{heading}</h2>" in html
     assert 'class="breadcrumb"' in html and "Nieuwe relatie" in html
     assert 'class="form-actions"' in html
