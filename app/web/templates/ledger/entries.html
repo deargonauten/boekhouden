@@ -1,20 +1,17 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
-{% from "partials/_ui.html" import page_header, tabs, toolbar_search, pill, pager, empty_state with context %}
+{% from "partials/_ui.html" import page_header, toolbar_search, pill, pager, empty_state, drawer, icon with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
 {% block content %}
-{% set lead %}Alle boekingen: elke euro die binnenkomt of uitgaat, vastgelegd met datum en omschrijving. {{ info("boeking") }}{% endset %}
-{{ page_header("Boeken", breadcrumb=[("Boeken", None)], action_label="Nieuwe boeking", action_href="/boeken/nieuw", lead=lead) }}
+{% set lead %}Alle boekingen: elke euro die binnenkomt of uitgaat, vastgelegd met datum en omschrijving. {{ info("boeking") }}{% if use_tabs %} Kies hieronder een dagboek om de lijst te beperken. {{ info("dagboek") }}{% endif %}{% endset %}
+{% set tab_items = None %}
+{% if use_tabs %}
+  {% set tab_items = [("Alle", page_url("/boeken", {"q": q}, 1), not dagboek)] %}
+  {% for j in journals %}{% set _ = tab_items.append((j.code ~ " " ~ j.name, page_url("/boeken", {"dagboek": j.code, "q": q}, 1), j.code == dagboek)) %}{% endfor %}
+{% endif %}
+{{ page_header("Boeken", breadcrumb=[("Boeken", None)], action_label="Nieuwe boeking", action_href="/boeken/nieuw", lead=lead, icon_name="book", tab_items=tab_items, tab_label="Dagboeken") }}
 {% set filtered = q or dagboek %}
 <div class="card card--flush">
-  {% if use_tabs %}
-  {% set items = [("Alle", page_url("/boeken", {"q": q}, 1), not dagboek)] %}
-  {% for j in journals %}{% set _ = items.append((j.code ~ " " ~ j.name, page_url("/boeken", {"dagboek": j.code, "q": q}, 1), j.code == dagboek)) %}{% endfor %}
-  <div class="ledger-tabs">
-    <span class="ledger-tabs__label">Toon dagboek {{ info("dagboek") }}</span>
-    {{ tabs(items, "Dagboeken") }}
-  </div>
-  {% endif %}
   <div class="toolbar">
     {{ toolbar_search("/boeken", q, "Zoek op boekstuknummer, omschrijving of referentie", {"dagboek": dagboek}) }}
     {% if not use_tabs %}
@@ -33,10 +30,10 @@
   {% if result.items %}
   <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>Boekstuk {{ info("boekstuk") }}</th><th>Datum</th><th>Dagboek {{ info("dagboek") }}</th><th>Omschrijving</th><th class="num">Totaal</th></tr></thead>
+    <thead><tr><th>Boekstuk {{ info("boekstuk") }}</th><th>Datum</th><th>Dagboek {{ info("dagboek") }}</th><th>Omschrijving</th><th class="num">Totaal</th><th class="visually-hidden">Acties</th></tr></thead>
     <tbody>
     {% for e in result.items %}
-    <tr>
+    <tr{% if e.kind == "storno" %} class="row--warn"{% endif %}>
       <td class="nowrap"><a href="/boeken/{{ e.id }}">{{ e.entry_number }}</a></td>
       <td class="nowrap">{{ e.booking_date.strftime("%d-%m-%Y") }}</td>
       <td>{{ e.journal_code }}</td>
@@ -45,18 +42,18 @@
         {% if e.reversed_by_id %}{{ pill("Gestorneerd", "neutral") }} {{ info("storno") }}{% endif %}
       </td>
       <td class="num">{{ e.total_cents|euro }}</td>
+      <td class="nowrap"><a class="btn btn-ghost btn-small" href="/boeken/{{ e.id }}" data-drawer-open="#boeking-drawer" hx-get="/boeken/{{ e.id }}" hx-target="#boeking-drawer-body" hx-push-url="false" hx-boost="false" aria-label="Bekijk boeking {{ e.entry_number }}">{{ icon("eye", 16) }}Bekijken</a></td>
     </tr>
     {% endfor %}
     </tbody>
   </table>
   </div>
-  <div class="card__footer">
-    {{ pager(result.page, result.per_page, result.total, "/boeken", {"dagboek": dagboek, "q": q}, "boekingen") }}
-  </div>
+  {{ pager(result.page, result.per_page, result.total, "/boeken", {"dagboek": dagboek, "q": q}, "boekingen", sticky=True) }}
   {% elif filtered %}
   {{ empty_state("Geen boekingen gevonden", "Er is geen boeking die past bij je zoekopdracht of dagboek. Probeer een andere zoekterm.", "Wis filters", "/boeken", "search") }}
   {% else %}
   {{ empty_state("Je hebt nog geen boekingen", "Maak je eerste boeking met 'Nieuwe boeking'.", "Nieuwe boeking", "/boeken/nieuw", "book") }}
   {% endif %}
 </div>
+{% call drawer("boeking-drawer", "Boeking", "boeking") %}<p class="hint">De boeking wordt geladen&hellip;</p>{% endcall %}
 {% endblock %}

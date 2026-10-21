@@ -1,14 +1,24 @@
-{% extends "base.html" %}
+{% extends "base_settings.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
-{% from "partials/_ui.html" import pill, empty_state, icon with context %}
+{% from "partials/_ui.html" import pill, empty_state, icon, stat_cards with context %}
 {% from "ledger/_settings_nav.html" import settings_header with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
-{% block content %}
+{% block settings_header %}
 {{ settings_header("Boekjaren") }}
-<h2 class="section-title">{{ term_label("boekjaar", "Boekjaren") }}</h2>
-<p class="lead">Een boekjaar is het jaar waarover je je administratie bijhoudt (meestal een kalenderjaar). Het is verdeeld in 12 periodes (maanden). {{ info("periode") }}</p>
+{% endblock %}
+{% block settings_content %}
+{% set ns = namespace(open=0, locked=0) %}
+{% for y in years %}{% for p in y.periods %}{% if p.status == "open" %}{% set ns.open = ns.open + 1 %}{% else %}{% set ns.locked = ns.locked + 1 %}{% endif %}{% endfor %}{% endfor %}
+<p class="lead">Een boekjaar is het jaar waarover je je administratie bijhoudt (meestal een kalenderjaar). Het is verdeeld in 12 periodes (maanden). {{ info("periode") }} {{ info("boekjaar") }}</p>
 {% include "ledger/_error.html" %}
+{% if years %}
+{{ stat_cards([{"title": "Overzicht", "term": None, "cells": [
+  {"label": "Open maanden", "value": ns.open|string, "tone": "success" if ns.open else None},
+  {"label": "Maanden op slot", "value": ns.locked|string, "tone": None},
+]}]) }}
+{% endif %}
 <form method="post" action="/instellingen/boekjaren" class="card" hx-boost="false">
+  <div class="card__header"><h2>Nieuw boekjaar</h2></div>
   <div class="card__body settings-form settings-form--inline">
     <div class="field">
       <label for="fy-year">Welk jaar?</label>
@@ -38,7 +48,7 @@
     <thead><tr><th>{{ term_label("periode", "Maand") }}</th><th>Van</th><th>Tot</th><th>Status</th><th class="num">{{ term_label("vergrendelen", "Op slot zetten") }}</th></tr></thead>
     <tbody>
     {% for p in y.periods %}
-    <tr>
+    <tr{% if p.status != "open" %} class="row--done"{% endif %}>
       <td>{{ p.number }}</td>
       <td class="nowrap">{{ p.start_date.strftime("%d-%m-%Y") }}</td>
       <td class="nowrap">{{ p.end_date.strftime("%d-%m-%Y") }}</td>

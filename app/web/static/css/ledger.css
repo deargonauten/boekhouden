@@ -1,13 +1,13 @@
 /* Ledger screens (boeken, instellingen). Tokens only; shared looks live in app.css. */
 
-/* Dagboek tabs row inside the boeken card */
-.ledger-tabs { display: flex; align-items: flex-end; gap: var(--space-5); border-bottom: 1px solid var(--border); padding-left: var(--space-6); }
-.ledger-tabs .tabs { border-bottom: 0; padding-left: 0; flex: 1 1 auto; min-width: 0; }
-.ledger-tabs__label { padding: var(--space-3) 0; color: var(--muted); font-size: var(--text-sm); white-space: nowrap; }
 .toolbar__clear { font-size: var(--text-sm); }
 .card--flush > .toolbar { border-bottom: 1px solid var(--border); }
-.card--flush > .card__footer { padding: 0; border-top: 1px solid var(--border); }
-.card--flush > .card__footer .pager { padding: var(--space-4) var(--space-6); }
+
+/* Drawer content: summary line above the cards */
+.entry-summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-4); }
+.entry-summary strong { font-size: var(--text-lg); }
+.entry-summary__date { color: var(--muted); }
+.drawer__body .stack, .drawer__body > .card { margin-bottom: var(--space-4); }
 
 /* Facts list and money on the booking detail */
 .facts .money { font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -22,23 +22,32 @@
 .card--flush > .card__footer.cluster { padding: var(--space-4) var(--space-6); }
 .card__footer .hint { margin: 0; }
 
-/* Live balance line ("Verschil") */
-.balance-row th, .balance-row td { background: var(--surface-2); font-weight: 600; }
-.balance-row--off th, .balance-row--off td { background: var(--danger-soft); color: var(--danger); }
+/* Totals block under the lines: Totaal links / rechts / Verschil */
+.totals-block { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border); }
+.totals-block dl { margin: 0; display: grid; gap: var(--space-2); min-width: min(20rem, 100%); }
+.totals-block dl > div { display: flex; justify-content: space-between; gap: var(--space-5); }
+.totals-block dt { color: var(--muted); }
+.totals-block dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.totals-block__diff { padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.totals-block__diff--off dt, .totals-block__diff--off dd { color: var(--danger); }
+.totals-block__note { margin: 0; color: var(--danger); font-size: var(--text-sm); }
+
+/* Sticky action bar of the new booking form */
+.entry-form .form-actions { position: sticky; bottom: 0; z-index: 4; margin-top: var(--space-2); padding: var(--space-3) var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 
 /* Settings pages */
-.section-title { font-size: var(--text-xl); margin: var(--space-5) 0 var(--space-1); }
+.settings-content > .lead { margin-top: 0; }
+.settings-content > * + * { margin-top: var(--space-5); }
 .settings-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--space-5); align-items: start; }
 .settings-form input, .settings-form select { width: 100%; }
 .settings-form--inline { grid-template-columns: minmax(10rem, 16rem) auto; align-items: end; }
 .settings-form__submit { align-self: end; }
 .ledger-search { padding-left: 0; padding-right: 0; }
 .ledger-group:not(:has(tbody tr:not(.data-hidden))) { display: none; }
-.card details > summary { display: flex; align-items: center; gap: var(--space-2); }
+.modal__body .settings-form { grid-template-columns: minmax(0, 1fr); }
 
 @media (max-width: 899px) {
   .entry-fields { grid-template-columns: minmax(0, 1fr); }
-  .ledger-tabs { flex-direction: column; align-items: stretch; gap: 0; padding-left: var(--space-4); }
   .settings-form--inline { grid-template-columns: minmax(0, 1fr); }
-  .card--flush > .card__footer .pager { padding: var(--space-3) var(--space-4); }
+  .totals-block { padding: var(--space-3) var(--space-4); }
 }

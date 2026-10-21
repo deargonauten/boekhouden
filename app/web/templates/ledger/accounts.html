@@ -1,34 +1,36 @@
-{% extends "base.html" %}
+{% extends "base_settings.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
-{% from "partials/_ui.html" import pill, empty_state, icon with context %}
+{% from "partials/_ui.html" import pill, empty_state, icon, modal, error_box with context %}
 {% from "ledger/_settings_nav.html" import settings_header with context %}
 {% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
-{% block content %}
-{{ settings_header("Grootboek") }}
-<h2 class="section-title">{{ term_label("grootboek") }}</h2>
-<p class="lead">Dit is de lijst met alle rekeningen waarop je boekingen worden vastgelegd, zoals Bank, Omzet en Kantoorkosten. {{ info("bank") }}</p>
-{% include "ledger/_error.html" %}
-<div class="card">
-  <details{% if error %} open{% endif %}>
-    <summary>{{ icon("plus", 16) }} Rekening toevoegen</summary>
-    <form method="post" action="/instellingen/grootboek" class="card__body settings-form" hx-boost="false">
-      <div class="field">
-        <label for="acc-code">Rekeningnummer (4 cijfers)</label>
-        <input id="acc-code" name="code" value="{{ values.code }}" maxlength="4" pattern="[0-9]{4}" aria-describedby="code-hint" required>
-        <span class="field__hint" id="code-hint">Voorstel: eerste vrije nummer in dit gebied. Pas aan als je wilt.</span>
-      </div>
-      <div class="field">
-        <label for="acc-name">Naam</label>
-        <input id="acc-name" name="name" value="{{ values.name }}" required>
-      </div>
-      <div class="field">
-        <label for="acc-type">{{ term_label("grootrekening", "Soort rekening") }}</label>
-        <select id="acc-type" name="type">{% for key, label in account_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
-      </div>
-      <div class="settings-form__submit"><button type="submit" class="btn">Rekening toevoegen</button></div>
-    </form>
-  </details>
-</div>
+{% block settings_header %}
+{% call settings_header("Grootboek") %}<a class="btn" href="#rekening-toevoegen" data-modal-open="#rekening-toevoegen">{{ icon("plus") }}Rekening toevoegen</a>{% endcall %}
+{% endblock %}
+{% block settings_content %}
+<p class="lead">Dit is de lijst met alle rekeningen waarop je boekingen worden vastgelegd, zoals Bank, Omzet en Kantoorkosten. {{ info("bank") }} Samen heet dit je grootboek. {{ info("grootboek") }}</p>
+{% if error and not add_error %}{{ error_box(error) }}{% endif %}
+{% call modal("rekening-toevoegen", "Rekening toevoegen", open=(true if add_error else false)) %}
+  {% if add_error %}{{ error_box(error) }}{% endif %}
+  <form method="post" action="/instellingen/grootboek" class="settings-form" hx-boost="false">
+    <div class="field">
+      <label for="acc-code">Rekeningnummer (4 cijfers)</label>
+      <input id="acc-code" name="code" value="{{ values.code }}" maxlength="4" pattern="[0-9]{4}" aria-describedby="code-hint" required>
+      <span class="field__hint" id="code-hint">Voorstel: eerste vrije nummer in dit gebied. Pas aan als je wilt.</span>
+    </div>
+    <div class="field">
+      <label for="acc-name">Naam</label>
+      <input id="acc-name" name="name" value="{{ values.name }}" required>
+    </div>
+    <div class="field">
+      <label for="acc-type">{{ term_label("grootrekening", "Soort rekening") }}</label>
+      <select id="acc-type" name="type">{% for key, label in account_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn-secondary" data-modal-close>Annuleren</button>
+      <button type="submit" class="btn">Rekening toevoegen</button>
+    </div>
+  </form>
+{% endcall %}
 <div class="toolbar ledger-search">
   <div class="toolbar__search">
     {{ icon("search") }}

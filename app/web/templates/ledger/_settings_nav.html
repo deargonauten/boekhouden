@@ -1,11 +1,16 @@
-{# Header and tabs shared by the three settings pages.
-   Usage: {% from "ledger/_settings_nav.html" import settings_header with context %}{{ settings_header("Grootboek") }} #}
-{% from "partials/_ui.html" import page_header, tabs with context %}
+{# Header band shared by the three settings pages (the second navigation column lives in base_settings.html).
+   Usage (inside {% block settings_header %}):
+     {% from "ledger/_settings_nav.html" import settings_header with context %}
+     {{ settings_header("Grootboek") }}
+   or with a primary action: {% call settings_header("Grootboek") %}<a class="btn" ...>..</a>{% endcall %} #}
+{% from "partials/_ui.html" import page_header with context %}
 {% macro settings_header(current) -%}
-{{ page_header("Instellingen", breadcrumb=[("Instellingen", "/instellingen/grootboek"), (current, None)]) }}
-{{ tabs([
-  ("Grootboek", "/instellingen/grootboek", current_path.startswith("/instellingen/grootboek"), None, "grootboek"),
-  ("Dagboeken", "/instellingen/dagboeken", current_path.startswith("/instellingen/dagboeken"), None, "dagboek"),
-  ("Boekjaren", "/instellingen/boekjaren", current_path.startswith("/instellingen/boekjaren"), None, "boekjaar"),
-], "Instellingen") }}
+{%- set titles = {"Grootboek": "Rekeningen (grootboek)"} -%}
+{%- set terms = {"Dagboeken": "dagboek"} -%}
+{%- set extra -%}{% if caller is defined %}{{ caller() }}{% endif %}{%- endset -%}
+{%- if extra|trim -%}
+{% call page_header(titles.get(current, current), breadcrumb=[("Instellingen", "/instellingen/grootboek"), (current, None)], term=terms.get(current), icon_name="settings") %}{{ extra }}{% endcall %}
+{%- else -%}
+{{ page_header(titles.get(current, current), breadcrumb=[("Instellingen", "/instellingen/grootboek"), (current, None)], term=terms.get(current), icon_name="settings") }}
+{%- endif -%}
 {%- endmacro %}
