@@ -22,7 +22,8 @@ def parse_euro(text: str) -> int:
     match = _AMOUNT_RE.match(cleaned)
     if not match:
         raise InvalidAmountError(
-            f"Ongeldig bedrag: '{text.strip()}'. Gebruik de notatie 1.234,56 (maximaal twee decimalen)."
+            f"'{text.strip()}' is geen geldig bedrag. Schrijf bijvoorbeeld 1.234,56 of 12,50 "
+            "(maximaal twee cijfers achter de komma)."
         )
     sign, whole, frac = match.groups()
     cents = int(whole.replace(".", "")) * 100 + int((frac or "").ljust(2, "0") or 0)

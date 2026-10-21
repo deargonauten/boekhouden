@@ -117,6 +117,12 @@ def _now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+_SYSTEM_ACCOUNT_MESSAGE = (
+    "Dit is een standaardrekening die het programma zelf nodig heeft; "
+    "je kunt hem niet wijzigen of verwijderen."
+)
+
+
 def _error(code: str, message: str) -> LedgerError:
     return LedgerError(code, message)
 
@@ -135,7 +141,8 @@ def _find_period(session: Session, day: date) -> Period:
     if period.status != "open":
         raise _error(
             "PERIOD_LOCKED",
-            f"De periode van {day:%d-%m-%Y} is vergrendeld; er kan niet meer in worden geboekt.",
+            f"De periode van {day:%d-%m-%Y} is vergrendeld, dus je kunt er niet meer in boeken. "
+            "Kies een datum in een open periode.",
         )
     return period
 
@@ -146,16 +153,18 @@ def _check_accounts(session: Session, lines: list[NewLine], *, check_active: boo
     for l in lines:
         a = accounts.get(l.account_id)
         if a is None:
-            raise _error("ACCOUNT_NOT_FOUND", f"Grootrekening {l.account_id} bestaat niet.")
+            raise _error("ACCOUNT_NOT_FOUND", "Deze rekening bestaat niet meer. Kies een andere rekening.")
         if not a.is_postable:
             raise _error(
                 "ACCOUNT_NOT_POSTABLE",
-                f"Op grootrekening {a.code} {a.name} kan niet worden geboekt.",
+                f"Op rekening {a.code} {a.name} kun je niet boeken, want het is een kopregel. "
+                "Kies een rekening eronder.",
             )
         if check_active and not a.is_active:
             raise _error(
                 "ACCOUNT_INACTIVE",
-                f"Grootrekening {a.code} {a.name} is niet actief.",
+                f"Rekening {a.code} {a.name} is uitgezet. Kies een andere rekening of zet deze rekening weer aan "
+                "onder Instellingen > Grootboek.",
             )
 
 
@@ -167,7 +176,7 @@ def _check_vat_codes(session: Session, lines: list[NewLine], *, check_active: bo
     for code in sorted(codes):
         v = found.get(code)
         if v is None or (check_active and not v.is_active):
-            raise _error("INVALID_VAT_CODE", f"Onbekende of niet-actieve btw-code: {code}.")
+            raise _error("INVALID_VAT_CODE", "Deze btw-code is onbekend of niet meer in gebruik. Kies een andere uit de lijst.")
 
 
 def _next_number(session: Session, journal_id: int, fiscal_year_id: int) -> int:
@@ -208,15 +217,15 @@ def _post(
 ) -> JournalEntry:
     validate_entry(new)
     if new.kind not in ENTRY_KINDS:
-        raise _error("INVALID_ENTRY", f"Onbekend boekingssoort: {new.kind}.")
+        raise _error("INVALID_ENTRY", "Deze soort boeking bestaat niet. Kies een gewone boeking.")
     journal = session.get(Journal, new.journal_id)
     if journal is None:
-        raise _error("JOURNAL_NOT_FOUND", "Dagboek bestaat niet.")
+        raise _error("JOURNAL_NOT_FOUND", "Dit dagboek bestaat niet meer. Kies een ander dagboek.")
     if strict_refs and not journal.is_active:
-        raise _error("JOURNAL_INACTIVE", f"Dagboek {journal.code} is niet actief.")
+        raise _error("JOURNAL_INACTIVE", f"Dagboek {journal.code} is uitgezet. Kies een ander dagboek.")
     if new.kind == "opening" and journal.type != "memoriaal":
         raise _error(
-            "INVALID_ENTRY", "Een beginbalans-boeking kan alleen in het memoriaal worden gemaakt."
+            "INVALID_ENTRY", "Een beginbalans-boeking kan alleen in het memoriaal (overige boekingen) worden gemaakt."
         )
     _check_accounts(session, new.lines, check_active=strict_refs)
     _check_vat_codes(session, new.lines, check_active=strict_refs)
@@ -247,7 +256,7 @@ def _post(
 
 def post_entry(session: Session, new: NewEntry) -> JournalEntry:
     if new.kind == "storno":
-        raise _error("INVALID_ENTRY", "Een stornoboeking maak je met 'Stornoboeking maken'.")
+        raise _error("INVALID_ENTRY", "Een stornoboeking maak je vanuit de boeking zelf, met 'Stornoboeking maken'.")
     return _post(session, new)
 
 
@@ -267,11 +276,11 @@ def reverse_entry(
 ) -> JournalEntry:
     original = session.get(JournalEntry, entry_id)
     if original is None:
-        raise _error("ENTRY_NOT_FOUND", "Boeking niet gevonden.")
+        raise _error("ENTRY_NOT_FOUND", "Deze boeking bestaat niet. Ga terug naar Boeken en kies de boeking opnieuw.")
     if original.kind == "storno":
         raise _error(
             "CANNOT_REVERSE_STORNO",
-            "Een stornoboeking kan niet worden gestorneerd; maak een nieuwe boeking.",
+            "Een stornoboeking kun je niet nog eens ongedaan maken. Maak in plaats daarvan een nieuwe boeking.",
         )
     existing = session.scalar(
         select(JournalEntry.entry_number).where(JournalEntry.reverses_entry_id == original.id)
@@ -279,7 +288,7 @@ def reverse_entry(
     if existing is not None:
         raise _error(
             "ALREADY_REVERSED",
-            f"Boeking {original.entry_number} is al gestorneerd ({existing}).",
+            f"Boeking {original.entry_number} is al ongedaan gemaakt met stornoboeking {existing}.",
         )
     if booking_date is None:
         orig_period = session.get(Period, original.period_id)
@@ -311,7 +320,7 @@ def reverse_entry(
 
 def create_fiscal_year(session: Session, year: int) -> FiscalYear:
     if session.scalar(select(FiscalYear.id).where(FiscalYear.year == year)) is not None:
-        raise _error("YEAR_EXISTS", f"Boekjaar {year} bestaat al.")
+        raise _error("YEAR_EXISTS", f"Boekjaar {year} bestaat al. Kies een ander jaar.")
     fy = FiscalYear(year=year, start_date=date(year, 1, 1), end_date=date(year, 12, 31), status="open")
     session.add(fy)
     session.flush()
@@ -345,7 +354,7 @@ def _close_if_all_locked(session: Session, fiscal_year_id: int) -> None:
 def lock_period(session: Session, period_id: int) -> Period:
     period = session.get(Period, period_id)
     if period is None:
-        raise _error("PERIOD_NOT_FOUND", "Periode niet gevonden.")
+        raise _error("PERIOD_NOT_FOUND", "Deze periode bestaat niet. Ga terug naar Boekjaren en kies de periode opnieuw.")
     if period.status != "locked":
         period.status = "locked"
         period.locked_at = _now()
@@ -357,7 +366,7 @@ def lock_period(session: Session, period_id: int) -> Period:
 def close_fiscal_year(session: Session, year: int) -> FiscalYear:
     fy = session.scalar(select(FiscalYear).where(FiscalYear.year == year))
     if fy is None:
-        raise _error("YEAR_NOT_FOUND", f"Boekjaar {year} bestaat niet.")
+        raise _error("YEAR_NOT_FOUND", f"Boekjaar {year} bestaat niet. Maak het eerst aan onder Instellingen > Boekjaren.")
     for p in session.scalars(select(Period).where(Period.fiscal_year_id == fy.id)):
         if p.status != "locked":
             p.status = "locked"
@@ -383,15 +392,15 @@ def add_account(
     code = (code or "").strip()
     name = (name or "").strip()
     if not re.fullmatch(r"[0-9]{4}", code):
-        raise _error("INVALID_ACCOUNT", "De rekeningcode moet uit precies 4 cijfers bestaan.")
+        raise _error("INVALID_ACCOUNT", "Een rekeningnummer bestaat uit precies 4 cijfers, bijvoorbeeld 4010.")
     if not name:
-        raise _error("INVALID_ACCOUNT", "Een grootrekening heeft een naam nodig.")
+        raise _error("INVALID_ACCOUNT", "Geef de rekening een naam.")
     if type not in ACCOUNT_TYPES:
-        raise _error("INVALID_ACCOUNT", f"Onbekend rekeningtype: {type}.")
+        raise _error("INVALID_ACCOUNT", "Kies een soort rekening uit de lijst.")
     if session.scalar(select(Account.id).where(Account.code == code)) is not None:
-        raise _error("DUPLICATE_CODE", f"Rekeningcode {code} bestaat al.")
+        raise _error("DUPLICATE_CODE", f"Rekeningnummer {code} bestaat al. Kies een ander nummer.")
     if default_vat_code is not None and session.get(VatCode, default_vat_code) is None:
-        raise _error("INVALID_VAT_CODE", f"Onbekende btw-code: {default_vat_code}.")
+        raise _error("INVALID_VAT_CODE", "Deze btw-code is onbekend of niet meer in gebruik. Kies een andere uit de lijst.")
     account = Account(
         code=code,
         name=name,
@@ -410,7 +419,7 @@ def add_account(
 def _get_account(session: Session, account_id: int) -> Account:
     account = session.get(Account, account_id)
     if account is None:
-        raise _error("ACCOUNT_NOT_FOUND", "Grootrekening bestaat niet.")
+        raise _error("ACCOUNT_NOT_FOUND", "Deze rekening bestaat niet meer. Kies een andere rekening.")
     return account
 
 
@@ -424,10 +433,10 @@ def set_account_active(session: Session, account_id: int, active: bool) -> Accou
 def rename_account(session: Session, account_id: int, name: str) -> Account:
     account = _get_account(session, account_id)
     if account.is_system:
-        raise _error("SYSTEM_ACCOUNT", "Een systeemrekening kan niet worden hernoemd.")
+        raise _error("SYSTEM_ACCOUNT", _SYSTEM_ACCOUNT_MESSAGE)
     name = (name or "").strip()
     if not name:
-        raise _error("INVALID_ACCOUNT", "Een grootrekening heeft een naam nodig.")
+        raise _error("INVALID_ACCOUNT", "Geef de rekening een naam.")
     account.name = name
     session.flush()
     return account
@@ -436,14 +445,15 @@ def rename_account(session: Session, account_id: int, name: str) -> Account:
 def delete_account(session: Session, account_id: int) -> None:
     account = _get_account(session, account_id)
     if account.is_system:
-        raise _error("SYSTEM_ACCOUNT", "Een systeemrekening kan niet worden verwijderd.")
+        raise _error("SYSTEM_ACCOUNT", _SYSTEM_ACCOUNT_MESSAGE)
     in_use = session.scalar(
         select(JournalLine.id).where(JournalLine.account_id == account_id).limit(1)
     ) or session.scalar(select(Journal.id).where(Journal.account_id == account_id).limit(1))
     if in_use is not None:
         raise _error(
             "ACCOUNT_IN_USE",
-            f"Grootrekening {account.code} is in gebruik; deactiveer de rekening in plaats van verwijderen.",
+            f"Rekening {account.code} wordt al gebruikt in boekingen en kan niet worden verwijderd. "
+            "Zet de rekening uit; dan verschijnt hij niet meer bij nieuwe boekingen.",
         )
     session.delete(account)
     session.flush()
@@ -460,22 +470,22 @@ def add_journal(
     code = (code or "").strip()
     name = (name or "").strip()
     if not re.fullmatch(r"[A-Z0-9]{1,6}", code):
-        raise _error("INVALID_JOURNAL", "De dagboekcode bestaat uit 1 tot 6 hoofdletters of cijfers.")
+        raise _error("INVALID_JOURNAL", "Een dagboekcode bestaat uit 1 tot 6 hoofdletters of cijfers, bijvoorbeeld BANK1.")
     if not name:
-        raise _error("INVALID_JOURNAL", "Een dagboek heeft een naam nodig.")
+        raise _error("INVALID_JOURNAL", "Geef het dagboek een naam.")
     if type not in JOURNAL_TYPES:
-        raise _error("INVALID_JOURNAL", f"Onbekend dagboektype: {type}.")
+        raise _error("INVALID_JOURNAL", "Kies een soort dagboek uit de lijst.")
     if type in ("bank", "kas"):
         account = session.get(Account, account_id) if account_id is not None else None
         if account is None or account.type != "asset" or not account.is_active:
             raise _error(
                 "INVALID_JOURNAL",
-                "Een bank- of kasdagboek heeft een actieve grootrekening van het type activa nodig.",
+                "Bij een bank- of kasdagboek hoort een rekening. Kies de rekening van je bank of kas.",
             )
     else:
         account_id = None
     if session.scalar(select(Journal.id).where(Journal.code == code)) is not None:
-        raise _error("DUPLICATE_CODE", f"Dagboekcode {code} bestaat al.")
+        raise _error("DUPLICATE_CODE", f"Dagboekcode {code} bestaat al. Kies een andere code.")
     journal = Journal(code=code, name=name, type=type, account_id=account_id, is_active=True)
     session.add(journal)
     session.flush()
@@ -485,7 +495,7 @@ def add_journal(
 def set_journal_active(session: Session, journal_id: int, active: bool) -> Journal:
     journal = session.get(Journal, journal_id)
     if journal is None:
-        raise _error("JOURNAL_NOT_FOUND", "Dagboek bestaat niet.")
+        raise _error("JOURNAL_NOT_FOUND", "Dit dagboek bestaat niet meer. Kies een ander dagboek.")
     journal.is_active = active
     session.flush()
     return journal
