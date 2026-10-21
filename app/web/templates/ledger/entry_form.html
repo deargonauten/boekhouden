@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Nieuwe boeking</h1>
+{% if errors %}
+<div class="alert" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% endif %}
+<form method="post" action="/boeken/nieuw" class="stack" hx-boost="false">
+  <div class="fields">
+    <label>Dagboek
+      <select name="journal_id" required>
+        <option value="">Kies dagboek</option>
+        {% for j in journals %}<option value="{{ j.id }}"{% if values.journal_id == j.id|string %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Datum <input type="date" name="booking_date" value="{{ values.booking_date }}" required></label>
+    <label class="grow">Omschrijving <input name="description" value="{{ values.description }}" maxlength="255" required></label>
+    <label>Referentie <input name="reference" value="{{ values.reference }}"></label>
+  </div>
+  <div class="table-wrap">
+  <table class="data" id="lines">
+    <thead><tr><th>Grootrekening</th><th class="num">Debet</th><th class="num">Credit</th><th>Btw-code</th><th>Omschrijving</th></tr></thead>
+    <tbody id="line-rows">
+      {% for row in rows %}{% include "ledger/_line_row.html" %}{% endfor %}
+    </tbody>
+    {% if totals %}
+    <tfoot>
+      <tr><th>Totaal</th><td class="num">{{ totals.debit|euro }}</td><td class="num">{{ totals.credit|euro }}</td><td colspan="2"></td></tr>
+      <tr><th>Verschil</th><td class="num" colspan="2">{{ totals.difference|euro }}</td><td colspan="2"></td></tr>
+    </tfoot>
+    {% endif %}
+  </table>
+  </div>
+  <p class="actions">
+    <button type="button" class="btn btn-secondary" hx-get="/boeken/nieuw/regel" hx-target="#line-rows" hx-swap="beforeend">Regel toevoegen</button>
+    <button type="submit" class="btn">Boeken</button>
+    <a href="/boeken">Annuleren</a>
+  </p>
+</form>
+{% endblock %}

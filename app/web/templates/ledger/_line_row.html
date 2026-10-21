@@ -1,0 +1,17 @@
+<tr class="line-row">
+  <td>
+    <select name="line_account" aria-label="Grootrekening">
+      <option value="">Kies grootrekening</option>
+      {% for a in accounts %}<option value="{{ a.id }}"{% if row.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+    </select>
+  </td>
+  <td><input name="line_debit" value="{{ row.debit }}" inputmode="decimal" class="num" aria-label="Debet" placeholder="0,00"></td>
+  <td><input name="line_credit" value="{{ row.credit }}" inputmode="decimal" class="num" aria-label="Credit" placeholder="0,00"></td>
+  <td>
+    <select name="line_vat" aria-label="Btw-code">
+      <option value="">-</option>
+      {% for v in vat_codes %}<option value="{{ v.code }}"{% if row.vat_code == v.code %} selected{% endif %}>{{ v.code }} {{ v.name }}</option>{% endfor %}
+    </select>
+  </td>
+  <td><input name="line_description" value="{{ row.description }}" aria-label="Regelomschrijving"></td>
+</tr>

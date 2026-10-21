@@ -4,11 +4,13 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from app.domain.money import format_euro
 from app.web.navigation import NAV_ITEMS, mark_active
 
 WEB_DIR = Path(__file__).parent
 STATIC_DIR = WEB_DIR / "static"
 templates = Jinja2Templates(directory=WEB_DIR / "templates")
+templates.env.filters["euro"] = format_euro
 
 
 def page_context(request: Request, **extra) -> dict:

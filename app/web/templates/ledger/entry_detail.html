@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ entry.entry_number }}</h1>
+  <a href="/boeken">Terug naar boeken</a>
+</div>
+{% include "ledger/_error.html" %}
+<dl class="facts">
+  <dt>Datum</dt><dd>{{ entry.booking_date.strftime("%d-%m-%Y") }}</dd>
+  <dt>Dagboek</dt><dd>{{ entry.journal_code }} {{ entry.journal_name }}</dd>
+  <dt>Omschrijving</dt><dd>{{ entry.description }}</dd>
+  {% if entry.reference %}<dt>Referentie</dt><dd>{{ entry.reference }}</dd>{% endif %}
+  <dt>Totaal</dt><dd>{{ entry.total_cents|euro }}</dd>
+  {% if entry.reverses_entry_id %}<dt>Storno van</dt><dd><a href="/boeken/{{ entry.reverses_entry_id }}">{{ entry.reverses_entry_number }}</a></dd>{% endif %}
+  {% if entry.reversed_by_id %}<dt>Gestorneerd door</dt><dd><a href="/boeken/{{ entry.reversed_by_id }}">{{ entry.reversed_by_number }}</a></dd>{% endif %}
+</dl>
+<div class="table-wrap">
+<table class="data">
+  <thead><tr><th>#</th><th>Grootrekening</th><th class="num">Debet</th><th class="num">Credit</th><th>Btw-code</th><th>Omschrijving</th></tr></thead>
+  <tbody>
+  {% for l in entry.lines %}
+  <tr>
+    <td>{{ l.line_no }}</td>
+    <td>{{ l.account_code }} {{ l.account_name }}</td>
+    <td class="num">{% if l.debit_cents %}{{ l.debit_cents|euro }}{% endif %}</td>
+    <td class="num">{% if l.credit_cents %}{{ l.credit_cents|euro }}{% endif %}</td>
+    <td>{{ l.vat_code or "" }}</td>
+    <td>{{ l.description or "" }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if reversible %}
+<form method="post" action="/boeken/{{ entry.id }}/storno" class="inline-form" hx-boost="false">
+  <label>Datum (optioneel) <input type="date" name="datum" value=""></label>
+  <button type="submit" class="btn btn-danger">Stornoboeking maken</button>
+</form>
+{% endif %}
+{% endblock %}
