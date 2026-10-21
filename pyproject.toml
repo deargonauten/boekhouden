@@ -11,6 +11,7 @@ dependencies = [
     "alembic",
     "pydantic-settings",
     "python-multipart",
+    "anthropic>=1.17.0",
 ]
 
 [dependency-groups]
@@ -22,3 +23,5 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = "-m 'not live'"
+markers = ["live: manual smoke test that runs the real claude CLI (pytest -m live)"]
