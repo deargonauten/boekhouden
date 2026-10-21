@@ -1,0 +1,117 @@
+:root {
+  --bg: #f6f7f9;
+  --fg: #1c2330;
+  --muted: #5d6879;
+  --sidebar-bg: #1f2937;
+  --sidebar-fg: #cbd5e1;
+  --sidebar-active-bg: #2f6fed;
+  --sidebar-active-fg: #fff;
+  --sidebar-width: 220px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161d;
+    --fg: #e5e9f0;
+    --muted: #94a0b4;
+    --sidebar-bg: #0b0e13;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-fg);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  padding: 0.25rem 0.75rem 1rem;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.nav-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  color: var(--sidebar-fg);
+  text-decoration: none;
+}
+
+.nav-link:hover { background: rgba(255, 255, 255, 0.08); }
+
+.nav-link.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-fg);
+}
+
+.nav-sep {
+  height: 1px;
+  margin: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Instellingen: pinned at the bottom of the sidebar */
+.nav-sep.nav-pinned { margin-top: auto; }
+.nav-link.nav-pinned { margin-top: 0; }
+
+.content {
+  margin-left: var(--sidebar-width);
+  padding: 2rem;
+  max-width: 70rem;
+}
+
+.content h1 { margin-top: 0; }
+.content p { color: var(--muted); }
+
+.nav-toggle-input,
+.nav-toggle-btn { display: none; }
+
+@media (max-width: 767px) {
+  .nav-toggle-btn {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 0.75rem 1rem;
+    background: var(--sidebar-bg);
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .sidebar {
+    z-index: 10;
+    top: 2.9rem;
+    transform: translateX(-100%);
+    transition: transform 0.15s ease;
+  }
+
+  .nav-toggle-input:checked ~ .sidebar { transform: translateX(0); }
+
+  .content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+}

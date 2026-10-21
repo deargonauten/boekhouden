@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ title|default("Boekhouden") }}{% endblock %} - Boekhouden</title>
+  <link rel="stylesheet" href="/static/app.css">
+  {# htmx 2.0.4, vendored in static/htmx.min.js; no CDN at runtime #}
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body hx-boost="true">
+  <input type="checkbox" id="nav-toggle" class="nav-toggle-input" aria-hidden="true" tabindex="-1">
+  <label for="nav-toggle" class="nav-toggle-btn">&#9776; Menu</label>
+  {% include "partials/sidebar.html" %}
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
