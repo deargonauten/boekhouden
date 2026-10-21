@@ -5,11 +5,11 @@
     {% for items in flags.values() %}{% for f in items %}<span class="flag flag-{{ f.level }}">{{ level_labels[f.level] if level_labels and f.level in level_labels else "Let op" }}</span> <span class="flag-reason">{{ f.reason }}</span><br>{% endfor %}{% endfor %}
   </td>
   <td>
-    <select name="line_account_id" aria-label="Op welke rekening boeken?">
+    <select name="line_account_code" aria-label="Op welke rekening boeken?">
       <option value="">Kies een rekening</option>
-      {% for a in accounts %}<option value="{{ a.id }}"{% if line.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+      {% for a in accounts %}<option value="{{ a.code }}"{% if line.account_code == a.code %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
     </select>
-    {% if not line.account_id %}<span class="hint">{{ no_account_hint }}</span>{% endif %}
+    {% if not line.account_code %}<span class="hint">{{ no_account_hint }}</span>{% endif %}
   </td>
   <td><input name="line_amount_excl" value="{{ line.amount_excl }}" inputmode="decimal" class="num" aria-label="Bedrag zonder BTW" placeholder="0,00"></td>
   <td>

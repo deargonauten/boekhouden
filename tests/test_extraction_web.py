@@ -14,6 +14,7 @@ from app.domain.errors import (
     ExtractionRateLimitedError,
     ExtractorUnavailableError,
 )
+from app.domain.extraction.service import BackendStatus
 from app.domain.extraction.extractors.fake import FakeExtractor
 from app.domain.extraction.types import ExtractedInvoice, ExtractedLine
 from app.domain.relations import ExtractedContact
@@ -43,7 +44,7 @@ INVOICE = ExtractedInvoice(
 
 @pytest.fixture(autouse=True)
 def cli_ready(monkeypatch):
-    monkeypatch.setattr(extraction_routes, "backend_status", lambda settings: "claude_cli")
+    monkeypatch.setattr(extraction_routes, "backend_status", lambda settings: BackendStatus("claude_cli", True, ""))
 
 
 def use(client, extractor):
@@ -126,7 +127,7 @@ def review_data(client, **over):
         "line_amount_excl": ["100,00"],
         "line_vat_code": ["NL_21"],
         "line_vat_amount": ["21,00"],
-        "line_account_id": [str(account_id(client))],
+        "line_account_code": ["4200"],
         "actie": "opslaan",
     }
     data.update(over)
@@ -252,9 +253,9 @@ def test_inbox_shows_actions_banner_and_privacy_note(client):
 
 def test_banner_variants(client, monkeypatch):
     add_doc(client)
-    monkeypatch.setattr(extraction_routes, "backend_status", lambda s: "anthropic_api")
+    monkeypatch.setattr(extraction_routes, "backend_status", lambda s: BackendStatus("anthropic_api", True, ""))
     assert "verloopt via je API-sleutel" in client.get("/inbox").text
-    monkeypatch.setattr(extraction_routes, "backend_status", lambda s: "unavailable")
+    monkeypatch.setattr(extraction_routes, "backend_status", lambda s: BackendStatus("unavailable", False, ""))
     html = client.get("/inbox").text
     assert "Niet ingelogd bij Claude: open Terminal en typ" in html and "claude auth login" in html
 
@@ -282,7 +283,7 @@ def test_review_shows_viewer_data_and_new_supplier(client):
     assert 'value="Jansen Installatie"' in html and 'value="2026-001"' in html
     assert 'value="01-03-2026"' in html and 'value="100,00"' in html
     assert "Nieuwe leverancier: wordt aangemaakt als je op Klaar met nakijken klikt" in html
-    assert "Alles lijkt in orde, maar kijk het even na." in html
+    assert "om te controleren" in html  # real validation flags the missing grootboek suggestion
     assert "Kies een rekening. Twijfel je? Kies 4999 Nog te verdelen." in html
 
 
@@ -321,8 +322,8 @@ def test_suggested_account_is_preselected_and_listed_first(client):
     with client.app.state.engine.begin() as conn:
         conn.execute(text("UPDATE invoice_extraction_line SET account_id = :a"), {"a": suggested})
     html = client.get(f"/inbox/{doc_id}/nakijken").text
-    first_option = html.split('name="line_account_id"')[1].split("</option>")[1]
-    assert f'value="{suggested}" selected' in html and "4999" in first_option
+    first_option = html.split('name="line_account_code"')[1].split("</option>")[1]
+    assert 'value="4999" selected' in html and "4999" in first_option
     assert "Kies een rekening. Twijfel je?" not in html
 
 
@@ -360,7 +361,7 @@ def test_review_line_partial(client):
     r = client.get(f"/inbox/{doc_id}/nakijken/regel")
     assert r.status_code == 200
     assert r.text.lstrip().startswith("<tr") and 'name="line_description"' in r.text
-    assert 'name="line_account_id"' in r.text and "<html" not in r.text
+    assert 'name="line_account_code"' in r.text and "<html" not in r.text
 
 
 def test_review_of_booked_document_cannot_be_saved(client):

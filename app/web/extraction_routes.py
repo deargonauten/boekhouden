@@ -65,7 +65,7 @@ HEADER_FIELDS = (
     "invoice_number", "invoice_date", "due_date", "currency",
     "total_excl", "total_vat", "total_incl",
 )
-LINE_FIELDS = ("description", "amount_excl", "vat_code", "vat_amount", "account_id")
+LINE_FIELDS = ("description", "amount_excl", "vat_code", "vat_amount", "account_code")
 FIELD_LABELS = {
     "supplier_name": "Leverancier", "supplier_kvk": "KvK-nummer",
     "supplier_btw_number": "Btw-nummer", "supplier_iban": "IBAN",
@@ -95,12 +95,7 @@ def _backend_kind(settings) -> str:
     except Exception:  # noqa: BLE001
         logger.exception("backend_status failed")
         return "none"
-    text = str(getattr(raw, "backend", raw)).lower()
-    if "cli" in text:
-        return "cli"
-    if "api" in text:
-        return "api"
-    return "none"
+    return {"claude_cli": "cli", "anthropic_api": "api"}.get(raw.kind, "none")
 
 
 web.templates.env.globals["extract_backend"] = lambda request: _backend_kind(
@@ -267,7 +262,7 @@ def _group(flags: list[dict]) -> dict[str, list[dict]]:
     return grouped
 
 
-def _values_from_extraction(extraction) -> dict:
+def _values_from_extraction(session: Session, extraction) -> dict:
     values = {
         "supplier_name": extraction.supplier_name, "supplier_kvk": extraction.supplier_kvk,
         "supplier_btw_number": extraction.supplier_btw_number,
@@ -286,13 +281,14 @@ def _values_from_extraction(extraction) -> dict:
         "totals_override": False,
     }
     values = {k: ("" if v is None else v) for k, v in values.items()}
+    codes = {a.id: a.code for a in session.scalars(select(Account))}
     values["lines"] = [
         {
             "description": line.description or "",
             "amount_excl": _amount_text(line.amount_excl_cents),
             "vat_code": line.vat_code or "",
             "vat_amount": _amount_text(line.vat_amount_cents),
-            "account_id": "" if line.account_id is None else str(line.account_id),
+            "account_code": codes.get(line.account_id, ""),
         }
         for line in extraction.lines
     ]
@@ -305,12 +301,12 @@ def _ordered_accounts(session: Session, selected: set[str]) -> list[Account]:
         Account.type == "expense", Account.is_active.is_(True), Account.is_postable.is_(True)
     )
     accounts = sorted(session.scalars(stmt), key=lambda a: (a.name.lower(), a.code))
-    first = [a for a in accounts if str(a.id) in selected]
-    return first + [a for a in accounts if str(a.id) not in selected]
+    first = [a for a in accounts if a.code in selected]
+    return first + [a for a in accounts if a.code not in selected]
 
 
 def _lookups(session: Session, values: dict | None = None) -> dict:
-    selected = {ln["account_id"] for ln in (values or {}).get("lines", []) if ln["account_id"]}
+    selected = {ln["account_code"] for ln in (values or {}).get("lines", []) if ln["account_code"]}
     return {
         "accounts": _ordered_accounts(session, selected),
         "vat_codes": [v for v in ledger.list_vat_codes(session) if v.is_active],
@@ -344,7 +340,7 @@ def _review_page(
     if extraction is not None and extraction.status == "ok":
         header_flags = _parse_flags(extraction.flags_json)
         line_flags = [_group(_parse_flags(ln.flags_json)) for ln in extraction.lines]
-        form_values = values if values is not None else _values_from_extraction(extraction)
+        form_values = values if values is not None else _values_from_extraction(session, extraction)
         # Keep one flag list per submitted line; extra lines (added by the user) have none.
         line_flags += [{}] * (len(form_values["lines"]) - len(line_flags))
         counted = [f for f in header_flags if f.get("level") in LEVELS]
