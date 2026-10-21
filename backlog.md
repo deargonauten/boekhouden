@@ -22,4 +22,5 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [ ] Eenmanszaak year-end: privé-onttrekkingen/stortingen, winst uit onderneming overview, urenregistratie (urencriterium), IB-voorbereiding export
 - [ ] Dashboard: cash position, open debiteuren/crediteuren, BTW to pay, inbox counts, quarter/year result
 - [ ] Backup & export: one-click backup of DB + documents, audit-file export (XAF) and CSV exports, 7-year retention safeguards
+- [x] UI redesign: modern design system, grouped sidebar, cards, tabs/search/pills/pagination on all screens (done 2026-10-21)
 - [ ] KvK lookup: automatically fetch company data (name, address, BTW-nummer where available) from the KvK Handelsregister API (Zoeken + Basisprofiel) when a KvK-nummer or name is entered on a relatie, and when match-or-create finds a new supplier from extracted invoice data; API key via `.env` (`KVK_API_KEY`), never committed; suggest-and-confirm (never overwrite silently); graceful offline/no-key fallback; first check feasibility (API access is paid per call and needs a KvK developer account, test environment available) and cache results
