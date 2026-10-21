@@ -91,6 +91,11 @@ def pages(c):
         ("/instellingen/boekjaren", set()),
         ("/relaties", set()),
         ("/relaties?gearchiveerd=1", set()),
+        ("/relaties?soort=klant", set()),
+        ("/relaties?q=zzz", set()),
+        ("/boeken?q=test", set()),
+        ("/boeken?q=bestaatniet", set()),
+        ("/boeken?dagboek=MEM", set()),
         ("/relaties/nieuw", set()),
         (f"/relaties/{c.contact_id}/bewerken", set()),
         ("/bank", {"bank"}),  # placeholder page: heading is the nav label
