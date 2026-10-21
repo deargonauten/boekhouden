@@ -1,48 +1,62 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, tabs, toolbar_search, pill, pager, empty_state with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>Boeken</h1>
-  <a class="btn" href="/boeken/nieuw">Nieuwe boeking</a>
+{% set lead %}Alle boekingen: elke euro die binnenkomt of uitgaat, vastgelegd met datum en omschrijving. {{ info("boeking") }}{% endset %}
+{{ page_header("Boeken", breadcrumb=[("Boeken", None)], action_label="Nieuwe boeking", action_href="/boeken/nieuw", lead=lead) }}
+{% set filtered = q or dagboek %}
+<div class="card card--flush">
+  {% if use_tabs %}
+  {% set items = [("Alle", page_url("/boeken", {"q": q}, 1), not dagboek)] %}
+  {% for j in journals %}{% set _ = items.append((j.code ~ " " ~ j.name, page_url("/boeken", {"dagboek": j.code, "q": q}, 1), j.code == dagboek)) %}{% endfor %}
+  <div class="ledger-tabs">
+    <span class="ledger-tabs__label">Toon dagboek {{ info("dagboek") }}</span>
+    {{ tabs(items, "Dagboeken") }}
+  </div>
+  {% endif %}
+  <div class="toolbar">
+    {{ toolbar_search("/boeken", q, "Zoek op boekstuknummer, omschrijving of referentie", {"dagboek": dagboek}) }}
+    {% if not use_tabs %}
+    <form method="get" action="/boeken" class="toolbar__filters" hx-boost="false">
+      {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+      <label for="dagboek">Toon alleen dagboek {{ info("dagboek") }}</label>
+      <select name="dagboek" id="dagboek">
+        <option value="">Alle dagboeken</option>
+        {% for j in journals %}<option value="{{ j.code }}"{% if j.code == dagboek %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary btn-small">Filter</button>
+    </form>
+    {% endif %}
+    {% if filtered %}<a class="toolbar__clear" href="/boeken">Wis filters</a>{% endif %}
+  </div>
+  {% if result.items %}
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Boekstuk {{ info("boekstuk") }}</th><th>Datum</th><th>Dagboek {{ info("dagboek") }}</th><th>Omschrijving</th><th class="num">Totaal</th></tr></thead>
+    <tbody>
+    {% for e in result.items %}
+    <tr>
+      <td class="nowrap"><a href="/boeken/{{ e.id }}">{{ e.entry_number }}</a></td>
+      <td class="nowrap">{{ e.booking_date.strftime("%d-%m-%Y") }}</td>
+      <td>{{ e.journal_code }}</td>
+      <td>{{ e.description }}
+        {% if e.kind == "storno" %}{{ pill("Storno van " ~ e.reverses_number, "warning") }} {{ info("storno") }}{% endif %}
+        {% if e.reversed_by_id %}{{ pill("Gestorneerd", "neutral") }} {{ info("storno") }}{% endif %}
+      </td>
+      <td class="num">{{ e.total_cents|euro }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card__footer">
+    {{ pager(result.page, result.per_page, result.total, "/boeken", {"dagboek": dagboek, "q": q}, "boekingen") }}
+  </div>
+  {% elif filtered %}
+  {{ empty_state("Geen boekingen gevonden", "Er is geen boeking die past bij je zoekopdracht of dagboek. Probeer een andere zoekterm.", "Wis filters", "/boeken", "search") }}
+  {% else %}
+  {{ empty_state("Je hebt nog geen boekingen", "Maak je eerste boeking met 'Nieuwe boeking'.", "Nieuwe boeking", "/boeken/nieuw", "book") }}
+  {% endif %}
 </div>
-<p class="lead">Alle boekingen: elke euro die binnenkomt of uitgaat, vastgelegd met datum en omschrijving. {{ info("boeking") }}</p>
-<form method="get" action="/boeken" class="filter" hx-boost="false">
-  <label for="dagboek">Toon alleen dagboek {{ info("dagboek") }}</label>
-  <select name="dagboek" id="dagboek">
-    <option value="">Alle dagboeken</option>
-    {% for j in journals %}<option value="{{ j.code }}"{% if j.code == dagboek %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
-  </select>
-  <button type="submit" class="btn btn-secondary">Filter</button>
-</form>
-{% if result.items %}
-<div class="table-wrap">
-<table class="data">
-  <thead><tr><th>Boekstuk {{ info("boekstuk") }}</th><th>Datum</th><th>Dagboek {{ info("dagboek") }}</th><th>Omschrijving</th><th class="num">Totaal</th></tr></thead>
-  <tbody>
-  {% for e in result.items %}
-  <tr>
-    <td><a href="/boeken/{{ e.id }}">{{ e.entry_number }}</a></td>
-    <td>{{ e.booking_date.strftime("%d-%m-%Y") }}</td>
-    <td>{{ e.journal_code }}</td>
-    <td>{{ e.description }}
-      {% if e.kind == "storno" %}<span class="badge">Storno van {{ e.reverses_number }}</span> {{ info("storno") }}{% endif %}
-      {% if e.reversed_by_id %}<span class="badge badge-muted">Gestorneerd</span> {{ info("storno") }}{% endif %}
-    </td>
-    <td class="num">{{ e.total_cents|euro }}</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
-</div>
-{% set pages = (result.total + result.per_page - 1) // result.per_page %}
-{% if pages > 1 %}
-<p class="pager">
-  {% if result.page > 1 %}<a href="/boeken?page={{ result.page - 1 }}{% if dagboek %}&amp;dagboek={{ dagboek }}{% endif %}">Vorige</a>{% endif %}
-  Pagina {{ result.page }} van {{ pages }}
-  {% if result.page < pages %}<a href="/boeken?page={{ result.page + 1 }}{% if dagboek %}&amp;dagboek={{ dagboek }}{% endif %}">Volgende</a>{% endif %}
-</p>
-{% endif %}
-{% else %}
-<p>Je hebt nog geen boekingen. Maak je eerste boeking met 'Nieuwe boeking'.</p>
-{% endif %}
 {% endblock %}

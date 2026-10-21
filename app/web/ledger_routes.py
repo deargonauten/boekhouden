@@ -43,6 +43,8 @@ JOURNAL_TYPE_TERM = {
     "memoriaal": "memoriaal",
 }
 MIN_ROWS = 2
+PER_PAGE = 50
+MAX_JOURNAL_TABS = 6
 
 
 def _status_for(error: LedgerError) -> int:
@@ -66,19 +68,24 @@ def _see_other(url: str) -> RedirectResponse:
 def entries_list(
     request: Request,
     dagboek: str | None = None,
+    q: str | None = None,
     page: int = 1,
     session: Session = Depends(get_session),
 ):
+    q = (q or "").strip()
     result = ledger.list_entries(
-        session, journal_code=dagboek or None, page=max(page, 1), per_page=50
+        session, journal_code=dagboek or None, q=q or None, page=max(page, 1), per_page=PER_PAGE
     )
+    journals = [j for j in ledger.list_journals(session) if j.is_active or j.code == dagboek]
     return _render(
         request,
         "ledger/entries.html",
         title="Boeken",
         result=result,
-        journals=ledger.list_journals(session),
+        journals=journals,
+        use_tabs=len(journals) <= MAX_JOURNAL_TABS,
         dagboek=dagboek or "",
+        q=q,
     )
 
 

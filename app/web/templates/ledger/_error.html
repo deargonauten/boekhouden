@@ -1,1 +1,2 @@
-{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+{% from "partials/_ui.html" import error_box %}
+{% if error %}{{ error_box(error) }}{% endif %}

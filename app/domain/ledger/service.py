@@ -532,6 +532,7 @@ def list_entries(
     journal_code: str | None = None,
     page: int = 1,
     per_page: int = 50,
+    q: str | None = None,
 ) -> Page:
     page = max(1, page)
     totals = (
@@ -559,7 +560,19 @@ def list_entries(
     if journal_code:
         stmt = stmt.where(Journal.code == journal_code)
         count = count.where(Journal.code == journal_code)
+    needle = (q or "").strip()
+    if needle:
+        escaped = needle.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        match = or_(
+            JournalEntry.entry_number.ilike(pattern, escape="\\"),
+            JournalEntry.description.ilike(pattern, escape="\\"),
+            JournalEntry.reference.ilike(pattern, escape="\\"),
+        )
+        stmt = stmt.where(match)
+        count = count.where(match)
     total = session.scalar(count)
+    page = min(page, max(1, -(-total // per_page)))  # beyond the last page shows the last page
     rows = session.execute(
         stmt.order_by(JournalEntry.id.desc()).limit(per_page).offset((page - 1) * per_page)
     ).all()

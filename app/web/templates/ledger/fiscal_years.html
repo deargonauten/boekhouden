@@ -1,42 +1,53 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import pill, empty_state, icon with context %}
+{% from "ledger/_settings_nav.html" import settings_header with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
 {% block content %}
-<h1>Instellingen</h1>
-{% include "ledger/_settings_nav.html" %}
-<h2>{{ term_label("boekjaar", "Boekjaren") }}</h2>
+{{ settings_header("Boekjaren") }}
+<h2 class="section-title">{{ term_label("boekjaar", "Boekjaren") }}</h2>
 <p class="lead">Een boekjaar is het jaar waarover je je administratie bijhoudt (meestal een kalenderjaar). Het is verdeeld in 12 periodes (maanden). {{ info("periode") }}</p>
 {% include "ledger/_error.html" %}
-<form method="post" action="/instellingen/boekjaren" class="inline-form" hx-boost="false">
-  <label>Welk jaar? <input type="number" name="year" value="{{ suggested_year }}" min="1990" max="2100" required></label>
-  <button type="submit" class="btn">Boekjaar aanmaken</button>
+<form method="post" action="/instellingen/boekjaren" class="card" hx-boost="false">
+  <div class="card__body settings-form settings-form--inline">
+    <div class="field">
+      <label for="fy-year">Welk jaar?</label>
+      <input type="number" id="fy-year" name="year" value="{{ suggested_year }}" min="1990" max="2100" required>
+    </div>
+    <div class="settings-form__submit"><button type="submit" class="btn">Boekjaar aanmaken</button></div>
+  </div>
 </form>
-{% if not years %}<p>Er is nog geen boekjaar. Maak eerst een boekjaar aan om te kunnen boeken.</p>{% endif %}
+{% if not years %}
+<div class="card">
+  {{ empty_state("Er is nog geen boekjaar", "Maak eerst een boekjaar aan om te kunnen boeken.", icon_name="book") }}
+</div>
+{% endif %}
 {% for y in years %}
-<section class="year">
-  <div class="page-head">
-    <h3>Boekjaar {{ y.year }} <span class="badge{% if y.status == 'closed' %} badge-muted{% endif %}">{{ "Afgesloten" if y.status == "closed" else "Open" }}</span></h3>
+<section class="card card--flush year">
+  <div class="card__header">
+    <h3>Boekjaar {{ y.year }} {{ pill("Afgesloten", "neutral") if y.status == "closed" else pill("Open", "success") }}</h3>
     {% if y.status != "closed" %}
-    <form method="post" action="/instellingen/boekjaren/{{ y.year }}/afsluiten"
+    <form method="post" action="/instellingen/boekjaren/{{ y.year }}/afsluiten" class="cluster"
           hx-confirm="Boekjaar {{ y.year }} afsluiten? Alle 12 periodes worden vergrendeld; daarna kun je in dit jaar niet meer boeken. Dit kun je niet ongedaan maken.">
-      <button type="submit" class="btn btn-danger">Boekjaar afsluiten</button> {{ info("afsluiten") }}
+      <button type="submit" class="btn btn-danger btn-small">Boekjaar afsluiten</button> {{ info("afsluiten") }}
     </form>
     {% endif %}
   </div>
   <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>{{ term_label("periode", "Maand") }}</th><th>Van</th><th>Tot</th><th>Status</th><th>{{ term_label("vergrendelen", "Op slot zetten") }}</th></tr></thead>
+    <thead><tr><th>{{ term_label("periode", "Maand") }}</th><th>Van</th><th>Tot</th><th>Status</th><th class="num">{{ term_label("vergrendelen", "Op slot zetten") }}</th></tr></thead>
     <tbody>
     {% for p in y.periods %}
     <tr>
       <td>{{ p.number }}</td>
-      <td>{{ p.start_date.strftime("%d-%m-%Y") }}</td>
-      <td>{{ p.end_date.strftime("%d-%m-%Y") }}</td>
-      <td>{% if p.status == "open" %}<span title="Je kunt hierin nog boeken">Open</span>{% else %}<span title="Hierin kan niet meer worden geboekt">Vergrendeld</span>{% endif %}</td>
+      <td class="nowrap">{{ p.start_date.strftime("%d-%m-%Y") }}</td>
+      <td class="nowrap">{{ p.end_date.strftime("%d-%m-%Y") }}</td>
+      <td>{% if p.status == "open" %}{{ pill("Open", "success", "Je kunt hierin nog boeken") }}{% else %}{{ pill("Vergrendeld", "neutral", "Hierin kan niet meer worden geboekt") }}{% endif %}</td>
       <td>
         {% if p.status == "open" %}
-        <form method="post" action="/instellingen/boekjaren/periodes/{{ p.id }}/vergrendel"
+        <form method="post" action="/instellingen/boekjaren/periodes/{{ p.id }}/vergrendel" class="row-actions"
               hx-confirm="Periode {{ p.number }} van {{ y.year }} vergrendelen? Daarna kun je er niets meer in boeken, wijzigen of storneren. Dit kun je niet ongedaan maken.">
-          <button type="submit" class="btn btn-secondary">Periode vergrendelen</button>
+          <button type="submit" class="btn-icon is-danger" aria-label="Periode vergrendelen" title="Zet deze maand op slot: je kunt er daarna niets meer in boeken, wijzigen of storneren.">{{ icon("lock") }}</button>
         </form>
         {% endif %}
       </td>

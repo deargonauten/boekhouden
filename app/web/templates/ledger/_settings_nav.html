@@ -1,5 +1,11 @@
-<nav class="subnav" aria-label="Instellingen">
-  <a href="/instellingen/grootboek" title="{{ explain('grootboek').plain }}"{% if current_path.startswith("/instellingen/grootboek") %} aria-current="page"{% endif %}>Grootboek</a>
-  <a href="/instellingen/dagboeken" title="{{ explain('dagboek').plain }}"{% if current_path.startswith("/instellingen/dagboeken") %} aria-current="page"{% endif %}>Dagboeken</a>
-  <a href="/instellingen/boekjaren" title="{{ explain('boekjaar').plain }}"{% if current_path.startswith("/instellingen/boekjaren") %} aria-current="page"{% endif %}>Boekjaren</a>
-</nav>
+{# Header and tabs shared by the three settings pages.
+   Usage: {% from "ledger/_settings_nav.html" import settings_header with context %}{{ settings_header("Grootboek") }} #}
+{% from "partials/_ui.html" import page_header, tabs with context %}
+{% macro settings_header(current) -%}
+{{ page_header("Instellingen", breadcrumb=[("Instellingen", "/instellingen/grootboek"), (current, None)]) }}
+{{ tabs([
+  ("Grootboek", "/instellingen/grootboek", current_path.startswith("/instellingen/grootboek"), None, "grootboek"),
+  ("Dagboeken", "/instellingen/dagboeken", current_path.startswith("/instellingen/dagboeken"), None, "dagboek"),
+  ("Boekjaren", "/instellingen/boekjaren", current_path.startswith("/instellingen/boekjaren"), None, "boekjaar"),
+], "Instellingen") }}
+{%- endmacro %}

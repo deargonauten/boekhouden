@@ -1,42 +1,63 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, error_box, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
 {% block content %}
-<h1>Nieuwe boeking</h1>
-<p class="lead">Met een handmatige boeking leg je zelf vast wat er gebeurd is. {{ info("boeking") }} Elke boeking heeft twee kanten die even groot moeten zijn {{ info("balans_evenwicht") }}: debet {{ info("debet") }} en credit {{ info("credit") }}.</p>
-{% if errors %}
-<div class="alert" role="alert"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
-{% endif %}
+{% set lead %}Met een handmatige boeking leg je zelf vast wat er gebeurd is. {{ info("boeking") }} Elke boeking heeft twee kanten die even groot moeten zijn {{ info("balans_evenwicht") }}: debet {{ info("debet") }} en credit {{ info("credit") }}.{% endset %}
+{{ page_header("Nieuwe boeking", breadcrumb=[("Boeken", "/boeken"), ("Nieuwe boeking", None)], lead=lead) }}
+{% if errors %}{{ error_box(errors) }}{% endif %}
 <form method="post" action="/boeken/nieuw" class="stack" hx-boost="false">
-  <div class="fields">
-    <label><span>{{ term_label("dagboek", "In welk dagboek?") }}</span>
-      <select name="journal_id" required>
-        <option value="">Kies een dagboek</option>
-        {% for j in journals %}<option value="{{ j.id }}"{% if values.journal_id == j.id|string %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>Datum <input type="date" name="booking_date" value="{{ values.booking_date }}" required></label>
-    <label class="grow">Waar gaat het over? (Omschrijving) <input name="description" value="{{ values.description }}" maxlength="255" required></label>
-    <label><span>Referentie (bijv. factuurnummer) {{ info("referentie") }}</span> <input name="reference" value="{{ values.reference }}"></label>
-  </div>
-  <div class="table-wrap">
-  <table class="data" id="lines">
-    <thead><tr><th>{{ term_label("grootrekening", "Rekening") }}</th><th class="num">{{ term_label("debet", "Bedrag links") }}</th><th class="num">{{ term_label("credit", "Bedrag rechts") }}</th><th>{{ term_label("btw_code", "Btw-tarief") }}</th><th>Toelichting</th></tr></thead>
-    <tbody id="line-rows">
-      {% for row in rows %}{% include "ledger/_line_row.html" %}{% endfor %}
-    </tbody>
-    {% if totals %}
-    <tfoot>
-      <tr><th>Totaal debet / credit</th><td class="num">{{ totals.debit|euro }}</td><td class="num">{{ totals.credit|euro }}</td><td colspan="2"></td></tr>
-      <tr><th>Verschil</th><td class="num" colspan="2">{{ totals.difference|abs|euro }}</td><td colspan="2">{% if totals.difference != 0 %}Er ontbreekt {{ totals.difference|abs|euro }} aan de {{ "credit" if totals.difference > 0 else "debet" }}kant.{% endif %}</td></tr>
-    </tfoot>
-    {% endif %}
-  </table>
-  </div>
-  <p class="hint">Gaat het om een bedrag met btw? Kies dan bij de regel het btw-tarief {{ info("btw") }}. Anders laat je 'Geen btw' staan.</p>
-  <p class="actions">
-    <button type="button" class="btn btn-secondary" hx-get="/boeken/nieuw/regel" hx-target="#line-rows" hx-swap="beforeend">Regel toevoegen</button>
+  <section class="card">
+    <div class="card__header"><h2>Algemeen</h2></div>
+    <div class="card__body entry-fields">
+      <div class="field">
+        <label for="f-journal">{{ term_label("dagboek", "In welk dagboek?") }}</label>
+        <select name="journal_id" id="f-journal" required>
+          <option value="">Kies een dagboek</option>
+          {% for j in journals %}<option value="{{ j.id }}"{% if values.journal_id == j.id|string %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
+        </select>
+        <span class="field__hint">Een handmatige boeking hoort meestal in het memoriaal. {{ info("memoriaal") }}</span>
+      </div>
+      <div class="field">
+        <label for="f-date">Datum</label>
+        <input type="date" id="f-date" name="booking_date" value="{{ values.booking_date }}" required>
+      </div>
+      <div class="field entry-fields__wide">
+        <label for="f-desc">Waar gaat het over? (Omschrijving)</label>
+        <input id="f-desc" name="description" value="{{ values.description }}" maxlength="255" required>
+      </div>
+      <div class="field entry-fields__wide">
+        <label for="f-ref">Referentie (bijv. factuurnummer) {{ info("referentie") }}</label>
+        <input id="f-ref" name="reference" value="{{ values.reference }}">
+      </div>
+    </div>
+  </section>
+
+  <section class="card card--flush">
+    <div class="card__header"><h2>Regels</h2></div>
+    <div class="table-wrap">
+    <table class="data lines-table" id="lines">
+      <thead><tr><th>{{ term_label("grootrekening", "Rekening") }}</th><th class="num">{{ term_label("debet", "Bedrag links") }}</th><th class="num">{{ term_label("credit", "Bedrag rechts") }}</th><th>{{ term_label("btw_code", "Btw-tarief") }}</th><th>Toelichting</th></tr></thead>
+      <tbody id="line-rows">
+        {% for row in rows %}{% include "ledger/_line_row.html" %}{% endfor %}
+      </tbody>
+      {% if totals %}
+      <tfoot>
+        <tr class="balance-row"><th>Totaal debet / credit</th><td class="num">{{ totals.debit|euro }}</td><td class="num">{{ totals.credit|euro }}</td><td colspan="2"></td></tr>
+        <tr class="balance-row{% if totals.difference != 0 %} balance-row--off{% endif %}"><th>Verschil</th><td class="num" colspan="2">{{ totals.difference|abs|euro }}</td><td colspan="2">{% if totals.difference != 0 %}Er ontbreekt {{ totals.difference|abs|euro }} aan de {{ "credit" if totals.difference > 0 else "debet" }}kant.{% endif %}</td></tr>
+      </tfoot>
+      {% endif %}
+    </table>
+    </div>
+    <div class="card__footer cluster">
+      <button type="button" class="btn btn-secondary btn-small" hx-get="/boeken/nieuw/regel" hx-target="#line-rows" hx-swap="beforeend">{{ icon("plus", 16) }}Regel toevoegen</button>
+      <p class="hint">Gaat het om een bedrag met btw? Kies dan bij de regel het btw-tarief {{ info("btw") }}. Anders laat je 'Geen btw' staan.</p>
+    </div>
+  </section>
+
+  <div class="form-actions">
     <button type="submit" class="btn">Boeken</button>
     <a href="/boeken">Annuleren</a>
-  </p>
+  </div>
 </form>
 {% endblock %}

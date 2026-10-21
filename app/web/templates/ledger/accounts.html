@@ -1,43 +1,75 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import pill, empty_state, icon with context %}
+{% from "ledger/_settings_nav.html" import settings_header with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
 {% block content %}
-<h1>Instellingen</h1>
-{% include "ledger/_settings_nav.html" %}
-<h2>{{ term_label("grootboek") }}</h2>
+{{ settings_header("Grootboek") }}
+<h2 class="section-title">{{ term_label("grootboek") }}</h2>
 <p class="lead">Dit is de lijst met alle rekeningen waarop je boekingen worden vastgelegd, zoals Bank, Omzet en Kantoorkosten. {{ info("bank") }}</p>
 {% include "ledger/_error.html" %}
-<form method="post" action="/instellingen/grootboek" class="inline-form" hx-boost="false">
-  <label>Rekeningnummer (4 cijfers) <input name="code" value="{{ values.code }}" maxlength="4" pattern="[0-9]{4}" aria-describedby="code-hint" required></label>
-  <label>Naam <input name="name" value="{{ values.name }}" required></label>
-  <label><span>{{ term_label("grootrekening", "Soort rekening") }}</span>
-    <select name="type">{% for key, label in account_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
-  </label>
-  <button type="submit" class="btn">Rekening toevoegen</button>
-</form>
-<p class="hint" id="code-hint">Voorstel: eerste vrije nummer in dit gebied. Pas aan als je wilt.</p>
+<div class="card">
+  <details{% if error %} open{% endif %}>
+    <summary>{{ icon("plus", 16) }} Rekening toevoegen</summary>
+    <form method="post" action="/instellingen/grootboek" class="card__body settings-form" hx-boost="false">
+      <div class="field">
+        <label for="acc-code">Rekeningnummer (4 cijfers)</label>
+        <input id="acc-code" name="code" value="{{ values.code }}" maxlength="4" pattern="[0-9]{4}" aria-describedby="code-hint" required>
+        <span class="field__hint" id="code-hint">Voorstel: eerste vrije nummer in dit gebied. Pas aan als je wilt.</span>
+      </div>
+      <div class="field">
+        <label for="acc-name">Naam</label>
+        <input id="acc-name" name="name" value="{{ values.name }}" required>
+      </div>
+      <div class="field">
+        <label for="acc-type">{{ term_label("grootrekening", "Soort rekening") }}</label>
+        <select id="acc-type" name="type">{% for key, label in account_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      </div>
+      <div class="settings-form__submit"><button type="submit" class="btn">Rekening toevoegen</button></div>
+    </form>
+  </details>
+</div>
+<div class="toolbar ledger-search">
+  <div class="toolbar__search">
+    {{ icon("search") }}
+    <input type="search" data-filter-table="#account-groups" placeholder="Zoek op nummer of naam" aria-label="Zoek op nummer of naam">
+  </div>
+</div>
+<div id="account-groups" class="stack">
 {% for label, term_key, accounts in groups %}
 {% if accounts %}
-<h3>{{ label }} {{ info(term_key) }}</h3>
-<div class="table-wrap">
-<table class="data">
-  <thead><tr><th>Code</th><th>Naam</th><th>RGS {{ info("rgs") }}</th><th>Status</th><th></th></tr></thead>
-  <tbody>
-  {% for a in accounts %}
-  <tr{% if not a.is_active %} class="inactive"{% endif %}>
-    <td>{{ a.code }}</td><td>{{ a.name }}{% if a.is_system %} <span class="badge badge-muted">Systeem</span> {{ info("systeemrekening") }}{% endif %}</td>
-    <td>{{ a.rgs_code or "" }}</td>
-    <td>{{ "Actief" if a.is_active else "Inactief" }}</td>
-    <td>
-      <form method="post" action="/instellingen/grootboek/{{ a.id }}/actief" hx-boost="false">
-        <input type="hidden" name="active" value="{{ '0' if a.is_active else '1' }}">
-        <button type="submit" class="btn btn-secondary" title="Verbergt de rekening bij nieuwe boekingen; bestaande boekingen blijven staan.">{{ "Deactiveren" if a.is_active else "Activeren" }}</button>
-      </form>
-    </td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
-</div>
+<section class="card card--flush ledger-group">
+  <div class="card__header"><h3>{{ label }} {{ info(term_key) }}</h3></div>
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Code</th><th>Naam</th><th>RGS {{ info("rgs") }}</th><th>Status</th><th class="visually-hidden">Acties</th></tr></thead>
+    <tbody>
+    {% for a in accounts %}
+    <tr{% if not a.is_active %} class="inactive"{% endif %}>
+      <td class="nowrap">{{ a.code }}</td>
+      <td>{{ a.name }}{% if a.is_system %} {{ pill("Systeem", "neutral") }} {{ info("systeemrekening") }}{% endif %}</td>
+      <td>{{ a.rgs_code or "" }}</td>
+      <td>{{ pill("Actief", "success") if a.is_active else pill("Inactief", "neutral") }}</td>
+      <td>
+        <form method="post" action="/instellingen/grootboek/{{ a.id }}/actief" class="row-actions" hx-boost="false">
+          <input type="hidden" name="active" value="{{ '0' if a.is_active else '1' }}">
+          {% if a.is_active %}
+          <button type="submit" class="btn-icon" aria-label="Rekening deactiveren" title="Verbergt de rekening bij nieuwe boekingen; bestaande boekingen blijven staan.">{{ icon("archive") }}</button>
+          {% else %}
+          <button type="submit" class="btn-icon" aria-label="Rekening activeren" title="Maakt de rekening weer beschikbaar bij nieuwe boekingen.">{{ icon("restore") }}</button>
+          {% endif %}
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
 {% endif %}
 {% endfor %}
+</div>
+<div data-filter-empty="#account-groups" hidden>
+  {{ empty_state("Geen rekeningen gevonden", "Er is geen rekening die past bij je zoekterm. Probeer een ander nummer of een andere naam.", icon_name="search") }}
+</div>
 {% endblock %}

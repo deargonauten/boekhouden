@@ -1,44 +1,61 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, pill, error_box with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>{{ entry.entry_number }}</h1>
-  <a href="/boeken">Terug naar boeken</a>
+{{ page_header(entry.entry_number, breadcrumb=[("Boeken", "/boeken"), (entry.entry_number, None)]) }}
+{% if error %}{{ error_box(error) }}{% endif %}
+<div class="card">
+  <div class="card__header">
+    <h2>Gegevens</h2>
+    <span class="cluster">
+      {% if detail.original %}{{ pill("Storno van " ~ detail.original.entry_number, "warning") }}{% endif %}
+      {% if detail.reversed_by %}{{ pill("Gestorneerd", "neutral") }}{% endif %}
+    </span>
+  </div>
+  <div class="card__body">
+    <dl class="facts">
+      <dt>Datum</dt><dd>{{ entry.booking_date.strftime("%d-%m-%Y") }}</dd>
+      <dt>Dagboek {{ info("dagboek") }}</dt><dd>{{ detail.journal_code }} {{ detail.journal_name }}</dd>
+      <dt>Omschrijving</dt><dd>{{ entry.description }}</dd>
+      {% if entry.reference %}<dt>Referentie {{ info("referentie") }}</dt><dd>{{ entry.reference }}</dd>{% endif %}
+      <dt>Totaal</dt><dd class="money">{{ detail.total_cents|euro }}</dd>
+      {% if detail.original %}<dt>Storno van {{ info("storno") }}</dt><dd><a href="/boeken/{{ detail.original.id }}">{{ detail.original.entry_number }}</a></dd>{% endif %}
+      {% if detail.reversed_by %}<dt>Gestorneerd door {{ info("storno") }}</dt><dd><a href="/boeken/{{ detail.reversed_by.id }}">{{ detail.reversed_by.entry_number }}</a></dd>{% endif %}
+    </dl>
+  </div>
 </div>
-{% include "ledger/_error.html" %}
-<dl class="facts">
-  <dt>Datum</dt><dd>{{ entry.booking_date.strftime("%d-%m-%Y") }}</dd>
-  <dt>Dagboek {{ info("dagboek") }}</dt><dd>{{ detail.journal_code }} {{ detail.journal_name }}</dd>
-  <dt>Omschrijving</dt><dd>{{ entry.description }}</dd>
-  {% if entry.reference %}<dt>Referentie {{ info("referentie") }}</dt><dd>{{ entry.reference }}</dd>{% endif %}
-  <dt>Totaal</dt><dd>{{ detail.total_cents|euro }}</dd>
-  {% if detail.original %}<dt>Storno van {{ info("storno") }}</dt><dd><a href="/boeken/{{ detail.original.id }}">{{ detail.original.entry_number }}</a></dd>{% endif %}
-  {% if detail.reversed_by %}<dt>Gestorneerd door {{ info("storno") }}</dt><dd><a href="/boeken/{{ detail.reversed_by.id }}">{{ detail.reversed_by.entry_number }}</a></dd>{% endif %}
-</dl>
-<div class="table-wrap">
-<table class="data">
-  <thead><tr><th>#</th><th>{{ term_label("grootrekening", "Rekening") }}</th><th class="num">{{ term_label("debet", "Bedrag links") }}</th><th class="num">{{ term_label("credit", "Bedrag rechts") }}</th><th>{{ term_label("btw_code", "Btw-tarief") }}</th><th>Toelichting</th></tr></thead>
-  <tbody>
-  {% for l in detail.lines %}
-  <tr>
-    <td>{{ l.line_no }}</td>
-    <td>{{ l.account_code }} {{ l.account_name }}</td>
-    <td class="num">{% if l.debit_cents %}{{ l.debit_cents|euro }}{% endif %}</td>
-    <td class="num">{% if l.credit_cents %}{{ l.credit_cents|euro }}{% endif %}</td>
-    <td>{{ l.vat_code or "" }}</td>
-    <td>{{ l.description or "" }}</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="card card--flush">
+  <div class="card__header"><h2>Regels</h2></div>
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>#</th><th>{{ term_label("grootrekening", "Rekening") }}</th><th class="num">{{ term_label("debet", "Bedrag links") }}</th><th class="num">{{ term_label("credit", "Bedrag rechts") }}</th><th>{{ term_label("btw_code", "Btw-tarief") }}</th><th>Toelichting</th></tr></thead>
+    <tbody>
+    {% for l in detail.lines %}
+    <tr>
+      <td>{{ l.line_no }}</td>
+      <td>{{ l.account_code }} {{ l.account_name }}</td>
+      <td class="num">{% if l.debit_cents %}{{ l.debit_cents|euro }}{% endif %}</td>
+      <td class="num">{% if l.credit_cents %}{{ l.credit_cents|euro }}{% endif %}</td>
+      <td>{{ l.vat_code or "" }}</td>
+      <td>{{ l.description or "" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card__footer"><p class="hint">In de kolom Btw-tarief staat welk btw-percentage bij de regel hoort. {{ info("btw") }}</p></div>
 </div>
-<p class="hint">In de kolom Btw-tarief staat welk btw-percentage bij de regel hoort. {{ info("btw") }}</p>
 {% if reversible %}
-<form method="post" action="/boeken/{{ entry.id }}/storno" class="stack" hx-boost="false">
-  <p class="hint">Een boeking kun je niet wijzigen of verwijderen. Met een stornoboeking maak je hem ongedaan: er komt een tegengestelde boeking bij. Laat de datum leeg om dezelfde datum te gebruiken. {{ info("storno") }}</p>
-  <div class="inline-form">
-    <label>Datum van de stornoboeking (leeg = zelfde datum) <input type="date" name="datum" value=""></label>
-    <button type="submit" class="btn btn-danger">Stornoboeking maken</button>
+<form method="post" action="/boeken/{{ entry.id }}/storno" class="card" hx-boost="false">
+  <div class="card__header"><h2>Ongedaan maken</h2></div>
+  <div class="card__body stack">
+    <p class="hint">Een boeking kun je niet wijzigen of verwijderen. Met een stornoboeking maak je hem ongedaan: er komt een tegengestelde boeking bij. Laat de datum leeg om dezelfde datum te gebruiken. {{ info("storno") }}</p>
+    <div class="field">
+      <label for="storno-datum">Datum van de stornoboeking (leeg = zelfde datum)</label>
+      <input type="date" id="storno-datum" name="datum" value="">
+    </div>
+    <div><button type="submit" class="btn btn-danger">Stornoboeking maken</button></div>
   </div>
 </form>
 {% endif %}
