@@ -1,5 +1,5 @@
-step: SPEC
+step: BUILD
 branch: factory/document-inbox
 base: main
-round: 0
+round: 1
 agents: {}
