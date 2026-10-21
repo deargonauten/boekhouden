@@ -1,5 +1,5 @@
 <nav class="subnav" aria-label="Instellingen">
-  <a href="/instellingen/grootboek"{% if current_path.startswith("/instellingen/grootboek") %} aria-current="page"{% endif %}>Grootboek</a>
-  <a href="/instellingen/dagboeken"{% if current_path.startswith("/instellingen/dagboeken") %} aria-current="page"{% endif %}>Dagboeken</a>
-  <a href="/instellingen/boekjaren"{% if current_path.startswith("/instellingen/boekjaren") %} aria-current="page"{% endif %}>Boekjaren</a>
+  <a href="/instellingen/grootboek" title="{{ explain('grootboek').plain }}"{% if current_path.startswith("/instellingen/grootboek") %} aria-current="page"{% endif %}>Grootboek</a>
+  <a href="/instellingen/dagboeken" title="{{ explain('dagboek').plain }}"{% if current_path.startswith("/instellingen/dagboeken") %} aria-current="page"{% endif %}>Dagboeken</a>
+  <a href="/instellingen/boekjaren" title="{{ explain('boekjaar').plain }}"{% if current_path.startswith("/instellingen/boekjaren") %} aria-current="page"{% endif %}>Boekjaren</a>
 </nav>

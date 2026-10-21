@@ -1,11 +1,13 @@
 {% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
 {% block content %}
 <h1>Instellingen</h1>
 {% include "ledger/_settings_nav.html" %}
-<h2>Boekjaren</h2>
+<h2>{{ term_label("boekjaar", "Boekjaren") }}</h2>
+<p class="lead">Een boekjaar is het jaar waarover je je administratie bijhoudt (meestal een kalenderjaar). Het is verdeeld in 12 periodes (maanden). {{ info("periode") }}</p>
 {% include "ledger/_error.html" %}
 <form method="post" action="/instellingen/boekjaren" class="inline-form" hx-boost="false">
-  <label>Jaar <input type="number" name="year" value="{{ current_year }}" min="1990" max="2100" required></label>
+  <label>Welk jaar? <input type="number" name="year" value="{{ suggested_year }}" min="1990" max="2100" required></label>
   <button type="submit" class="btn">Boekjaar aanmaken</button>
 </form>
 {% if not years %}<p>Er is nog geen boekjaar. Maak eerst een boekjaar aan om te kunnen boeken.</p>{% endif %}
@@ -15,26 +17,26 @@
     <h3>Boekjaar {{ y.year }} <span class="badge{% if y.status == 'closed' %} badge-muted{% endif %}">{{ "Afgesloten" if y.status == "closed" else "Open" }}</span></h3>
     {% if y.status != "closed" %}
     <form method="post" action="/instellingen/boekjaren/{{ y.year }}/afsluiten"
-          hx-confirm="Boekjaar {{ y.year }} afsluiten? Alle periodes worden permanent vergrendeld en dit kan niet ongedaan worden gemaakt.">
-      <button type="submit" class="btn btn-danger">Boekjaar afsluiten</button>
+          hx-confirm="Boekjaar {{ y.year }} afsluiten? Alle 12 periodes worden vergrendeld; daarna kun je in dit jaar niet meer boeken. Dit kun je niet ongedaan maken.">
+      <button type="submit" class="btn btn-danger">Boekjaar afsluiten</button> {{ info("afsluiten") }}
     </form>
     {% endif %}
   </div>
   <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>Periode</th><th>Van</th><th>Tot</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>{{ term_label("periode", "Maand") }}</th><th>Van</th><th>Tot</th><th>Status</th><th>{{ term_label("vergrendelen", "Op slot zetten") }}</th></tr></thead>
     <tbody>
     {% for p in y.periods %}
     <tr>
       <td>{{ p.number }}</td>
       <td>{{ p.start_date.strftime("%d-%m-%Y") }}</td>
       <td>{{ p.end_date.strftime("%d-%m-%Y") }}</td>
-      <td>{{ "Open" if p.status == "open" else "Vergrendeld" }}</td>
+      <td>{% if p.status == "open" %}<span title="Je kunt hierin nog boeken">Open</span>{% else %}<span title="Hierin kan niet meer worden geboekt">Vergrendeld</span>{% endif %}</td>
       <td>
         {% if p.status == "open" %}
         <form method="post" action="/instellingen/boekjaren/periodes/{{ p.id }}/vergrendel"
-              hx-confirm="Periode {{ p.number }} van {{ y.year }} vergrendelen? Dit is permanent.">
-          <button type="submit" class="btn btn-secondary">Vergrendel periode</button>
+              hx-confirm="Periode {{ p.number }} van {{ y.year }} vergrendelen? Daarna kun je er niets meer in boeken, wijzigen of storneren. Dit kun je niet ongedaan maken.">
+          <button type="submit" class="btn btn-secondary">Periode vergrendelen</button>
         </form>
         {% endif %}
       </td>

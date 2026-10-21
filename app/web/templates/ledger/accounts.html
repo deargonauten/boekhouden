@@ -1,33 +1,36 @@
 {% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
 {% block content %}
 <h1>Instellingen</h1>
 {% include "ledger/_settings_nav.html" %}
-<h2>Grootboek</h2>
+<h2>{{ term_label("grootboek") }}</h2>
+<p class="lead">Dit is de lijst met alle rekeningen waarop je boekingen worden vastgelegd, zoals Bank, Omzet en Kantoorkosten. {{ info("bank") }}</p>
 {% include "ledger/_error.html" %}
 <form method="post" action="/instellingen/grootboek" class="inline-form" hx-boost="false">
-  <label>Code <input name="code" value="{{ values.code }}" maxlength="4" pattern="[0-9]{4}" required></label>
+  <label>Rekeningnummer (4 cijfers) <input name="code" value="{{ values.code }}" maxlength="4" pattern="[0-9]{4}" aria-describedby="code-hint" required></label>
   <label>Naam <input name="name" value="{{ values.name }}" required></label>
-  <label>Type
+  <label>{{ term_label("grootrekening", "Soort rekening") }}
     <select name="type">{% for key, label in account_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
   </label>
   <button type="submit" class="btn">Rekening toevoegen</button>
 </form>
-{% for label, accounts in groups %}
+<p class="hint" id="code-hint">Voorstel: eerste vrije nummer in dit gebied. Pas aan als je wilt.</p>
+{% for label, term_key, accounts in groups %}
 {% if accounts %}
-<h3>{{ label }}</h3>
+<h3>{{ label }} {{ info(term_key) }}</h3>
 <div class="table-wrap">
 <table class="data">
-  <thead><tr><th>Code</th><th>Naam</th><th>RGS</th><th>Status</th><th></th></tr></thead>
+  <thead><tr><th>Code</th><th>Naam</th><th>RGS {{ info("rgs") }}</th><th>Status</th><th></th></tr></thead>
   <tbody>
   {% for a in accounts %}
   <tr{% if not a.is_active %} class="inactive"{% endif %}>
-    <td>{{ a.code }}</td><td>{{ a.name }}{% if a.is_system %} <span class="badge badge-muted">Systeem</span>{% endif %}</td>
+    <td>{{ a.code }}</td><td>{{ a.name }}{% if a.is_system %} <span class="badge badge-muted">Systeem</span> {{ info("systeemrekening") }}{% endif %}</td>
     <td>{{ a.rgs_code or "" }}</td>
     <td>{{ "Actief" if a.is_active else "Inactief" }}</td>
     <td>
       <form method="post" action="/instellingen/grootboek/{{ a.id }}/actief" hx-boost="false">
         <input type="hidden" name="active" value="{{ '0' if a.is_active else '1' }}">
-        <button type="submit" class="btn btn-secondary">{{ "Deactiveren" if a.is_active else "Activeren" }}</button>
+        <button type="submit" class="btn btn-secondary" title="Verbergt de rekening bij nieuwe boekingen; bestaande boekingen blijven staan.">{{ "Deactiveren" if a.is_active else "Activeren" }}</button>
       </form>
     </td>
   </tr>

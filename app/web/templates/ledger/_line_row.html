@@ -1,17 +1,21 @@
 <tr class="line-row">
   <td>
-    <select name="line_account" aria-label="Grootrekening">
-      <option value="">Kies grootrekening</option>
-      {% for a in accounts %}<option value="{{ a.id }}"{% if row.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+    <select name="line_account" aria-label="Rekening (grootrekening)">
+      <option value="">Kies een rekening</option>
+      {% for label, group in account_groups %}
+      <optgroup label="{{ label }}">
+        {% for a in group %}<option value="{{ a.id }}"{% if row.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+      </optgroup>
+      {% endfor %}
     </select>
   </td>
-  <td><input name="line_debit" value="{{ row.debit }}" inputmode="decimal" class="num" aria-label="Debet" placeholder="0,00"></td>
-  <td><input name="line_credit" value="{{ row.credit }}" inputmode="decimal" class="num" aria-label="Credit" placeholder="0,00"></td>
+  <td><input name="line_debit" value="{{ row.debit }}" inputmode="decimal" class="num" aria-label="Debet (bedrag links)" placeholder="0,00"></td>
+  <td><input name="line_credit" value="{{ row.credit }}" inputmode="decimal" class="num" aria-label="Credit (bedrag rechts)" placeholder="0,00"></td>
   <td>
-    <select name="line_vat" aria-label="Btw-code">
-      <option value="">-</option>
-      {% for v in vat_codes %}<option value="{{ v.code }}"{% if row.vat_code == v.code %} selected{% endif %}>{{ v.code }} {{ v.name }}</option>{% endfor %}
+    <select name="line_vat" aria-label="Btw-code (btw-tarief)">
+      <option value="">Geen btw</option>
+      {% for v in vat_codes %}<option value="{{ v.code }}"{% if row.vat_code == v.code %} selected{% endif %}>{{ v.name }} ({{ v.code }})</option>{% endfor %}
     </select>
   </td>
-  <td><input name="line_description" value="{{ row.description }}" aria-label="Regelomschrijving"></td>
+  <td><input name="line_description" value="{{ row.description }}" aria-label="Toelichting"></td>
 </tr>

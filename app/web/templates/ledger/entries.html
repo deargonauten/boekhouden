@@ -1,11 +1,13 @@
 {% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
 {% block content %}
 <div class="page-head">
   <h1>Boeken</h1>
   <a class="btn" href="/boeken/nieuw">Nieuwe boeking</a>
 </div>
+<p class="lead">Alle boekingen: elke euro die binnenkomt of uitgaat, vastgelegd met datum en omschrijving. {{ info("boeking") }}</p>
 <form method="get" action="/boeken" class="filter" hx-boost="false">
-  <label for="dagboek">Dagboek</label>
+  <label for="dagboek">Toon alleen dagboek {{ info("dagboek") }}</label>
   <select name="dagboek" id="dagboek">
     <option value="">Alle dagboeken</option>
     {% for j in journals %}<option value="{{ j.code }}"{% if j.code == dagboek %} selected{% endif %}>{{ j.code }} {{ j.name }}</option>{% endfor %}
@@ -15,7 +17,7 @@
 {% if result.items %}
 <div class="table-wrap">
 <table class="data">
-  <thead><tr><th>Boekstuk</th><th>Datum</th><th>Dagboek</th><th>Omschrijving</th><th class="num">Totaal</th></tr></thead>
+  <thead><tr><th>Boekstuk {{ info("boekstuk") }}</th><th>Datum</th><th>Dagboek {{ info("dagboek") }}</th><th>Omschrijving</th><th class="num">Totaal</th></tr></thead>
   <tbody>
   {% for e in result.items %}
   <tr>
@@ -23,8 +25,8 @@
     <td>{{ e.booking_date.strftime("%d-%m-%Y") }}</td>
     <td>{{ e.journal_code }}</td>
     <td>{{ e.description }}
-      {% if e.kind == "storno" %}<span class="badge">Storno van {{ e.reverses_number }}</span>{% endif %}
-      {% if e.reversed_by_id %}<span class="badge badge-muted">Gestorneerd</span>{% endif %}
+      {% if e.kind == "storno" %}<span class="badge">Storno van {{ e.reverses_number }}</span> {{ info("storno") }}{% endif %}
+      {% if e.reversed_by_id %}<span class="badge badge-muted">Gestorneerd</span> {{ info("storno") }}{% endif %}
     </td>
     <td class="num">{{ e.total_cents|euro }}</td>
   </tr>
@@ -41,6 +43,6 @@
 </p>
 {% endif %}
 {% else %}
-<p>Er zijn nog geen boekingen.</p>
+<p>Je hebt nog geen boekingen. Maak je eerste boeking met 'Nieuwe boeking'.</p>
 {% endif %}
 {% endblock %}

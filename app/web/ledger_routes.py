@@ -25,20 +25,23 @@ CONFLICT_CODES = {
     "YEAR_EXISTS",
     "ACCOUNT_IN_USE",
 }
-ACCOUNT_TYPES = [
-    ("asset", "Activa"),
-    ("liability", "Passiva"),
-    ("equity", "Eigen vermogen"),
-    ("revenue", "Opbrengsten"),
-    ("expense", "Kosten"),
-]
-JOURNAL_TYPES = [
-    ("verkoop", "Verkoop"),
-    ("inkoop", "Inkoop"),
-    ("bank", "Bank"),
-    ("kas", "Kas"),
-    ("memoriaal", "Memoriaal"),
-]
+ACCOUNT_TYPES = list(ledger.ACCOUNT_TYPE_LABELS.items())
+JOURNAL_TYPES = list(ledger.JOURNAL_TYPE_LABELS.items())
+# Glossary key that explains each account / journal type (label tables for the info icons).
+ACCOUNT_TYPE_TERM = {
+    "asset": "activa",
+    "liability": "passiva",
+    "equity": "eigen_vermogen",
+    "revenue": "opbrengsten",
+    "expense": "kosten",
+}
+JOURNAL_TYPE_TERM = {
+    "verkoop": "verkoopdagboek",
+    "inkoop": "inkoopdagboek",
+    "bank": "bankdagboek",
+    "kas": "kasdagboek",
+    "memoriaal": "memoriaal",
+}
 MIN_ROWS = 2
 
 
@@ -80,11 +83,14 @@ def entries_list(
 
 
 def _form_context(session: Session, **extra) -> dict:
+    accounts = [a for a in ledger.list_accounts(session) if a.is_active and a.is_postable]
     return {
         "title": "Nieuwe boeking",
         "journals": [j for j in ledger.list_journals(session) if j.is_active],
-        "accounts": [
-            a for a in ledger.list_accounts(session) if a.is_active and a.is_postable
+        "account_groups": [
+            (label, [a for a in accounts if a.type == key])
+            for key, label in ACCOUNT_TYPES
+            if any(a.type == key for a in accounts)
         ],
         "vat_codes": [v for v in ledger.list_vat_codes(session) if v.is_active],
         **extra,
@@ -97,13 +103,15 @@ def _blank_row() -> dict:
 
 @router.get("/boeken/nieuw")
 def entry_new(request: Request, session: Session = Depends(get_session)):
+    # A manual booking belongs in the memoriaal; suggest it so the user only confirms.
+    memoriaal_id = ledger.default_journal_id(session, "memoriaal")
     return _render(
         request,
         "ledger/entry_form.html",
         **_form_context(
             session,
             values={
-                "journal_id": "",
+                "journal_id": str(memoriaal_id) if memoriaal_id else "",
                 "booking_date": date.today().isoformat(),
                 "description": "",
                 "reference": "",
@@ -161,7 +169,10 @@ def entry_create(
             errors.append(f"Regel {n}: {getattr(exc, 'message', None) or exc}")
             continue
         if not row["account_id"].isdigit():
-            errors.append(f"Regel {n}: kies een grootrekening.")
+            errors.append(f"Regel {n}: kies een rekening.")
+            continue
+        if bool(debit) == bool(credit):
+            errors.append(f"Regel {n}: vul een bedrag in bij debet of credit, niet allebei.")
             continue
         debit_total += debit
         credit_total += credit
@@ -178,9 +189,9 @@ def entry_create(
     try:
         entry_date = date.fromisoformat(booking_date)
     except ValueError:
-        errors.append("Vul een geldige datum in.")
+        errors.append("Vul een geldige datum in, bijvoorbeeld 31-12-2026.")
     if not journal_id.isdigit():
-        errors.append("Kies een dagboek.")
+        errors.append("Kies in welk dagboek je wilt boeken.")
 
     status = 422
     if not errors:
@@ -257,7 +268,7 @@ def entry_storno(
     try:
         booking_date = date.fromisoformat(datum) if datum.strip() else None
     except ValueError:
-        return _detail(request, entry, error="Vul een geldige datum in.", status=422)
+        return _detail(request, entry, error="Vul een geldige datum in, bijvoorbeeld 31-12-2026.", status=422)
     try:
         storno = ledger.reverse_entry(session, entry_id, booking_date=booking_date)
         session.commit()
@@ -278,7 +289,8 @@ def settings_index() -> RedirectResponse:
 def _accounts_page(request, session, *, error=None, status=200, values=None):
     accounts = ledger.list_accounts(session)
     groups = [
-        (label, [a for a in accounts if a.type == key]) for key, label in ACCOUNT_TYPES
+        (label, ACCOUNT_TYPE_TERM[key], [a for a in accounts if a.type == key])
+        for key, label in ACCOUNT_TYPES
     ]
     return _render(
         request,
@@ -288,7 +300,12 @@ def _accounts_page(request, session, *, error=None, status=200, values=None):
         groups=groups,
         account_types=ACCOUNT_TYPES,
         error=error,
-        values=values or {"code": "", "name": "", "type": "expense"},
+        values=values
+        or {
+            "code": ledger.suggest_account_code(session, "expense"),
+            "name": "",
+            "type": "expense",
+        },
     )
 
 
@@ -338,8 +355,16 @@ def accounts_toggle(
     return _see_other("/instellingen/grootboek")
 
 
+def _default_cash_account(asset_accounts, journal_type: str) -> str:
+    """Id of the one active asset account named Bank (or Kas), else empty."""
+    word = {"bank": "bank", "kas": "kas"}.get(journal_type)
+    matches = [a for a in asset_accounts if word and word in a.name.lower()]
+    return str(matches[0].id) if len(matches) == 1 else ""
+
+
 def _journals_page(request, session, *, error=None, status=200, values=None):
     accounts = ledger.list_accounts(session)
+    asset_accounts = [a for a in accounts if a.type == "asset" and a.is_active]
     return _render(
         request,
         "ledger/journals.html",
@@ -347,9 +372,17 @@ def _journals_page(request, session, *, error=None, status=200, values=None):
         title="Dagboeken",
         journals=ledger.list_journals(session),
         journal_types=JOURNAL_TYPES,
-        asset_accounts=[a for a in accounts if a.type == "asset" and a.is_active],
+        journal_type_labels=ledger.JOURNAL_TYPE_LABELS,
+        journal_type_terms=JOURNAL_TYPE_TERM,
+        asset_accounts=asset_accounts,
         error=error,
-        values=values or {"code": "", "name": "", "type": "bank", "account_id": ""},
+        values=values
+        or {
+            "code": "",
+            "name": "",
+            "type": "bank",
+            "account_id": _default_cash_account(asset_accounts, "bank"),
+        },
     )
 
 
@@ -413,7 +446,7 @@ def _years_page(request, session, *, error=None, status=200):
         status,
         title="Boekjaren",
         years=ledger.list_fiscal_years(session),
-        current_year=date.today().year,
+        suggested_year=ledger.suggest_fiscal_year(session, date.today()),
         error=error,
     )
 

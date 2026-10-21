@@ -90,7 +90,7 @@ def test_create_entry_happy_path(year_client):
 def test_unbalanced_entry_422_preserves_input(year_client):
     r = post_entry(year_client, line_credit=["", "1.234,55"], description="Scheef")
     assert r.status_code == 422
-    assert "evenwicht" in r.text.lower()
+    assert "Debet en credit zijn niet gelijk" in r.text
     assert "Scheef" in r.text
     assert "1.234,56" in r.text
     assert 'alert' in r.text
@@ -212,7 +212,7 @@ def test_fiscal_years_page(client):
     client.post("/instellingen/boekjaren", data={"year": YEAR})
     html = client.get("/instellingen/boekjaren").text
     assert f"Boekjaar {YEAR}" in html
-    assert html.count("Vergrendel periode") == 12
+    assert html.count("Periode vergrendelen") == 12
     assert "hx-confirm" in html
     dup = client.post("/instellingen/boekjaren", data={"year": YEAR})
     assert dup.status_code == 409
