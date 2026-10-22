@@ -55,6 +55,9 @@
   </div>
   <div class="card__footer"><p class="hint">In de kolom Btw-tarief staat welk btw-percentage bij de regel hoort. {{ info("btw") }}</p></div>
 </div>
+{% if bank_txn_id %}
+<div class="card"><div class="card__body"><p class="hint">Deze boeking hoort bij een bankmutatie. Ongedaan maken doe je bij die mutatie, zodat de factuur weer open komt te staan. <a href="/bank/transacties/{{ bank_txn_id }}/afletteren">Naar de bankmutatie</a></p></div></div>
+{% endif %}
 {% if reversible %}
 <form method="post" action="/boeken/{{ entry.id }}/storno" class="card" hx-boost="false">
   <div class="card__header"><h2>Ongedaan maken</h2></div>

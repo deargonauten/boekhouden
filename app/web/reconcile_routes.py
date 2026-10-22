@@ -460,6 +460,7 @@ def reconcile_undo(request: Request, txn_id: int, session: Session = Depends(get
 def _rules_page(request: Request, session: Session, *, error=None, melding="", status_code=200):
     return _render(
         request, "bank/rules.html", status_code, title="Onthouden keuzes", rules=rec.list_rules(session),
+        vat_names={v.code: v.name for v in ledger.list_vat_codes(session)},
         error=error, melding_text=MELDINGEN.get(melding, ""),
     )
 

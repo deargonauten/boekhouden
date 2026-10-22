@@ -165,7 +165,7 @@ _TERMS: list[Term] = [
          "Bij 'BTW verlegd' staat er geen BTW op de factuur. De klant geeft de BTW zelf aan bij de Belastingdienst, niet de leverancier.",
          (_NEVER,)),
     Term("creditnota", "Creditnota", "Een factuur die geld terugtelt",
-         "Een creditnota maakt een eerdere factuur helemaal of deels ongedaan, bijvoorbeeld bij een retour of korting achteraf."),
+         "Een creditnota is een terugbetaling of korting van een leverancier, bijvoorbeeld bij een retour. Bij het afletteren gaat het bedrag af van wat je betaalt, dus je hebt minder te verdelen."),
     Term("factuurdatum", "Factuurdatum", "Datum op de factuur",
          "De datum die op de factuur staat. Aan die datum zie je in welke maand en in welk btw-kwartaal de factuur hoort.",
          (_NEVER,)),

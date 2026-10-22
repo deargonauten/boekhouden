@@ -12,6 +12,7 @@ from app.domain.reconcile.rules import (  # noqa: F401
     set_rule_active,
 )
 from app.domain.reconcile.service import (  # noqa: F401
+    booked_transaction_for_entry,
     PROVIDERS,
     STATUS_LABELS,
     MatchRow,

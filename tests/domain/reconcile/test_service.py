@@ -341,6 +341,27 @@ def test_undo_in_locked_period_refused(session, invoice, make_txn):
     assert session.get(PurchaseInvoice, pi.id).paid_cents == 12100
 
 
+def test_undo_refused_when_original_period_locked_even_if_today_is_open(session, invoice, make_txn):
+    from app.domain.ledger import create_fiscal_year
+
+    pi, _ = invoice()
+    t = make_txn()
+    book(session, t.id, [inv(pi)])
+    session.commit()
+    if session.scalar(select(Period.id).where(Period.start_date <= date.today(), Period.end_date >= date.today())) is None:
+        create_fiscal_year(session, date.today().year)
+    period = session.scalar(select(Period).where(Period.start_date <= date(2025, 4, 1), Period.end_date >= date(2025, 4, 1)))
+    lock_period(session, period.id)
+    session.commit()
+    with pytest.raises(LedgerError) as exc:
+        undo(session, t.id)
+    session.rollback()
+    assert "afgesloten" in exc.value.message or "vergrendeld" in exc.value.message
+    assert session.get(BankTransaction, t.id).status == "geboekt"
+    assert session.get(PurchaseInvoice, pi.id).paid_cents == 12100
+    assert session.scalar(select(JournalEntry.id).where(JournalEntry.kind == "storno")) is None
+
+
 # --- ignore / restore ------------------------------------------------------------------------------
 def test_ignore_and_restore(session, make_txn):
     t = make_txn()

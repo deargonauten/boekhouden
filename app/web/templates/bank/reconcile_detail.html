@@ -55,7 +55,7 @@
         {% set key = i.source ~ ":" ~ i.source_id %}
         <tr>
           <td><input type="checkbox" name="item" value="{{ key }}" aria-label="Kies factuur {{ i.number }}"{% if key in state.checked %} checked{% endif %}></td>
-          <td>{{ i.number }}{% if i.is_credit %} {{ pill("Creditnota", "info") }}{% endif %}<span class="bank-sub">{{ i.contact_name }}</span></td>
+          <td>{{ i.number }}{% if i.is_credit %} {{ pill("Creditnota", "info") }} {{ info("creditnota") }} <span class="bank-sub">Terugbetaling of korting: dit bedrag haal je af van wat je betaalt.</span>{% endif %}<span class="bank-sub">{{ i.contact_name }}</span></td>
           <td class="nowrap">{{ i.date|bank_datum }}</td>
           <td class="num nowrap">{{ i.open_cents|euro }}</td>
           <td class="num"><input name="amount_{{ i.source }}_{{ i.source_id }}" value="{{ state.amounts.get(key, '') }}" inputmode="decimal" class="num" aria-label="Bedrag voor factuur {{ i.number }}"></td>
@@ -70,7 +70,7 @@
     </section>
 
     <section class="card card--flush">
-      <div class="card__header"><h2>Wat is dit voor uitgave? Boeken zonder factuur {{ info("direct_boeken") }}</h2></div>
+      <div class="card__header"><h2>{{ "Wat is dit voor uitgave?" if t.direction == "af" else "Wat is dit voor inkomst?" }} Boeken zonder factuur {{ info("direct_boeken") }}</h2></div>
       <div class="table-wrap">
       <table class="data bank-table">
         <thead><tr>
@@ -130,7 +130,7 @@
     {% if detail.matches %}
     <ul>
       {% for m in detail.matches %}
-      <li>{{ m.number }} ({{ m.contact_name }}){% if m.is_credit %} {{ pill("Creditnota", "info") }}{% endif %}: {{ m.amount_cents|euro }}</li>
+      <li>{{ m.number }} ({{ m.contact_name }}){% if m.is_credit %} {{ pill("Creditnota", "info") }} {{ info("creditnota") }}{% endif %}: {{ m.amount_cents|euro }}</li>
       {% endfor %}
     </ul>
     {% else %}

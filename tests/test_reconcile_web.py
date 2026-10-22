@@ -454,6 +454,44 @@ def test_undo_in_locked_period_says_what_to_do(client, world):
     assert world.one("SELECT status FROM bank_transaction WHERE id = :i", i=tid) == "geboekt"
 
 
+def test_generic_storno_of_bank_entry_is_refused_and_state_stays_consistent(client, world):
+    inv = world.invoice()
+    tid = world.txn(amount=-12100)
+    client.post(f"/bank/transacties/{tid}/afletteren", data=alloc_form(inv, "121,00"))
+    entry_id = world.one("SELECT journal_entry_id FROM bank_transaction WHERE id = :i", i=tid)
+    page = client.get(f"/boeken/{entry_id}").text
+    assert f"/boeken/{entry_id}/storno" not in page
+    assert f"/bank/transacties/{tid}/afletteren" in page
+    r = client.post(f"/boeken/{entry_id}/storno", data={})
+    assert r.status_code == 409
+    assert "Ongedaan maken" in r.text and "bankmutatie" in r.text
+    assert world.one("SELECT count(*) FROM journal_entry WHERE kind = 'storno'") == 0
+    assert world.one("SELECT status FROM bank_transaction WHERE id = :i", i=tid) == "geboekt"
+    assert world.one("SELECT paid_cents FROM purchase_invoice WHERE id = :i", i=inv) == 12100
+    assert world.one("SELECT count(*) FROM bank_match WHERE reversed_at IS NULL") == 1
+
+
+def test_generic_storno_allowed_again_after_undo(client, world):
+    inv = world.invoice()
+    tid = world.txn(amount=-12100)
+    client.post(f"/bank/transacties/{tid}/afletteren", data=alloc_form(inv, "121,00"))
+    entry_id = world.one("SELECT journal_entry_id FROM bank_transaction WHERE id = :i", i=tid)
+    client.post(f"/bank/transacties/{tid}/ongedaan-maken")
+    page = client.get(f"/boeken/{entry_id}").text
+    assert f"/boeken/{entry_id}/storno" not in page or "al ongedaan" in page
+
+
+def test_credit_note_is_explained_and_rules_show_vat_name(client, world):
+    inv = world.invoice(number="CN-1", kind="credit_note")
+    tid = world.txn(amount=12100)
+    html = client.get(f"/bank/transacties/{tid}/afletteren").text
+    assert "Creditnota" in html and "terugbetaling" in html.lower()
+    assert "Wat is dit voor uitgave" not in html
+    tid2 = world.txn(amount=-250, desc="Kosten", name="ING")
+    client.post(f"/bank/transacties/{tid2}/afletteren", data=direct_form(world, vat="NL_21", remember="1"))
+    assert "NL_21" not in client.get("/bank/regels").text
+
+
 # --- rules ---------------------------------------------------------------------------------------------------
 
 

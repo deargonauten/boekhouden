@@ -58,6 +58,7 @@ from app.models import (
     JournalEntry,
     JournalLine,
     OpeningItem,
+    Period,
     PurchaseInvoice,
     VatCode,
 )
@@ -626,6 +627,14 @@ def undo(session: Session, txn_id: int) -> JournalEntry:
     if t.status != STATUS_BOOKED or t.journal_entry_id is None:
         raise ReconcileError(NOT_BOOKED, "Deze mutatie is niet geboekt, dus er valt niets ongedaan te maken.")
     entry_id = t.journal_entry_id
+    original = session.get(JournalEntry, entry_id)
+    orig_period = session.get(Period, original.period_id) if original else None
+    if orig_period is not None and orig_period.status != "open":
+        raise ReconcileError(
+            "PERIOD_LOCKED",
+            "Deze boeking valt in een afgesloten periode, dus je kunt haar niet meer ongedaan maken. "
+            "Maak de periode eerst weer open, of boek een correctie.",
+        )
     _open_transaction(session)
     with session.begin_nested():
         storno = reverse_entry(session, entry_id)  # LedgerError: locked period, already reversed
@@ -659,6 +668,16 @@ def undo(session: Session, txn_id: int) -> JournalEntry:
             raise ReconcileError(NOT_BOOKED, "Deze mutatie is al ongedaan gemaakt.")
     session.expire_all()
     return storno
+
+
+def booked_transaction_for_entry(session: Session, entry_id: int) -> int | None:
+    """Id of the bank transaction whose booking this journal entry is, if that booking is still active.
+    Such an entry may only be undone via 'Ongedaan maken' on the transaction."""
+    return session.scalar(
+        select(BankTransaction.id).where(
+            BankTransaction.journal_entry_id == entry_id, BankTransaction.status == STATUS_BOOKED
+        )
+    )
 
 
 def _switch_status(session: Session, txn_id: int, old: str, new: str, error: ReconcileError) -> None:

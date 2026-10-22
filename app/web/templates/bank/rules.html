@@ -22,7 +22,7 @@
     <td>{{ r.name }}</td>
     <td>{{ r.condition_text }} <span class="bank-sub">{{ r.direction_label }}</span></td>
     <td>{{ r.account_code }} {{ r.account_name }}</td>
-    <td>{{ r.vat_code or "Geen btw" }}</td>
+    <td>{{ vat_names.get(r.vat_code, r.vat_code) if r.vat_code else "Geen btw" }}</td>
     <td class="num">{{ r.use_count }}</td>
     <td>{{ pill("Actief", "success") if r.is_active else pill("Uit", "neutral") }}</td>
     <td class="nowrap">

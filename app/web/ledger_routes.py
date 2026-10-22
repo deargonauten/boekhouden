@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app import web
 from app.db import get_session
 from app.domain import ledger
+from app.domain.reconcile import booked_transaction_for_entry
 from app.domain.ledger import LedgerError, NewEntry, NewLine
 from app.domain.money import parse_euro
 from app.seed.rgs_accounts import default_contexts
@@ -243,8 +244,9 @@ def entry_create(
     )
 
 
-def _detail(request, detail, *, error=None, status=200):
+def _detail(request, detail, *, error=None, status=200, session=None):
     entry = detail.entry
+    bank_txn_id = booked_transaction_for_entry(session, entry.id) if session is not None else None
     drawer = web.is_drawer_request(request, "boeking-drawer")
     return _render(
         request,
@@ -254,7 +256,8 @@ def _detail(request, detail, *, error=None, status=200):
         entry=entry,
         detail=detail,
         error=error,
-        reversible=detail.is_reversible,
+        reversible=detail.is_reversible and bank_txn_id is None,
+        bank_txn_id=bank_txn_id,
         in_drawer=drawer,
         today=date.today().isoformat(),
     )
@@ -267,7 +270,7 @@ def entry_detail(
     entry = ledger.get_entry(session, entry_id)
     if entry is None:
         return web.not_found_response(request)
-    return _detail(request, entry)
+    return _detail(request, entry, session=session)
 
 
 @router.post("/boeken/{entry_id:int}/storno")
@@ -283,13 +286,20 @@ def entry_storno(
     try:
         booking_date = date.fromisoformat(datum) if datum.strip() else None
     except ValueError:
-        return _detail(request, entry, error="Vul een geldige datum in, bijvoorbeeld 31-12-2026.", status=422)
+        return _detail(request, entry, error="Vul een geldige datum in, bijvoorbeeld 31-12-2026.", status=422, session=session)
+    bank_txn_id = booked_transaction_for_entry(session, entry_id)
+    if bank_txn_id is not None:
+        return _detail(
+            request, entry, status=409, session=session,
+            error="Deze boeking hoort bij een bankmutatie en kun je hier niet ongedaan maken. "
+            "Open de bankmutatie en kies Ongedaan maken, dan blijft alles kloppen.",
+        )
     try:
         storno = ledger.reverse_entry(session, entry_id, booking_date=booking_date)
         session.commit()
     except LedgerError as exc:
         session.rollback()
-        return _detail(request, entry, error=exc.message, status=_status_for(exc))
+        return _detail(request, entry, error=exc.message, status=_status_for(exc), session=session)
     return _see_other(f"/boeken/{storno.id}")
 
 
