@@ -16,7 +16,7 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [x] Bedrijfsgegevens: eigen naam, adres, KvK, BTW-id, IBAN in Instellingen (nodig voor facturen en aangifte) (feature 35) (done 2026-10-21)
 - [x] Grootboek-verfijning: standaard btw-code per rekening als suggestie + "selecteerbaar bij" voor kortere keuzelijsten; btw-codes beheren met rubriek-koppeling (features 32, 33, 20) (done 2026-10-22)
 - [x] Purchase booking flow: approve extracted invoice → inkoopfactuur + journal entry, VAT codes, learned supplier→grootboek defaults, crediteuren (done 2026-10-22)
-- [ ] Bank statement import: CAMT.053 / MT940 / CSV (ING, Rabobank, ABN AMRO, bunq), bankrekeningen, duplicate detection
+- [~] Bank statement import: CAMT.053 / MT940 / CSV (ING, Rabobank, ABN AMRO, bunq), bankrekeningen, duplicate detection
 - [ ] Openingsbalans: beginstanden invoeren bij start (feature 36)
 - [ ] Bank reconciliation: match transactions to open invoices (IBAN, amount, invoice number in description), manual match, split/partial payments, direct-book without invoice, matching rules
 - [ ] Sales invoices: create/send PDF invoices compliant with Wet OB (gapless numbering, required fields), debiteuren, credit notes, payment terms, reminders
