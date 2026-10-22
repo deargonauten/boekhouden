@@ -1,0 +1,3 @@
+/* Inkoop (Crediteuren): only screen-specific layout; shared looks live in app.css. */
+.purchase-table td.num, .purchase-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data th.num, table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }

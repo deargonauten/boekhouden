@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, stat_cards, pill, pager, empty_state, notice, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/purchase.css">{% endblock %}
+{% block content %}
+{{ page_header("Inkoop", breadcrumb=[("Inkoop", None)], term="crediteuren", icon_name="file",
+   lead="Hier zie je bij welke leveranciers je nog moet betalen en welke facturen van leveranciers je hebt vastgelegd.",
+   tab_items=[
+    ("Openstaand per leverancier", page_url("/inkoop", {"q": q}, 1), tab == "open", None, "openstaand"),
+    ("Alle inkoopfacturen", page_url("/inkoop", {"tab": "all", "q": q}, 1), tab == "all", None, "inkoopfactuur"),
+   ], tab_label="Weergave van inkoop") }}
+{% if booked_notice %}
+<div class="notice notice--success" role="status">{{ icon("check") }}<div>De factuur is vastgelegd in je administratie.{% if booked_entry_id %} <a href="/boeken/{{ booked_entry_id }}">Bekijk de boeking</a>.{% endif %}</div></div>
+{% endif %}
+{% if has_any %}
+{{ stat_cards([
+  {"title": "Nog te betalen", "term": "openstaand", "cells": [
+    {"label": "Totaal openstaand", "value": overview.total_open_cents|euro},
+    {"label": "Aantal open facturen", "value": overview.open_count}]},
+  {"title": "Leveranciers", "term": "crediteuren", "cells": [
+    {"label": "Leveranciers met openstaand", "value": overview.supplier_count}]},
+]) }}
+{% endif %}
+<div class="card card--flush">
+  <form class="toolbar" method="get" action="/inkoop" role="search" hx-boost="false">
+    <div class="toolbar__search">
+      {{ icon("search") }}
+      <input type="search" name="q" value="{{ q }}" placeholder="Zoek op leverancier of factuurnummer" aria-label="Zoek op leverancier of factuurnummer">
+    </div>
+    {% if tab == "all" %}<input type="hidden" name="tab" value="all">{% endif %}
+    <div class="toolbar__spacer"></div>
+    <button type="submit" class="btn btn-secondary">Zoeken</button>
+  </form>
+  {% if not has_any %}
+    {{ empty_state("Je hebt nog geen inkoopfacturen", "Voeg een factuur van een leverancier toe, laat hem uitlezen, kijk hem na en boek hem. Daarna zie je hier wat je nog moet betalen.", "Factuur toevoegen", "/inbox", "inbox") }}
+  {% elif tab == "open" %}
+    {% if not overview.rows %}
+      {% if q %}
+      {{ empty_state("Geen inkoopfacturen gevonden", "Er is geen openstaande factuur die past bij je zoekopdracht. Pas je zoekopdracht aan.", "Wis zoekopdracht", "/inkoop", "search") }}
+      {% else %}
+      {{ empty_state("Je hoeft niets te betalen", "Alle vastgelegde facturen zijn betaald of ongedaan gemaakt. Op het tabblad Alle inkoopfacturen zie je het hele overzicht.", "Alle inkoopfacturen", "/inkoop?tab=all", "check") }}
+      {% endif %}
+    {% else %}
+    <div class="table-wrap">
+    <table class="data">
+      <thead><tr>
+        <th>Leverancier {{ info("leverancier") }}</th><th class="num">Aantal facturen</th><th class="num">Nog te betalen {{ info("openstaand") }}</th>
+      </tr></thead>
+      <tbody>
+      {% for r in overview.rows %}
+      <tr>
+        <td><a href="{{ page_url('/inkoop', {'tab': 'all', 'q': r.supplier_name}, 1) }}">{{ r.supplier_name }}</a>{% if r.overdue_count %} {{ pill("Te laat", "danger", r.overdue_count ~ " factuur voorbij de vervaldatum") }}{% endif %}</td>
+        <td class="num">{{ r.invoice_count }}</td>
+        <td class="num">{{ r.open_cents|euro }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+  {% else %}
+    {% if not invoices.items %}
+      {{ empty_state("Geen inkoopfacturen gevonden", "Er is geen factuur die past bij je zoekopdracht. Pas je zoekopdracht aan.", "Wis zoekopdracht", "/inkoop?tab=all", "search") }}
+    {% else %}
+    <div class="table-wrap">
+    <table class="data purchase-table">
+      <thead><tr>
+        <th>Datum</th><th>Leverancier {{ info("leverancier") }}</th><th>Factuurnummer</th><th class="num">Totaal</th><th class="num">Nog te betalen {{ info("openstaand") }}</th><th>Vervaldatum</th><th>Status</th><th>Bekijken</th>
+      </tr></thead>
+      <tbody>
+      {% for i in invoices.items %}
+      <tr{% if i.status == "gestorneerd" %} class="inactive"{% endif %}>
+        <td class="nowrap">{{ i.invoice_date.strftime("%d-%m-%Y") }}</td>
+        <td>{{ i.supplier_name }}</td>
+        <td>{{ i.invoice_number }}{% if i.kind == "credit_note" %} {{ pill("Creditnota", "info") }}{% endif %}</td>
+        <td class="num">{{ i.total_cents|euro }}</td>
+        <td class="num">{{ i.open_cents|euro }}</td>
+        <td class="nowrap">{% if i.due_date %}{{ i.due_date.strftime("%d-%m-%Y") }}{% endif %}{% if i.is_overdue %} {{ pill("Te laat", "danger") }}{% endif %}</td>
+        <td>{% if i.status == "gestorneerd" %}{{ pill("Gestorneerd", "neutral", "De boeking is ongedaan gemaakt en telt niet mee.") }}{% elif i.status == "betaald" %}{{ pill("Betaald", "success") }}{% else %}{{ pill("Open", "warning") }}{% endif %}</td>
+        <td class="nowrap"><a href="/boeken/{{ i.journal_entry_id }}">Boeking {{ i.entry_number }}</a> &middot; <a href="/inbox/{{ i.document_id }}">Bestand</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {{ pager(invoices.page, invoices.per_page, invoices.total, "/inkoop", {"tab": "all", "q": q}, "facturen", sticky=true) }}
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

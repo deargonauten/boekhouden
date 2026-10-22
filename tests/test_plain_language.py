@@ -106,6 +106,8 @@ def pages(c):
         ("/boeken?dagboek=MEM", set()),
         ("/relaties/nieuw", set()),
         (f"/relaties/{c.contact_id}/bewerken", set()),
+        ("/inkoop", set()),
+        ("/inkoop?tab=all", set()),
         ("/bank", {"bank"}),  # placeholder page: heading is the nav label
         ("/inbox", set()),
         ("/inbox?status=nieuw", set()),
