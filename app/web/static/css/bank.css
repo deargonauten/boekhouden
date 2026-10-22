@@ -23,3 +23,10 @@
   .bank-filter-note { padding: var(--space-3) var(--space-4); }
   .bank-accounts { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Afletteren */
+.bank-process { margin-bottom: var(--space-5); align-items: center; }
+.reconcile-summary { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md, 8px); background: var(--warning-soft, #fff7e0); }
+.reconcile-summary--ok { background: var(--success-soft, #e6f6ea); }
+.bank-table input.num { max-width: 9rem; text-align: right; }
+.bank-table td select, .bank-table td input:not([type="checkbox"]) { width: 100%; min-width: 0; }

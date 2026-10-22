@@ -30,6 +30,11 @@
 {% else %}
 {{ stat_cards(stat_data) }}
 
+<div class="cluster bank-process">
+  {% if to_process %}<span class="pill pill--warning">{{ to_process }} te verwerken</span>{% endif %}
+  <a class="btn{% if to_process %}{% else %} btn-secondary{% endif %}" href="/bank/afletteren">Afletteren {{ info("afletteren") }}</a>
+  <span class="muted">Koppel je mutaties aan facturen of boek ze op een rekening.</span>
+</div>
 <div class="bank-accounts">
   {% for a in accounts %}
   <section class="card bank-account{% if not a.is_active %} bank-account--inactive{% endif %}">

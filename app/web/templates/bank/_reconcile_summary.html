@@ -1,0 +1,7 @@
+{# Server-side totals for the match page (HTMX target #reconcile-summary). #}
+<p class="reconcile-summary{% if summary.remainder == 0 %} reconcile-summary--ok{% endif %}">
+  Verdeeld <strong>{{ summary.distributed|euro }}</strong> van <strong>{{ summary.total|euro }}</strong>,
+  {% if summary.remainder > 0 %}nog <strong>{{ summary.remainder|euro }}</strong> te verdelen.
+  {% elif summary.remainder < 0 %}<strong>{{ (-summary.remainder)|euro }}</strong> te veel verdeeld. Verlaag een bedrag.
+  {% else %}alles is verdeeld. Je kunt boeken.{% endif %}
+</p>

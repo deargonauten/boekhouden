@@ -21,6 +21,7 @@ from app.domain.bank.parsers import BANK_LABELS, FORMAT_LABELS
 from app.domain.bank.storage import BankFileStorage
 from app.domain.bank.types import MAX_FILE_BYTES, BankImportError
 from app.domain.errors import LedgerError
+from app.domain.reconcile import to_process_count
 from app.domain.relations import format_iban
 from app.models import Account
 from app.models.bank import BankAccount, BankImportBatch
@@ -173,6 +174,7 @@ def _index_context(
         "batch": batch,
         "accounts": accounts,
         "has_accounts": bool(accounts),
+        "to_process": to_process_count(session) if accounts else 0,
         "stat_data": _stats_cards(session) if accounts else [],
     }
     names = {a.id: a.name for a in accounts}

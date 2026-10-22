@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, notice, error_box, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% block content %}
+{% call page_header("Mutaties verwerken", breadcrumb=[("Bank", "/bank"), ("Afletteren", None)], term="afletteren", icon_name="bank",
+   lead="Koppel elke bij- of afschrijving aan de factuur die je ermee hebt betaald, of boek hem op een rekening. Bij een voorstel hoef je alleen op Akkoord te klikken.",
+   tab_items=[
+    ("Te verwerken", "/bank/afletteren", status == "nieuw", to_process, None),
+    ("Genegeerd", "/bank/afletteren?status=genegeerd", status == "genegeerd", None, None),
+   ], tab_label="Welke mutaties zie je") %}
+<a class="btn btn-secondary" href="/bank/regels">Onthouden keuzes</a>
+{% endcall %}
+
+{% if melding_text %}{{ notice(melding_text, "success") }}{% endif %}
+{% if error %}{{ error_box(error) }}{% endif %}
+
+<div class="card card--flush">
+  <form class="toolbar" method="get" action="/bank/afletteren" role="search" hx-get="/bank/afletteren" hx-target="#reconcile-rows" hx-push-url="false" hx-boost="false">
+    <div class="toolbar__search">
+      {{ icon("search") }}
+      <input type="search" name="q" value="{{ q }}" placeholder="Zoek op naam, omschrijving of bedrag" aria-label="Zoek op naam, omschrijving of bedrag">
+    </div>
+    <div class="toolbar__filters">
+      {% if accounts|length > 1 %}
+      <select name="rekening" aria-label="Kies een bankrekening">
+        <option value="">Alle bankrekeningen</option>
+        {% for a in accounts %}<option value="{{ a.id }}"{% if rekening == a.id %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+      </select>
+      {% endif %}
+      <select name="richting" aria-label="Geld dat erbij komt of eraf gaat">
+        <option value="">Bij en af</option>
+        <option value="af"{% if richting == "af" %} selected{% endif %}>Alleen af (uitgaven)</option>
+        <option value="bij"{% if richting == "bij" %} selected{% endif %}>Alleen bij (ontvangsten)</option>
+      </select>
+    </div>
+    {% if status != "nieuw" %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <div class="toolbar__spacer"></div>
+    <button type="submit" class="btn btn-secondary">Zoeken</button>
+  </form>
+  <div id="reconcile-rows">{% include "bank/_reconcile_rows.html" %}</div>
+</div>
+{% endblock %}

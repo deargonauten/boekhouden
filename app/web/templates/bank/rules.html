@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, notice, error_box, empty_state, pill with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% block content %}
+{{ page_header("Onthouden keuzes", breadcrumb=[("Bank", "/bank"), ("Afletteren", "/bank/afletteren"), ("Onthouden keuzes", None)], term="matchingregel", icon_name="bank",
+   lead="Als je bij het boeken zonder factuur kiest voor Onthoud dit voor volgende keer, staat de keuze hier. Het programma stelt hem dan voor bij vergelijkbare mutaties. Er wordt nooit iets zonder jouw akkoord geboekt.") }}
+{% if melding_text %}{{ notice(melding_text, "success") }}{% endif %}
+{% if error %}{{ error_box(error) }}{% endif %}
+<div class="card card--flush">
+{% if not rules %}
+  {{ empty_state("Nog geen onthouden keuzes", "Boek een mutatie zonder factuur, bijvoorbeeld bankkosten, en vink Onthoud dit voor volgende keer aan. Dan staat de keuze hier.", "Naar de mutaties", "/bank/afletteren", "bank") }}
+{% else %}
+<div class="table-wrap">
+<table class="data bank-table">
+  <thead><tr>
+    <th>Naam</th><th>Wanneer</th><th>Boek op rekening</th><th>Btw</th><th class="num">Keer gebruikt</th><th>Status</th><th><span class="visually-hidden">Actie</span></th>
+  </tr></thead>
+  <tbody>
+  {% for r in rules %}
+  <tr{% if not r.is_active %} class="bank-account--inactive"{% endif %}>
+    <td>{{ r.name }}</td>
+    <td>{{ r.condition_text }} <span class="bank-sub">{{ r.direction_label }}</span></td>
+    <td>{{ r.account_code }} {{ r.account_name }}</td>
+    <td>{{ r.vat_code or "Geen btw" }}</td>
+    <td class="num">{{ r.use_count }}</td>
+    <td>{{ pill("Actief", "success") if r.is_active else pill("Uit", "neutral") }}</td>
+    <td class="nowrap">
+      <form method="post" action="/bank/regels/{{ r.id }}/actief" class="inline-form" hx-boost="false">
+        <input type="hidden" name="actief" value="{{ '0' if r.is_active else '1' }}">
+        <button type="submit" class="btn btn-secondary btn-small">{{ "Uitzetten" if r.is_active else "Weer aanzetten" }}</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="bank-filter-note">Een onthouden keuze verwijderen kan niet: boekingen die ermee zijn gemaakt blijven zo terug te vinden. Zet hem uit als je hem niet meer wilt zien.</p>
+{% endif %}
+</div>
+{% endblock %}

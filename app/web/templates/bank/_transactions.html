@@ -10,7 +10,7 @@
 <div class="table-wrap">
 <table class="data bank-table">
   <thead><tr>
-    <th>Datum</th><th>Naam</th><th>Omschrijving</th><th class="num">Bij / Af {{ info("bijschrijving_afschrijving") }}</th><th>Rekening</th><th class="num">Saldo erna {{ info("saldo_na_mutatie") }}</th>
+    <th>Datum</th><th>Naam</th><th>Omschrijving</th><th class="num">Bij / Af {{ info("bijschrijving_afschrijving") }}</th><th>Rekening</th><th class="num">Saldo erna {{ info("saldo_na_mutatie") }}</th><th>Verwerking</th>
   </tr></thead>
   <tbody>
   {% for t in transactions.items %}
@@ -21,6 +21,11 @@
     <td class="num nowrap {{ 'amount--in' if t.amount_cents > 0 else 'amount--out' }}">{{ "+" if t.amount_cents > 0 }}{{ t.amount_cents|euro }}</td>
     <td>{{ account_names.get(t.bank_account_id, "") }}</td>
     <td class="num nowrap">{% if t.balance_after_cents is not none %}{{ t.balance_after_cents|euro }}{% endif %}</td>
+    <td class="nowrap">
+      {% if t.status == "nieuw" %}<a href="/bank/transacties/{{ t.id }}/afletteren">Afletteren</a>
+      {% elif t.status == "geboekt" %}<a class="pill pill--success" href="/bank/transacties/{{ t.id }}/afletteren">Geboekt</a>
+      {% elif t.status == "genegeerd" %}<a class="pill pill--neutral" href="/bank/transacties/{{ t.id }}/afletteren">Genegeerd</a>{% endif %}
+    </td>
   </tr>
   {% endfor %}
   </tbody>

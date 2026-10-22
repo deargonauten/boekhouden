@@ -252,6 +252,18 @@ _TERMS: list[Term] = [
     Term("transactie", "Transactie", "Een bij- of afschrijving",
          "Eén regel op je bankafschrift: geld dat op je rekening kwam of eraf ging. Ingelezen transacties kun je niet meer wijzigen.",
          (_NEVER,)),
+    Term("afletteren", "Afletteren", "Mutatie koppelen aan factuur",
+         "Je koppelt een bij- of afschrijving op je bank aan de factuur die daarmee is betaald. Daarna staat die factuur als betaald in je administratie.",
+         (_NEVER,)),
+    Term("deelbetaling", "Deelbetaling", "Gedeeltelijk betaald",
+         "Je betaalt maar een deel van een factuur. De factuur blijft openstaan voor het bedrag dat nog ontbreekt, tot alles is betaald.",
+         (_NEVER,)),
+    Term("direct_boeken", "Direct boeken", "Boeken zonder factuur",
+         "Voor mutaties zonder factuur, zoals bankkosten of een privé-opname. Je kiest zelf op welke rekening het bedrag hoort.",
+         (_NEVER,)),
+    Term("matchingregel", "Matchingregel", "Onthouden keuze voor terugkerende mutaties",
+         "Het programma onthoudt je keuze, bijvoorbeeld voor maandelijkse bankkosten, en stelt die de volgende keer voor. Je bevestigt altijd zelf.",
+         (_NEVER,)),
 ]
 
 GLOSSARY: dict[str, Term] = {t.key: t for t in _TERMS}

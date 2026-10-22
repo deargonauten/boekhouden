@@ -1,0 +1,53 @@
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import pager, empty_state, pill with context %}
+{% if not result.items %}
+  {% if q or rekening or richting %}
+  {{ empty_state("Geen mutaties gevonden", "Er is geen mutatie die past bij je zoekopdracht. Pas je zoekopdracht aan.", "Toon alles", "/bank/afletteren", "search") }}
+  {% elif status == "genegeerd" %}
+  {{ empty_state("Je hebt geen mutaties genegeerd", "Mutaties die je negeert, komen niet in je boekhouding. Je vindt ze hier terug als je ze toch wilt verwerken.", None, None, "bank") }}
+  {% else %}
+  {{ empty_state("Alles is verwerkt", "Er zijn geen mutaties meer om te koppelen of te boeken. Importeer een nieuw bankafschrift als je meer wilt verwerken.", "Afschrift importeren", "/bank/importeren", "bank") }}
+  {% endif %}
+{% else %}
+<div class="table-wrap">
+<table class="data bank-table">
+  <thead><tr>
+    <th>Datum</th><th>Tegenpartij</th><th>Omschrijving</th><th class="num">Bedrag</th><th>{% if status == "nieuw" %}Voorstel{% else %}Status{% endif %}</th><th><span class="visually-hidden">Actie</span></th>
+  </tr></thead>
+  <tbody>
+  {% for r in result.items %}
+  <tr>
+    <td class="nowrap">{{ r.booking_date|bank_datum }}</td>
+    <td>{{ r.counterparty_name or "" }}{% if r.counterparty_iban %}<span class="bank-sub">{{ r.counterparty_iban|bank_iban }}</span>{% endif %}</td>
+    <td class="bank-desc">{{ r.description }}</td>
+    <td class="num nowrap {{ 'amount--in' if r.amount_cents > 0 else 'amount--out' }}">{{ "+" if r.amount_cents > 0 }}{{ r.amount_cents|euro }}</td>
+    <td>
+      {% if r.suggestion %}
+      {{ pill("Zeker" if r.suggestion.confidence == "zeker" else "Waarschijnlijk", "success" if r.suggestion.confidence == "zeker" else "warning") }}
+      <span class="bank-sub">{{ r.suggestion.label }}{% if r.suggestion.reasons %} ({{ r.suggestion.reasons|join(", ") }}){% endif %}</span>
+      {% elif status == "nieuw" %}<span class="muted">Geen voorstel</span>
+      {% else %}{{ pill(r.status_label, "neutral") }}{% endif %}
+    </td>
+    <td class="nowrap">
+      {% if status == "nieuw" %}
+        {% if r.suggestion %}
+        <form method="post" action="/bank/transacties/{{ r.id }}/akkoord" class="inline-form" hx-boost="false">
+          <input type="hidden" name="suggestion" value="{{ r.suggestion.key }}">
+          <input type="hidden" name="terug" value="{{ back }}">
+          <button type="submit" class="btn btn-small">Akkoord</button>
+        </form>
+        {% endif %}
+        <a class="btn btn-secondary btn-small" href="/bank/transacties/{{ r.id }}/afletteren">{% if r.suggestion %}Anders{% else %}Verwerken{% endif %}</a>
+      {% else %}
+        <form method="post" action="/bank/transacties/{{ r.id }}/terugzetten" class="inline-form" hx-boost="false">
+          <button type="submit" class="btn btn-secondary btn-small">Terugzetten</button>
+        </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(result.page, result.per_page, result.total, "/bank/afletteren", params, "mutaties", sticky=true) }}
+{% endif %}

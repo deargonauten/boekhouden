@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, notice, error_box, pill, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% block content %}
+{% set t = detail.txn %}
+{{ page_header("Mutatie verwerken", breadcrumb=[("Bank", "/bank"), ("Afletteren", "/bank/afletteren"), ("Mutatie", None)], term="afletteren", icon_name="bank",
+   lead="Zeg waar dit geld voor was: een factuur die je hebt betaald, of iets zonder factuur zoals bankkosten.") }}
+
+{% if melding_text %}{{ notice(melding_text, "success") }}{% endif %}
+{% if error %}{{ error_box(error) }}{% endif %}
+
+<section class="card">
+  <div class="card__body">
+    <dl class="facts">
+      <dt>Datum</dt><dd>{{ t.booking_date|bank_datum }}</dd>
+      <dt>Tegenpartij</dt><dd>{{ t.counterparty_name or "Onbekend" }}{% if t.counterparty_iban %} <span class="muted nowrap">{{ t.counterparty_iban|bank_iban }}</span>{% endif %}</dd>
+      <dt>Omschrijving</dt><dd class="bank-desc">{{ t.description }}</dd>
+      <dt>Bedrag</dt><dd class="{{ 'amount--in' if t.amount_cents > 0 else 'amount--out' }}">{{ "+" if t.amount_cents > 0 }}{{ t.amount_cents|euro }} {{ "(bij)" if t.amount_cents > 0 else "(af)" }}</dd>
+      <dt>Bankrekening</dt><dd>{{ detail.bank_account_name }}</dd>
+      <dt>Status</dt><dd>{{ {"nieuw": pill("Nog te verwerken", "warning"), "geboekt": pill("Geboekt", "success"), "genegeerd": pill("Genegeerd", "neutral")}[detail.status] }}</dd>
+    </dl>
+  </div>
+</section>
+
+{% if detail.status == "nieuw" %}
+<form method="get" action="/bank/transacties/{{ t.id }}/afletteren" class="inline-form" hx-boost="false" role="search">
+  <label>Van welke leverancier is de factuur?
+    <select name="contact">
+      <option value="">Kies een leverancier</option>
+      {% for c in suppliers %}<option value="{{ c.id }}"{% if contact_id == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Zoek op factuurnummer
+    <input type="search" name="q" value="{{ state.q }}" placeholder="Bijvoorbeeld F-2026-001">
+  </label>
+  <button type="submit" class="btn btn-secondary">Toon facturen</button>
+</form>
+
+<form method="post" action="/bank/transacties/{{ t.id }}/afletteren" class="stack" hx-boost="false">
+  <input type="hidden" name="contact" value="{{ state.contact }}">
+  <input type="hidden" name="q" value="{{ state.q }}">
+  <div hx-post="/bank/transacties/{{ t.id }}/afletteren/controle" hx-trigger="input delay:400ms, change" hx-target="#reconcile-summary" hx-swap="innerHTML" hx-include="closest form" class="stack">
+
+    <section class="card card--flush">
+      <div class="card__header"><h2>Welke factuur is dit? {{ info("afletteren") }}</h2></div>
+      {% if items %}
+      <div class="table-wrap">
+      <table class="data bank-table">
+        <thead><tr>
+          <th><span class="visually-hidden">Kies</span></th><th>Factuur</th><th>Datum</th><th class="num">Nog open</th><th class="num">Bedrag dat je hiermee betaalt {{ info("deelbetaling") }}</th>
+        </tr></thead>
+        <tbody>
+        {% for i in items %}
+        {% set key = i.source ~ ":" ~ i.source_id %}
+        <tr>
+          <td><input type="checkbox" name="item" value="{{ key }}" aria-label="Kies factuur {{ i.number }}"{% if key in state.checked %} checked{% endif %}></td>
+          <td>{{ i.number }}{% if i.is_credit %} {{ pill("Creditnota", "info") }}{% endif %}<span class="bank-sub">{{ i.contact_name }}</span></td>
+          <td class="nowrap">{{ i.date|bank_datum }}</td>
+          <td class="num nowrap">{{ i.open_cents|euro }}</td>
+          <td class="num"><input name="amount_{{ i.source }}_{{ i.source_id }}" value="{{ state.amounts.get(key, '') }}" inputmode="decimal" class="num" aria-label="Bedrag voor factuur {{ i.number }}"></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="card__body"><p class="muted">{% if contact_id or state.q %}Er staan geen openstaande facturen die hierbij passen.{% else %}Kies hierboven een leverancier om zijn openstaande facturen te zien. Heb je geen factuur? Boek de mutatie dan hieronder zonder factuur.{% endif %}</p></div>
+      {% endif %}
+    </section>
+
+    <section class="card card--flush">
+      <div class="card__header"><h2>Wat is dit voor uitgave? Boeken zonder factuur {{ info("direct_boeken") }}</h2></div>
+      <div class="table-wrap">
+      <table class="data bank-table">
+        <thead><tr>
+          <th>Waar hoort het bij?</th><th>Btw-tarief {{ info("btw") }}</th><th class="num">Bedrag (incl. btw)</th><th>Toelichting</th>
+        </tr></thead>
+        <tbody>
+        {% for l in lines %}
+        <tr>
+          <td>
+            <select name="line_account" aria-label="Waar hoort dit bedrag bij (rekening)">
+              <option value="">Kies een rekening</option>
+              {% for label, group in account_groups %}
+              <optgroup label="{{ label }}">
+                {% for a in group %}<option value="{{ a.id }}"{% if l.account == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <select name="line_vat" aria-label="Btw-tarief van dit bedrag">
+              <option value="">Standaard van de rekening</option>
+              {% for v in vat_codes %}<option value="{{ v.code }}"{% if l.vat == v.code %} selected{% endif %}>{{ v.name }}</option>{% endfor %}
+            </select>
+          </td>
+          <td class="num"><input name="line_amount" value="{{ l.amount }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag inclusief btw"></td>
+          <td><input name="line_description" value="{{ l.description }}" aria-label="Toelichting"></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <div class="card__body stack">
+        <label class="check"><input type="checkbox" name="remember" value="1"{% if state.remember %} checked{% endif %}> Onthoud dit voor volgende keer {{ info("matchingregel") }}</label>
+        <label>Of herken de volgende keer aan dit woord in de omschrijving (niet verplicht)
+          <input name="remember_needle" value="{{ state.needle }}" placeholder="Bijvoorbeeld abonnement">
+        </label>
+      </div>
+    </section>
+
+    <div id="reconcile-summary" aria-live="polite">{% include "bank/_reconcile_summary.html" %}</div>
+  </div>
+  <div class="cluster">
+    <button type="submit" class="btn">Boeken</button>
+    <a class="btn btn-secondary" href="/bank/afletteren">Terug naar de lijst</a>
+  </div>
+</form>
+
+<form method="post" action="/bank/transacties/{{ t.id }}/negeren" class="inline-form"
+      hx-confirm="Deze mutatie komt niet in je boekhouding. Alleen doen als het echt niet hoort, bijvoorbeeld een dubbele regel.">
+  <button type="submit" class="btn btn-secondary btn-small">Negeren</button>
+</form>
+
+{% elif detail.status == "geboekt" %}
+<section class="card card--flush">
+  <div class="card__header"><h2>Zo is deze mutatie geboekt</h2></div>
+  <div class="card__body stack">
+    {% if detail.matches %}
+    <ul>
+      {% for m in detail.matches %}
+      <li>{{ m.number }} ({{ m.contact_name }}){% if m.is_credit %} {{ pill("Creditnota", "info") }}{% endif %}: {{ m.amount_cents|euro }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>Geboekt zonder factuur.</p>
+    {% endif %}
+    {% if detail.journal_entry_id %}<p><a href="/boeken/{{ detail.journal_entry_id }}"{% if detail.journal_entry_number %} title="Boeking {{ detail.journal_entry_number }}"{% endif %}>Bekijk de boeking</a></p>{% endif %}
+    {% if detail.can_undo %}
+    <form method="post" action="/bank/transacties/{{ t.id }}/ongedaan-maken" class="inline-form"
+          hx-confirm="Boeking ongedaan maken? Er komt een tegenboeking bij (stornoboeking) en de mutatie staat daarna weer klaar om te verwerken.">
+      <button type="submit" class="btn btn-secondary">Ongedaan maken</button> {{ info("storno") }}
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+{% else %}
+<section class="card">
+  <div class="card__body stack">
+    <p>Deze mutatie is genegeerd en komt niet in je boekhouding.</p>
+    <form method="post" action="/bank/transacties/{{ t.id }}/terugzetten" class="inline-form">
+      <button type="submit" class="btn">Terugzetten</button>
+    </form>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
