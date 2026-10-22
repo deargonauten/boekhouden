@@ -158,6 +158,17 @@ def test_line_partial_adds_a_row(shop):
     assert 'name="line_description"' in html and '<option value="NL_9" selected>' in html
 
 
+def test_line_rows_carry_stacked_info_icons_for_vat_and_account(shop):
+    html = shop.get("/verkoop/regel?vat_code=NL_9").text
+    assert html.count('data-term="btw_tarief"') == 1 and html.count('data-term="omzet"') == 1
+    assert 'class="sl-rowinfo"' in html
+    css = open("app/web/static/css/sales.css").read()
+    assert "table.sales-lines .sl-rowinfo { display: none; }" in css
+    assert ".sl-rowinfo { display: block;" in css
+    page = shop.get(f"/verkoop/{make_concept(shop)}").text
+    assert "aria-describedby" in page
+
+
 def test_live_totals_partial(shop):
     r = shop.post("/verkoop/totalen", data=form(shop.customer_id, [line(price="100,00"), line("x", "2", "50,00", "NL_9")]))
     assert r.status_code == 200

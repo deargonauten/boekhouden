@@ -1,3 +1,4 @@
+{% from "partials/_info.html" import info with context %}
 {# One editor line. Needs: row (dict), accounts, suggestions, vat_options, credit; optional amount (Regeltotaal). #}
 <tr>
   {% if credit %}
@@ -5,15 +6,15 @@
   <td class="sl-qty" data-label="Aantal"><input class="num" name="line_quantity" value="{{ row.quantity }}" inputmode="decimal" aria-label="Aantal"></td>
   <td class="sl-unit" data-label="Eenheid"><span class="sl-static">{{ row.unit }}</span></td>
   <td class="sl-price" data-label="Prijs per stuk, zonder BTW"><input class="num" name="line_price" value="{{ row.price }}" readonly aria-label="Prijs per stuk zonder BTW"></td>
-  <td class="sl-vat" data-label="BTW-tarief"><span class="sl-static">{{ dict(vat_options)[row.vat_code] }}</span></td>
+  <td class="sl-vat" data-label="BTW-tarief"><span class="sl-rowinfo">{{ info("btw_tarief") }}</span><span class="sl-static">{{ dict(vat_options)[row.vat_code] }}</span></td>
   <td class="sl-account" data-label="Omzetrekening"></td>
   {% else %}
   <td class="sl-desc" data-label="Omschrijving"><input name="line_description" value="{{ row.description }}" maxlength="500" aria-label="Omschrijving"><input type="hidden" name="line_original" value=""></td>
   <td class="sl-qty" data-label="Aantal"><input class="num" name="line_quantity" value="{{ row.quantity }}" inputmode="decimal" aria-label="Aantal"></td>
   <td class="sl-unit" data-label="Eenheid"><input name="line_unit" value="{{ row.unit }}" maxlength="20" aria-label="Eenheid"></td>
   <td class="sl-price" data-label="Prijs per stuk, zonder BTW"><input class="num" name="line_price" value="{{ row.price }}" inputmode="decimal" placeholder="0,00" aria-label="Prijs per stuk zonder BTW"></td>
-  <td class="sl-vat" data-label="BTW-tarief"><select name="line_vat" aria-label="BTW-tarief">{% for code, label in vat_options %}<option value="{{ code }}"{% if code == row.vat_code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
-  <td class="sl-account" data-label="Omzetrekening"><select name="line_account" aria-label="Omzetrekening">
+  <td class="sl-vat" data-label="BTW-tarief"><span class="sl-rowinfo">{{ info("btw_tarief") }}</span><select name="line_vat" aria-label="BTW-tarief">{% for code, label in vat_options %}<option value="{{ code }}"{% if code == row.vat_code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+  <td class="sl-account" data-label="Omzetrekening"><span class="sl-rowinfo">{{ info("omzet") }}</span><select name="line_account" aria-label="Omzetrekening">
     <option value=""{% if not row.account_id %} selected{% endif %}>Voorstel: {{ suggestions[row.vat_code].code ~ " " ~ suggestions[row.vat_code].name if suggestions[row.vat_code] else "kies zelf" }}</option>
     {% for a in accounts %}<option value="{{ a.id }}"{% if row.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
   </select></td>

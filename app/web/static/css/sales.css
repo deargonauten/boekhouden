@@ -32,6 +32,8 @@ table.sales-lines .sl-remove { width: 3.5rem; text-align: center; }
 table.sales-lines td:first-child, table.sales-lines th:first-child { padding-left: var(--space-6); }
 table.sales-lines td:last-child, table.sales-lines th:last-child { padding-right: var(--space-4); }
 table.sales-lines td::before { display: none; }
+/* Per-row info icons exist only for the stacked layout (header icons are hidden there). */
+table.sales-lines .sl-rowinfo { display: none; }
 
 /* Totals line up with the Regeltotaal column (7.5rem + remove column 3.5rem). */
 .sales-totals { display: flex; justify-content: flex-end; padding-right: 3.5rem; }
@@ -56,6 +58,8 @@ table.sales-lines td::before { display: none; }
   table.sales-lines td[data-label]::before {
     display: block; content: attr(data-label); font-size: var(--text-sm); font-weight: 500; color: var(--muted); margin-bottom: var(--space-1);
   }
+  table.sales-lines td.sl-vat, table.sales-lines td.sl-account { position: relative; }
+  table.sales-lines .sl-rowinfo { display: block; position: absolute; top: 0; right: 0; }
   table.sales-lines td.sl-account:empty { display: none; }
   table.sales-lines .sl-desc { grid-column: 1 / -1; }
   table.sales-lines .sl-qty { grid-column: span 3; }
