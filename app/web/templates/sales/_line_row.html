@@ -1,0 +1,20 @@
+{# One editor line. Needs: row (dict), accounts, suggestions, vat_options, credit. #}
+<tr>
+  {% if credit %}
+  <td><input name="line_description" value="{{ row.description }}" readonly aria-label="Omschrijving"><input type="hidden" name="line_original" value="{{ row.original_line_id }}"><input type="hidden" name="line_unit" value="{{ row.unit }}"><input type="hidden" name="line_vat" value="{{ row.vat_code }}"><input type="hidden" name="line_account" value=""></td>
+  <td class="num"><input name="line_quantity" value="{{ row.quantity }}" inputmode="decimal" size="6" aria-label="Aantal"> {{ row.unit }}</td>
+  <td class="num"><input name="line_price" value="{{ row.price }}" readonly size="9" aria-label="Prijs per stuk zonder BTW"></td>
+  <td>{{ dict(vat_options)[row.vat_code] }}</td>
+  <td></td>
+  {% else %}
+  <td><input name="line_description" value="{{ row.description }}" maxlength="500" aria-label="Omschrijving"><input type="hidden" name="line_original" value=""></td>
+  <td class="num"><input name="line_quantity" value="{{ row.quantity }}" inputmode="decimal" size="5" aria-label="Aantal"> <input name="line_unit" value="{{ row.unit }}" size="6" aria-label="Eenheid"></td>
+  <td class="num"><input name="line_price" value="{{ row.price }}" inputmode="decimal" size="9" placeholder="0,00" aria-label="Prijs per stuk zonder BTW"></td>
+  <td><select name="line_vat" aria-label="BTW-tarief">{% for code, label in vat_options %}<option value="{{ code }}"{% if code == row.vat_code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+  <td><select name="line_account" aria-label="Omzetrekening">
+    <option value=""{% if not row.account_id %} selected{% endif %}>Voorstel: {{ suggestions[row.vat_code].code ~ " " ~ suggestions[row.vat_code].name if suggestions[row.vat_code] else "kies zelf" }}</option>
+    {% for a in accounts %}<option value="{{ a.id }}"{% if row.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+  </select></td>
+  {% endif %}
+  <td><button type="button" class="btn-icon" aria-label="Regel verwijderen" title="Regel verwijderen" hx-on:click="var f=this.closest('form'); this.closest('tr').remove(); htmx.trigger(f,'change')">&times;</button></td>
+</tr>

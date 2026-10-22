@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, pill, pager, empty_state, notice, icon with context %}
+{% from "sales/_macros.html" import status_pill with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/purchase.css">{% endblock %}
+{% block content %}
+{% call page_header("Verkoop", breadcrumb=[("Verkoop", None)], term="debiteuren", icon_name="receipt",
+   lead="Hier maak je facturen voor je klanten en zie je wie nog moet betalen.",
+   tab_items=tab_items, tab_label="Weergave van verkoop") %}<a class="btn" href="/verkoop/nieuw">{{ icon("plus") }}Nieuwe factuur maken</a>{% endcall %}
+{% if flash %}{{ notice(flash, "success") }}{% endif %}
+{% include "sales/_stats.html" %}
+<div class="card card--flush">
+  <form class="toolbar" method="get" action="/verkoop" role="search" hx-boost="false">
+    <div class="toolbar__search">
+      {{ icon("search") }}
+      <input type="search" name="q" value="{{ q }}" placeholder="Zoek op klant of factuurnummer" aria-label="Zoek op klant of factuurnummer">
+    </div>
+    {% if status_filter != "alle" %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <div class="toolbar__spacer"></div>
+    <button type="submit" class="btn btn-secondary">Zoeken</button>
+  </form>
+  <div class="card__body">
+    <nav class="segmented segmented--small" aria-label="Filter op status">
+      {% for key, label in status_filters.items() %}<span class="segmented__item"><a href="{{ page_url('/verkoop', {'status': key if key != 'alle' else '', 'q': q}, 1) }}"{% if key == status_filter %} aria-current="page"{% endif %}>{{ label }}</a></span>{% endfor %}
+    </nav>
+  </div>
+  {% if not has_any %}
+    {{ empty_state("Je hebt nog geen facturen", "Maak een factuur voor een klant. Je ziet hier daarna wie nog moet betalen.", "Maak je eerste factuur", "/verkoop/nieuw", "receipt") }}
+  {% elif not documents.items %}
+    {{ empty_state("Geen facturen gevonden", "Er is geen factuur die past bij je zoekopdracht of filter. Pas ze aan.", "Alle facturen", "/verkoop", "search") }}
+  {% else %}
+  <div class="table-wrap">
+  <table class="data purchase-table">
+    <thead><tr>
+      <th>Nummer {{ info("factuurnummer") }}</th><th>Datum</th><th>Klant {{ info("klant") }}</th><th class="num">Totaal</th><th class="num">Nog te betalen {{ info("openstaand") }}</th><th>Vervaldatum {{ info("vervaldatum") }}</th><th>Status</th><th>Bekijken</th>
+    </tr></thead>
+    <tbody>
+    {% for d in documents.items %}
+    <tr{% if d.status == "gestorneerd" %} class="inactive"{% endif %}>
+      <td class="nowrap"><a href="/verkoop/{{ d.id }}">{{ d.number or "Nog geen nummer" }}</a>{% if d.is_credit_note %} {{ pill("Creditnota", "info") }}{% endif %}</td>
+      <td class="nowrap">{{ d.invoice_date.strftime("%d-%m-%Y") }}</td>
+      <td>{{ d.contact_name }}</td>
+      <td class="num">{{ d.total_cents|euro }}</td>
+      <td class="num">{% if d.status != "concept" %}{{ d.open_cents|euro }}{% endif %}</td>
+      <td class="nowrap">{% if d.status != "concept" and not d.is_credit_note and d.due_date %}{{ d.due_date.strftime("%d-%m-%Y") }}{% endif %}{% if d.is_overdue %} {{ pill("Te laat", "danger") }}{% endif %}</td>
+      <td>{{ status_pill(d.status, d.status_label) }}{% if d.reminder_count %} {{ pill("Herinnering gemaakt", "info") }}{% endif %}</td>
+      <td class="nowrap">{% if d.status == "concept" %}<a href="/verkoop/{{ d.id }}">Bewerken</a>{% else %}<a href="/verkoop/{{ d.id }}/pdf" hx-boost="false">PDF</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {{ pager(documents.page, documents.per_page, documents.total, "/verkoop", {"status": status_filter if status_filter != "alle" else "", "q": q}, "facturen", sticky=true) }}
+  {% endif %}
+</div>
+{% endblock %}

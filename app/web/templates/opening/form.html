@@ -21,7 +21,7 @@
     {% if view.items %}
     <div class="table-wrap">
     <table class="data">
-      <thead><tr><th>Relatie</th><th>Factuurnummer</th><th>Vervaldatum</th><th class="num">Bedrag</th><th>Status</th></tr></thead>
+      <thead><tr><th>Relatie</th><th>Factuurnummer {{ info("factuurnummer") }}</th><th>Vervaldatum {{ info("vervaldatum") }}</th><th class="num">Bedrag</th><th>Status</th></tr></thead>
       <tbody>
       {% for i in view.items %}
       <tr>
@@ -93,7 +93,7 @@
       <h3>{{ title }}{% if side == "debiteur" %} (debiteuren) {{ info("debiteuren") }}{% else %} (crediteuren) {{ info("crediteuren") }}{% endif %}</h3>
       <div class="table-wrap">
       <table class="data opening-items">
-        <thead><tr><th>Relatie</th><th>Factuurnummer</th><th>Datum van de factuur</th><th>Vervaldatum</th><th class="num">Bedrag</th></tr></thead>
+        <thead><tr><th>Relatie</th><th>Factuurnummer {{ info("factuurnummer") }}</th><th>Datum van de factuur</th><th>Vervaldatum {{ info("vervaldatum") }}</th><th class="num">Bedrag</th></tr></thead>
         <tbody id="rows-{{ side }}">
           {% for row in state.rows[side] %}{% with groups = contact_groups[side] %}{% include "opening/_item_row.html" %}{% endwith %}{% endfor %}
         </tbody>

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, error_box with context %}
+{% block content %}
+{{ page_header("Betalingsherinnering maken", breadcrumb=[("Verkoop", "/verkoop"), ("Factuur " ~ invoice.number, "/verkoop/" ~ invoice.id), ("Herinnering", None)], icon_name="receipt", term="herinnering",
+   lead="Een brief of e-mail voor een klant die te laat betaalt. Je maakt hem hier, je stuurt hem zelf. Er komen geen extra bedragen of rente bij.") }}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+{% if draft %}
+<form method="post" action="/verkoop/{{ invoice.id }}/herinnering" class="stack" hx-boost="false">
+  <section class="card">
+    <div class="card__header"><h2>{{ draft.title }} voor {{ draft.contact_name }}</h2></div>
+    <div class="card__body entry-fields">
+      <div class="field">
+        <label for="r-date">Datum van de herinnering</label>
+        <input type="date" id="r-date" name="reminder_date" value="{{ draft.reminder_date.isoformat() }}" required>
+      </div>
+      <div class="field">
+        <label for="r-due">Nieuwe vervaldatum {{ info("vervaldatum") }}</label>
+        <input type="date" id="r-due" name="new_due_date" value="{{ draft.new_due_date.isoformat() }}" required>
+        <span class="field__hint">Voorstel: 14 dagen na de herinnering.</span>
+      </div>
+      <div class="field entry-fields__wide">
+        <label for="r-text">Voorgestelde tekst (kopieer hem voor je e-mail)</label>
+        <textarea id="r-text" rows="12" readonly>{{ draft.body_text }}</textarea>
+        <span class="field__hint">Openstaand: {{ draft.open_cents|euro }}. De tekst past zich aan als je de datums wijzigt en op Voorbeeld bijwerken klikt.</span>
+      </div>
+    </div>
+  </section>
+  <div class="form-actions">
+    <button type="submit" class="btn">Herinnering {{ draft.level }} maken en PDF bewaren</button>
+    <button type="submit" class="btn btn-secondary" formmethod="get" formaction="/verkoop/{{ invoice.id }}/herinnering">Voorbeeld bijwerken</button>
+    {% if mailto %}<a href="{{ mailto }}" hx-boost="false">Open in je e-mailprogramma</a>{% endif %}
+    <a href="/verkoop/{{ invoice.id }}">Annuleren</a>
+  </div>
+</form>
+{% else %}
+<p><a href="/verkoop/{{ invoice.id }}">Terug naar de factuur</a></p>
+{% endif %}
+{% endblock %}

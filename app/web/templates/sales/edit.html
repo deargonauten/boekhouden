@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, error_box, notice, icon with context %}
+{% from "sales/_macros.html" import status_pill with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
+{% block content %}
+{% set kind_word = "Creditnota" if credit else "Factuur" %}
+{% set lead %}{% if credit %}Een creditnota {{ info("creditnota") }} corrigeert de factuur{% if original %} {{ original.number }}{% endif %}. Je kunt alleen aantallen verlagen of regels weghalen.{% else %}Vul in voor wie de factuur is en wat je hebt gedaan of verkocht. Dit is nog een concept {{ info("concept_factuur") }}: je kunt alles nog wijzigen.{% endif %}{% endset %}
+{{ page_header(title, breadcrumb=[("Verkoop", "/verkoop"), (title, None)], lead=lead, icon_name="receipt") }}
+{% if flash %}{{ notice(flash, "success") }}{% endif %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+<form method="post" action="{% if invoice %}/verkoop/{{ invoice.id }}{% else %}/verkoop/nieuw{% endif %}" id="sales-form" class="stack entry-form" hx-boost="false">
+  <section class="card">
+    <div class="card__header"><h2>Voor wie is de factuur? {{ info("klant") }}</h2></div>
+    <div class="card__body entry-fields">
+      {% if credit %}
+      <div class="field entry-fields__wide"><span class="field__label">Klant</span><p><strong>{{ contact.name if contact else "" }}</strong></p><input type="hidden" name="contact_id" value="{{ values.contact_id }}"></div>
+      {% else %}
+      <div class="field entry-fields__wide">
+        <label for="f-contact">Klant (aan wie je verkoopt)</label>
+        <select name="contact_id" id="f-contact" required>
+          <option value="">Kies een klant</option>
+          {% for c in customers %}<option value="{{ c.id }}"{% if values.contact_id == c.id|string %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+        <span class="field__hint">Staat de klant er niet bij? <a href="/relaties/nieuw?soort=klant">Voeg een klant toe</a>. Naam en adres van de klant moeten op de factuur staan.</span>
+      </div>
+      {% endif %}
+      <div class="field">
+        <label for="f-date">Factuurdatum {{ info("factuurdatum") }}</label>
+        <input type="date" id="f-date" name="invoice_date" value="{{ values.invoice_date }}" required>
+        <span class="field__hint">Voorstel: vandaag.</span>
+      </div>
+      {% if not credit %}
+      <div class="field">
+        <label for="f-term">Betaaltermijn in dagen {{ info("betaaltermijn") }}</label>
+        <input id="f-term" name="payment_term_days" value="{{ values.payment_term_days }}" inputmode="numeric" maxlength="3" placeholder="{{ defaults.payment_term_days }}">
+        <span class="field__hint">Leeg laten betekent {{ defaults.payment_term_days }} dagen{% if defaults.term_source == "klant" %} (afspraak met deze klant){% else %} (standaard){% endif %}. 0 is direct betalen.</span>
+      </div>
+      <div class="field">
+        <label for="f-due">Vervaldatum {{ info("vervaldatum") }}</label>
+        <input type="date" id="f-due" name="due_date" value="{{ values.due_date }}">
+        <label class="check"><input type="checkbox" name="due_date_manual" value="1"{% if values.due_date_manual %} checked{% endif %}> <span>Zelf kiezen. Anders rekent het programma de vervaldatum uit.</span></label>
+      </div>
+      <div class="field">
+        <label for="f-service">Leverdatum {{ info("leverdatum") }} (alleen als die afwijkt)</label>
+        <input type="date" id="f-service" name="service_date" value="{{ values.service_date }}">
+      </div>
+      {% else %}
+      <input type="hidden" name="payment_term_days" value=""><input type="hidden" name="due_date" value=""><input type="hidden" name="service_date" value="">
+      {% endif %}
+      <div class="field entry-fields__wide">
+        <label for="f-ref">Uw referentie {{ info("referentie") }} (kenmerk van de klant, bijvoorbeeld een ordernummer)</label>
+        <input id="f-ref" name="reference" value="{{ values.reference }}">
+      </div>
+      <div class="field entry-fields__wide">
+        <label for="f-note">Opmerking op de factuur (maximaal 500 tekens)</label>
+        <textarea id="f-note" name="note" rows="2" maxlength="500">{{ values.note }}</textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="card card--flush">
+    <div class="card__header"><h2>Wat heb je verkocht?</h2></div>
+    <div class="table-wrap">
+    <table class="data lines-table" id="lines">
+      <thead><tr><th>Omschrijving</th><th class="num">Aantal</th><th class="num">Prijs per stuk, zonder BTW</th><th>BTW-tarief {{ info("btw_tarief") }}</th><th>Omzetrekening {{ info("omzet") }}</th><th><span class="visually-hidden">Verwijderen</span></th></tr></thead>
+      <tbody id="line-rows">
+        {% for row in values.rows %}{% include "sales/_line_row.html" %}{% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <div class="card__body" hx-post="/verkoop/totalen" hx-include="#sales-form" hx-trigger="change from:#sales-form, keyup delay:500ms from:#sales-form" hx-target="#totals" hx-swap="outerHTML">{% include "sales/_totals.html" %}</div>
+    {% if not credit %}
+    <div class="card__footer cluster">
+      <button type="button" class="btn btn-secondary btn-small" hx-get="/verkoop/regel" hx-target="#line-rows" hx-swap="beforeend" hx-trigger="click" hx-boost="false">{{ icon("plus", 16) }}Regel toevoegen</button>
+      <p class="hint">De omzetrekening wordt voorgesteld op basis van het BTW-tarief. Je hoeft er niets aan te doen.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <p class="hint">Een concept {{ info("concept_factuur") }} kun je altijd nog wijzigen. Met definitief maken {{ info("definitief_maken") }} krijgt de factuur een nummer {{ info("factuurnummer") }} en kun je hem niet meer wijzigen. Eerst zie je een controle.</p>
+  <div class="form-actions">
+    <button type="submit" name="actie" value="definitief" class="btn">{{ kind_word }} controleren en definitief maken</button>
+    <button type="submit" name="actie" value="opslaan" class="btn btn-secondary">Opslaan als concept</button>
+    {% if invoice %}<a href="/verkoop/{{ invoice.id }}/pdf" hx-boost="false">Voorbeeld als PDF</a>{% endif %}
+    <a href="/verkoop">Annuleren</a>
+  </div>
+</form>
+{% if invoice %}
+<form method="post" action="/verkoop/{{ invoice.id }}/verwijderen" class="form-actions" hx-boost="false">
+  <button type="submit" class="btn btn-danger btn-small" onclick="return confirm('Dit concept weggooien? Dit kan niet ongedaan worden gemaakt.')">Concept weggooien</button>
+</form>
+{% endif %}
+{% endblock %}
