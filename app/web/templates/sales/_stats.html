@@ -1,0 +1,9 @@
+{% from "partials/_ui.html" import stat_cards with context %}
+{{ stat_cards([
+  {"title": "Nog te ontvangen", "term": "openstaand", "cells": [
+    {"label": "Totaal openstaand", "value": stats.total_open_cents|euro},
+    {"label": "Waarvan te laat", "value": stats.overdue_cents|euro, "tone": "danger" if stats.overdue_cents else None}]},
+  {"title": "Facturen", "term": "verkoopfactuur", "cells": [
+    {"label": "Aantal open facturen", "value": stats.open_count},
+    {"label": "Concepten", "value": stats.concept_count}]},
+]) }}

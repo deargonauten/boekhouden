@@ -19,7 +19,7 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [x] Bank statement import: CAMT.053 / MT940 / CSV (ING, Rabobank, ABN AMRO, bunq), bankrekeningen, duplicate detection (done 2026-10-22)
 - [x] Openingsbalans: beginstanden invoeren bij start (feature 36) (done 2026-10-22)
 - [x] Bank reconciliation: match transactions to open invoices (IBAN, amount, invoice number in description), manual match, split/partial payments, direct-book without invoice, matching rules (done 2026-10-22)
-- [ ] Sales invoices: create/send PDF invoices compliant with Wet OB (gapless numbering, required fields), debiteuren, credit notes, payment terms, reminders
+- [x] Sales invoices: create/send PDF invoices compliant with Wet OB (gapless numbering, required fields), debiteuren, credit notes, payment terms, reminders (done 2026-10-23)
 - [ ] BTW-aangifte: quarterly/monthly report by rubriek, ICP-opgaaf, verlegd/EU handling, KOR option, export for Belastingdienst, period locking after filing
 - [ ] Boekjaar-/periodekeuze bovenin die alle schermen volgt (feature 4)
 - [ ] Email intake: IMAP polling of dedicated mailbox, extract attachments (PDF/image, also nested/forwarded .eml), dedupe, feed into inbox

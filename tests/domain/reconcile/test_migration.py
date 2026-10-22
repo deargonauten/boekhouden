@@ -44,7 +44,7 @@ def test_match_constraints(db):
     with pytest.raises(sqlite3.IntegrityError):
         insert_match(db, 2, amount=0)
     with pytest.raises(sqlite3.IntegrityError):
-        insert_match(db, 3, source="sales_invoice")
+        insert_match(db, 3, source="onbekend")
 
 
 def test_match_append_only(db):

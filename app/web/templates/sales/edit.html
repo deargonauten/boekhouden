@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, error_box, notice, icon with context %}
+{% from "sales/_macros.html" import status_pill with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css"><link rel="stylesheet" href="/static/css/sales.css">{% endblock %}
+{% block content %}
+{% set kind_word = "Creditnota" if credit else "Factuur" %}
+{% set lead %}{% if credit %}Een creditnota {{ info("creditnota") }} corrigeert de factuur{% if original %} {{ original.number }}{% endif %}. Je kunt alleen aantallen verlagen of regels weghalen.{% else %}Vul in voor wie de factuur is en wat je hebt gedaan of verkocht. Dit is nog een concept {{ info("concept_factuur") }}: je kunt alles nog wijzigen.{% endif %}{% endset %}
+{{ page_header(title, breadcrumb=[("Verkoop", "/verkoop"), (title, None)], lead=lead, icon_name="receipt") }}
+{% if flash %}{{ notice(flash, "success") }}{% endif %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+<form method="post" action="{% if invoice %}/verkoop/{{ invoice.id }}{% else %}/verkoop/nieuw{% endif %}" id="sales-form" class="stack entry-form" hx-boost="false">
+  {% if not credit %}<div hidden hx-post="/verkoop/termijn" hx-include="#sales-form" hx-swap="none" hx-trigger="change[['contact_id','invoice_date','payment_term_days','due_date_manual'].includes(event.target.name)] from:#sales-form, keyup[event.target.name=='payment_term_days'] delay:600ms from:#sales-form"></div>{% endif %}
+  <section class="card">
+    <div class="card__header"><h2>Voor wie is de factuur? {{ info("klant") }}</h2></div>
+    <div class="card__body entry-fields">
+      {% if credit %}
+      <div class="field entry-fields__wide"><span class="field__label">Klant</span><p><strong>{{ contact.name if contact else "" }}</strong></p><input type="hidden" name="contact_id" value="{{ values.contact_id }}"></div>
+      {% else %}
+      <div class="field entry-fields__wide">
+        <label class="field__head required" for="f-contact"><span>Klant (aan wie je verkoopt)</span></label>
+        <select name="contact_id" id="f-contact" required aria-describedby="contact-hint">
+          <option value="">Kies een klant</option>
+          {% for c in customers %}<option value="{{ c.id }}"{% if values.contact_id == c.id|string %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+        <span class="field__hint" id="contact-hint">Staat de klant er niet bij? <a href="/relaties/nieuw?soort=klant">Voeg een klant toe</a>. Naam en adres van de klant moeten op de factuur staan.</span>
+      </div>
+      {% endif %}
+      <div class="field">
+        <label class="field__head required" for="f-date"><span>Factuurdatum</span> {{ info("factuurdatum") }}</label>
+        <input type="date" id="f-date" name="invoice_date" value="{{ values.invoice_date }}" required aria-describedby="date-hint">
+        <span class="field__hint" id="date-hint">Voorstel: vandaag.</span>
+      </div>
+      {% if not credit %}
+      {% include "sales/_term_fields.html" %}
+      <div class="field">
+        <label class="field__head" for="f-service"><span>Leverdatum (optioneel)</span> {{ info("leverdatum") }}</label>
+        <input type="date" id="f-service" name="service_date" value="{{ values.service_date }}" aria-describedby="service-hint">
+        <span class="field__hint" id="service-hint">Alleen invullen als je op een andere dag leverde dan de factuurdatum.</span>
+      </div>
+      {% else %}
+      <input type="hidden" name="payment_term_days" value=""><input type="hidden" name="due_date" value=""><input type="hidden" name="service_date" value="">
+      {% endif %}
+      <div class="field entry-fields__wide">
+        <label class="field__head" for="f-ref"><span>Referentie van de klant</span> {{ info("referentie") }}</label>
+        <input id="f-ref" name="reference" value="{{ values.reference }}" aria-describedby="ref-hint">
+        <span class="field__hint" id="ref-hint">Het kenmerk van de klant, bijvoorbeeld een ordernummer. Staat op de factuur.</span>
+      </div>
+      <div class="field entry-fields__wide">
+        <label class="field__head" for="f-note"><span>Opmerking op de factuur</span></label>
+        <textarea id="f-note" name="note" rows="3" maxlength="500" aria-describedby="note-count" oninput="document.getElementById('note-count').textContent=this.value.length+' van 500 tekens'">{{ values.note }}</textarea>
+        <span class="field__hint" id="note-count">{{ values.note|length }} van 500 tekens</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card card--flush sales-card">
+    <div class="card__header"><h2>Wat heb je verkocht?</h2></div>
+    <div class="table-wrap sales-lines-wrap">
+    <table class="data sales-lines" id="lines">
+      <thead><tr><th class="sl-desc">Omschrijving</th><th class="sl-qty num">Aantal</th><th class="sl-unit">Eenheid</th><th class="sl-price num">Prijs per stuk<span class="sl-sub">zonder BTW</span></th><th class="sl-vat">BTW-tarief {{ info("btw_tarief") }}</th><th class="sl-account">Omzetrekening {{ info("omzet") }}</th><th class="sl-total num">Regeltotaal</th><th class="sl-remove"><span class="visually-hidden">Verwijderen</span></th></tr></thead>
+      <tbody id="line-rows">
+        {% for row in values.rows %}{% set amount = amounts[loop.index0] if amounts else "" %}{% include "sales/_line_row.html" %}{% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <div class="card__body sales-totals" hx-post="/verkoop/totalen" hx-include="#sales-form" hx-trigger="change from:#sales-form, keyup delay:500ms from:#sales-form" hx-target="#totals" hx-swap="outerHTML">{% include "sales/_totals.html" %}</div>
+    {% if not credit %}
+    <div class="card__footer cluster">
+      <button type="button" class="btn btn-secondary btn-small" hx-get="/verkoop/regel" hx-target="#line-rows" hx-swap="beforeend" hx-trigger="click" hx-boost="false">{{ icon("plus", 16) }}Regel toevoegen</button>
+      <p class="hint">De omzetrekening wordt voorgesteld op basis van het BTW-tarief. Je hoeft er niets aan te doen.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <p class="hint">Een concept {{ info("concept_factuur") }} kun je altijd nog wijzigen. Met definitief maken {{ info("definitief_maken") }} krijgt de factuur een nummer {{ info("factuurnummer") }} en kun je hem niet meer wijzigen. Eerst zie je een controle.</p>
+  <div class="form-actions">
+    <button type="submit" name="actie" value="definitief" class="btn">{{ kind_word }} controleren en definitief maken</button>
+    <button type="submit" name="actie" value="opslaan" class="btn btn-secondary">Opslaan als concept</button>
+    {% if invoice %}<a href="/verkoop/{{ invoice.id }}/pdf" hx-boost="false">Voorbeeld als PDF</a>{% endif %}
+    <a href="/verkoop">Annuleren</a>
+  </div>
+</form>
+{% if invoice %}
+<form method="post" action="/verkoop/{{ invoice.id }}/verwijderen" class="form-actions" hx-boost="false">
+  <button type="submit" class="btn btn-danger btn-small" onclick="return confirm('Dit concept weggooien? Dit kan niet ongedaan worden gemaakt.')">Concept weggooien</button>
+</form>
+{% endif %}
+<script>
+/* Regeltotaal per regel: the totals partial carries the amounts per row; fill them in after every refresh. */
+document.body.addEventListener("htmx:afterSettle", function (e) {
+  var target = e.detail && e.detail.target;
+  if (target && target.id === "line-rows") { htmx.trigger(document.getElementById("sales-form"), "change"); return; }
+  var path = e.detail && e.detail.requestConfig && e.detail.requestConfig.path;
+  var totals = document.getElementById("totals");
+  if (path !== "/verkoop/totalen" || !totals) return;
+  var amounts = [];
+  try { amounts = JSON.parse(totals.dataset.amounts || "[]"); } catch (err) { return; }
+  document.querySelectorAll("#line-rows [data-line-total]").forEach(function (el, i) { el.textContent = amounts[i] || ""; });
+});
+</script>
+{% endblock %}

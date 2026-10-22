@@ -5,7 +5,11 @@ from datetime import date
 
 SOURCE_PURCHASE_INVOICE = "purchase_invoice"
 SOURCE_OPENING_ITEM = "opening_item"
-SOURCES = (SOURCE_PURCHASE_INVOICE, SOURCE_OPENING_ITEM)
+SOURCE_SALES_INVOICE = "sales_invoice"
+SOURCES = (SOURCE_PURCHASE_INVOICE, SOURCE_OPENING_ITEM, SOURCE_SALES_INVOICE)
+
+SIDE_CREDITOR = "crediteur"
+SIDE_DEBTOR = "debiteur"
 
 CONFIDENCE_ZEKER = "zeker"
 CONFIDENCE_WAARSCHIJNLIJK = "waarschijnlijk"
@@ -18,9 +22,11 @@ KIND_RULE = "rule"
 class OpenItem:
     """Something that still has to be paid (or refunded): an inkoopfactuur, creditnota or
     openstaande post of the beginbalans. `open_cents` is always the positive amount that is
-    left; a creditnota is flagged with `is_credit`."""
+    left; a creditnota is flagged with `is_credit`. `side` says who the other party is:
+    'crediteur' (you pay: af) or 'debiteur' (the klant pays you: bij); a credit item moves
+    money the other way round on its side."""
 
-    source: str  # 'purchase_invoice' | 'opening_item'
+    source: str  # 'purchase_invoice' | 'opening_item' | 'sales_invoice'
     source_id: int
     contact_id: int
     contact_name: str
@@ -30,7 +36,7 @@ class OpenItem:
     due_date: date | None
     open_cents: int
     is_credit: bool = False
-    side: str = "crediteur"
+    side: str = SIDE_CREDITOR
 
     @property
     def ref(self) -> tuple[str, int]:
@@ -56,6 +62,18 @@ class AllocationLine:
     is_credit: bool
     number: str
     open_cents: int
+    side: str = SIDE_CREDITOR
+
+
+def money_follows(direction: str, side: str, is_credit: bool) -> bool:
+    """True when paying this item matches the direction of the bank transaction.
+
+    Crediteur: you pay invoices (af), creditnota's come back (bij). Debiteur: klanten pay
+    invoices (bij), you refund creditnota's (af). Aligned items count towards the amount of
+    the transaction; the others are netted off it.
+    """
+    primary = "af" if side == SIDE_CREDITOR else "bij"
+    return is_credit == (direction != primary)
 
 
 @dataclass(frozen=True)

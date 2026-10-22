@@ -21,8 +21,11 @@ from app.domain.reconcile.types import (
     DirectLine,
     OpenItem,
     RuleView,
+    SIDE_DEBTOR,
+    SOURCE_SALES_INVOICE,
     Suggestion,
     TxnView,
+    money_follows,
 )
 from app.domain.relations.validation import normalize_name
 
@@ -49,16 +52,35 @@ _REASONS = {
     "iban": "Het IBAN van de leverancier klopt",
     "name": "De naam van de leverancier komt overeen",
 }
+_DEBTOR_REASONS = {
+    **_REASONS,
+    "iban": "Het IBAN van de klant klopt",
+    "name": "De naam van de klant komt overeen",
+}
 _WEIGHT = {"number": 4, "iban": 3, "name": 2, "amount": 1}
 
 
 def _label(items: Sequence[OpenItem]) -> str:
-    return f"{items[0].contact_name} - " + ", ".join(i.number for i in items)
+    """'Bol B.V. - F-1, F-2' for inkoop; 'Verkoopfactuur 2026-0007 - Klant BV' for verkoop."""
+    first = items[0]
+    numbers = ", ".join(i.number for i in items)
+    if first.side != SIDE_DEBTOR:
+        return f"{first.contact_name} - {numbers}"
+    if first.source == SOURCE_SALES_INVOICE:
+        many = len(items) > 1
+        if first.is_credit:
+            kind = "Verkoopcreditnota's" if many else "Verkoopcreditnota"
+        else:
+            kind = "Verkoopfacturen" if many else "Verkoopfactuur"
+    else:
+        kind = "Openstaande post" if len(items) == 1 else "Openstaande posten"
+    return f"{kind} {numbers} - {first.contact_name}"
 
 
 def _match_suggestions(txn: TxnView, items: Sequence[OpenItem]) -> list[tuple[tuple, Suggestion]]:
-    want_credit = txn.direction == "bij"
-    eligible = [i for i in items if i.is_credit == want_credit and i.open_cents > 0]
+    # Items whose payment goes the same way as this transaction (a bij pays klanten's facturen
+    # and inkoop-creditnota's; an af pays inkoopfacturen and refunds verkoop-creditnota's).
+    eligible = [i for i in items if money_follows(txn.direction, i.side, i.is_credit) and i.open_cents > 0]
     desc_key = normalize_text(txn.description)
     iban = normalize_iban(txn.counterparty_iban)
     name_key = normalize_name(txn.counterparty_name)
@@ -78,10 +100,10 @@ def _match_suggestions(txn: TxnView, items: Sequence[OpenItem]) -> list[tuple[tu
         if signals:
             candidates.append(((item,), (Allocation(item.source, item.source_id, amount),), signals, exact))
 
-    by_contact: dict[int, list[OpenItem]] = defaultdict(list)
+    by_contact: dict[tuple[str, int], list[OpenItem]] = defaultdict(list)
     for item in eligible:
         if "number" in signals_of[item.ref]:
-            by_contact[item.contact_id].append(item)
+            by_contact[(item.side, item.contact_id)].append(item)
     for named in by_contact.values():
         if not 2 <= len(named) <= MAX_MULTI_CANDIDATES:
             continue
@@ -112,7 +134,8 @@ def _match_suggestions(txn: TxnView, items: Sequence[OpenItem]) -> list[tuple[tu
         else:
             unique = "iban" in signals and exact_named == 0 and exact_all == 1
         confidence = CONFIDENCE_ZEKER if unique else CONFIDENCE_WAARSCHIJNLIJK
-        reasons = [_REASONS[s] for s in signals if s in _REASONS]
+        reason_texts = _DEBTOR_REASONS if combo[0].side == SIDE_DEBTOR else _REASONS
+        reasons = [reason_texts[s] for s in signals if s in reason_texts]
         if "amount" in signals:
             reasons.append("Het bedrag klopt precies")
         elif combo[0].open_cents > amount:

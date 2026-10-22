@@ -108,7 +108,7 @@
         <div class="card__header"><h2 id="sec-invoice">Over de factuur</h2></div>
         <div class="card__body form-grid">
           <div class="field">
-            <label for="invoice_number">Factuurnummer</label>
+            <label for="invoice_number">Factuurnummer {{ info("factuurnummer") }}</label>
             <input id="invoice_number" name="invoice_number" value="{{ values.invoice_number }}">{{ flagged(flags.get("invoice_number")) }}
           </div>
           <div class="field">
@@ -120,7 +120,7 @@
             <input id="invoice_date" name="invoice_date" value="{{ values.invoice_date }}" placeholder="dd-mm-jjjj">{{ flagged(flags.get("invoice_date")) }}
           </div>
           <div class="field">
-            <label for="due_date">Vervaldatum</label>
+            <label for="due_date">Vervaldatum {{ info("vervaldatum") }}</label>
             <input id="due_date" name="due_date" value="{{ values.due_date }}" placeholder="dd-mm-jjjj">{{ flagged(flags.get("due_date")) }}
           </div>
         </div>

@@ -26,14 +26,19 @@
 {% if detail.status == "nieuw" %}
 <form method="get" action="/bank/transacties/{{ t.id }}/afletteren" class="inline-form" hx-boost="false" role="search">
   <input type="hidden" name="terug" value="{{ back }}">
-  <label>Van welke leverancier is de factuur?
+  <label>{{ "Van welke klant of leverancier is de factuur?" if customers else "Van welke leverancier is de factuur?" }}
     <select name="contact">
-      <option value="">Kies een leverancier</option>
+      <option value="">{{ "Kies een klant of leverancier" if customers else "Kies een leverancier" }}</option>
+      {% if customers %}<optgroup label="Klanten (verkoopfacturen)">
+        {% for c in customers %}<option value="{{ c.id }}"{% if contact_id == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </optgroup>{% endif %}
+      {% if customers and suppliers %}<optgroup label="Leveranciers (inkoopfacturen)">{% endif %}
       {% for c in suppliers %}<option value="{{ c.id }}"{% if contact_id == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      {% if customers and suppliers %}</optgroup>{% endif %}
     </select>
   </label>
-  <label>Zoek op factuurnummer
-    <input type="search" name="q" value="{{ state.q }}" placeholder="Bijvoorbeeld F-2026-001">
+  <label>Zoek op factuurnummer of naam
+    <input type="search" name="q" value="{{ state.q }}" placeholder="Bijvoorbeeld 2026-0007 of F-2026-001">
   </label>
   <button type="submit" class="btn btn-secondary">Toon facturen</button>
 </form>
@@ -57,7 +62,7 @@
         {% set key = i.source ~ ":" ~ i.source_id %}
         <tr>
           <td><input type="checkbox" name="item" value="{{ key }}" aria-label="Kies factuur {{ i.number }}"{% if key in state.checked %} checked{% endif %}></td>
-          <td>{{ i.number }}{% if i.is_credit %} {{ pill("Creditnota", "info") }} {{ info("creditnota") }} <span class="bank-sub">Terugbetaling of korting: dit bedrag haal je af van wat je betaalt.</span>{% endif %}<span class="bank-sub">{{ i.contact_name }}</span></td>
+          <td>{{ i.number }}{% if i.side == "debiteur" and i.source == "sales_invoice" %} {{ pill("Verkoopcreditnota" if i.is_credit else "Verkoopfactuur", "info") }}{% endif %}{% if i.is_credit %}{% if i.side != "debiteur" %} {{ pill("Creditnota", "info") }}{% endif %} {{ info("creditnota") }} <span class="bank-sub">{% if i.side == "debiteur" %}Dit geld betaal je terug aan je klant (bedrag af).{% else %}Terugbetaling of korting: dit bedrag haal je af van wat je betaalt.{% endif %}</span>{% endif %}<span class="bank-sub">{{ i.contact_name }}</span></td>
           <td class="nowrap">{{ i.date|bank_datum }}</td>
           <td class="num nowrap">{{ i.open_cents|euro }}</td>
           <td class="num"><input name="amount_{{ i.source }}_{{ i.source_id }}" value="{{ state.amounts.get(key, '') }}" inputmode="decimal" class="num" aria-label="Bedrag voor factuur {{ i.number }}"></td>
@@ -133,7 +138,7 @@
     {% if detail.matches %}
     <ul>
       {% for m in detail.matches %}
-      <li>{{ m.number }} ({{ m.contact_name }}){% if m.is_credit %} {{ pill("Creditnota", "info") }} {{ info("creditnota") }}{% endif %}: {{ m.amount_cents|euro }}</li>
+      <li>{% if m.source == "sales_invoice" %}{{ "Verkoopcreditnota" if m.is_credit else "Verkoopfactuur" }} {% endif %}{{ m.number }} ({{ m.contact_name }}){% if m.is_credit %} {{ pill("Creditnota", "info") }} {{ info("creditnota") }}{% endif %}: {{ m.amount_cents|euro }}</li>
       {% endfor %}
     </ul>
     {% else %}

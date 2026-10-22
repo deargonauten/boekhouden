@@ -32,4 +32,5 @@ from app.domain.relations.validation import (
     validate_email,
     validate_iban,
     validate_kvk,
+    validate_payment_term,
 )

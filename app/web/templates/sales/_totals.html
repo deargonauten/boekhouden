@@ -1,0 +1,6 @@
+{% from "partials/_info.html" import info with context %}
+<dl class="facts" id="totals" data-amounts="{{ (amounts or [])|tojson|forceescape }}">
+  <dt>Totaal zonder BTW {{ info("btw") }}</dt><dd class="money">{{ totals.total_excl_cents|euro }}</dd>
+  {% for g in totals.groups %}<dt>BTW {{ (g.rate_bp / 100)|round|int }}% over {{ g.base_cents|euro }}</dt><dd class="money">{{ g.vat_cents|euro }}</dd>{% endfor %}
+  <dt><strong>Totaal inclusief BTW</strong></dt><dd class="money"><strong>{{ totals.total_incl_cents|euro }}</strong></dd>
+</dl>

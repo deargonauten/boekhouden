@@ -23,6 +23,11 @@ from app.domain.errors import (
 )
 
 NAME_MAX = 200
+PAYMENT_TERM_MAX = 365
+
+
+class InvalidPaymentTermError(RelationError):
+    code = "INVALID_PAYMENT_TERM"
 POSTAL_CODE_MAX = 12
 
 _KVK_RE = re.compile(r"^[0-9]{8}$")
@@ -161,6 +166,19 @@ def validate_country(raw: str | None) -> str:
     return value
 
 
+def validate_payment_term(raw: "str | int | None") -> int | None:
+    """Betaaltermijn in days for a klant: empty is None (the invoice then uses 30 days), else 0..365."""
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return None
+    text = str(raw).strip()
+    if not re.fullmatch(r"\d{1,3}", text) or int(text) > PAYMENT_TERM_MAX:
+        raise InvalidPaymentTermError(
+            f"De betaaltermijn is een aantal dagen tussen 0 en {PAYMENT_TERM_MAX}. "
+            "Vul bijvoorbeeld 30 in, of laat het leeg voor de standaard van 30 dagen.",
+        )
+    return int(text)
+
+
 # --- names ---------------------------------------------------------------------
 _LEGAL_TOKENS = {
     ("bv",), ("b", "v"), ("nv",), ("vof",), ("v", "o", "f"), ("cv",), ("eenmanszaak",),
@@ -210,6 +228,7 @@ class ContactInput:
     email: str | None = None
     phone: str | None = None
     notes: str | None = None
+    payment_term_days: "str | int | None" = None  # betaaltermijn voor klanten, in dagen
 
 
 @dataclass(frozen=True)
@@ -228,6 +247,7 @@ class NormalizedContact:
     email: str | None
     phone: str | None
     notes: str | None
+    payment_term_days: int | None = None
 
 
 def validate_contact_input(data: ContactInput) -> NormalizedContact:
@@ -259,6 +279,7 @@ def validate_contact_input(data: ContactInput) -> NormalizedContact:
     email = check(validate_email, data.email)
     postal_code = check(validate_postal_code, data.postal_code)
     country = check(validate_country, data.country)
+    payment_term = check(validate_payment_term, data.payment_term_days)
 
     if errors:
         raise RelationError.combine(errors)
@@ -278,4 +299,5 @@ def validate_contact_input(data: ContactInput) -> NormalizedContact:
         email=email,
         phone=_clean(data.phone),
         notes=_clean(data.notes),
+        payment_term_days=payment_term,
     )

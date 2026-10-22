@@ -114,6 +114,7 @@ def _apply(contact: Contact, norm: NormalizedContact) -> None:
     contact.email = norm.email
     contact.phone = norm.phone
     contact.notes = norm.notes
+    contact.payment_term_days = norm.payment_term_days
 
 
 def get_contact(session: Session, contact_id: int) -> Contact:

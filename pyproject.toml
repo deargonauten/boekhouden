@@ -13,10 +13,15 @@ dependencies = [
     "python-multipart",
     "anthropic>=1.17.0",
     "defusedxml>=0.7.1",
+    "reportlab>=5.1.0",
 ]
 
 [dependency-groups]
-dev = ["pytest", "httpx"]
+dev = [
+    "pytest",
+    "httpx",
+    "pypdf>=6.21.2",
+]
 
 [tool.uv]
 package = false

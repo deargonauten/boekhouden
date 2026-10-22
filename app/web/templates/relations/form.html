@@ -77,6 +77,17 @@
     </div>
   </section>
 
+  <section class="card">
+    <div class="card__header"><h2>Afspraken over betalen</h2></div>
+    <div class="card__body form-grid">
+      <div class="field">
+        <label for="payment_term_days">{{ term_label("betaaltermijn", "Hoeveel dagen mag deze klant over betalen?") }}</label>
+        <input id="payment_term_days" name="payment_term_days" value="{{ values.payment_term_days }}" inputmode="numeric" maxlength="3" aria-describedby="term-hint">
+        <p class="field__hint hint" id="term-hint">Alleen voor klanten. Laat leeg voor 30 dagen. Vul 0 in voor direct betalen. Dit wordt vooraf ingevuld op een nieuwe factuur.</p>
+      </div>
+    </div>
+  </section>
+
   <div class="form-actions">
     <button type="submit" class="btn">Opslaan</button>
     <a href="/relaties">Annuleren</a>

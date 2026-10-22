@@ -34,7 +34,7 @@ CONFLICT_CODES = {
 }
 STATUS_TABS = ("nieuw", "genegeerd")
 EXTRA_LINES = 2  # empty rows offered under the direct-booking lines
-HIDDEN_ACCOUNT_CODES = {"3000", "1400"}  # crediteuren and voorbelasting are booked by the system
+HIDDEN_ACCOUNT_CODES = {"3000", "1400", "1300"}  # crediteuren, voorbelasting and debiteuren are booked by the system
 
 MELDINGEN = {
     "geboekt": "De mutatie is geboekt.",
@@ -233,7 +233,7 @@ async def _read_state(request: Request) -> DetailState:
 def _parse_state(session: Session, state: DetailState):
     """Typed state -> domain input plus plain-Dutch parse errors. Fully empty direct lines are dropped."""
     errors: list[str] = []
-    known = {_item_key(i): i for i in rec.list_open_items(session)}
+    known = {_item_key(i): i for i in rec.list_all_open_items(session)}
     allocations: list[rec.Allocation] = []
     for key in sorted(state.checked):
         item = known.get(key)
@@ -270,8 +270,8 @@ def _summary(detail: rec.TransactionDetail, allocations, directs, known) -> dict
     distributed = sum(line.amount_cents for line in directs)
     for a in allocations:
         item = known.get(f"{a.source}:{a.source_id}")
-        credit = bool(item and item.is_credit)
-        distributed += a.amount_cents if credit == (direction == "bij") else -a.amount_cents
+        follows = item is not None and rec.money_follows(direction, item.side, item.is_credit)
+        distributed += a.amount_cents if follows else -a.amount_cents
     return {"total": total, "distributed": distributed, "remainder": total - distributed}
 
 
@@ -293,9 +293,9 @@ def _open_items_for(session: Session, state: DetailState, detail: rec.Transactio
     if contact_id is None and not state.q:
         contact_id = detail.default_contact_id
     if contact_id is not None:
-        return contact_id, rec.list_open_items(session, contact_id=contact_id, q=state.q or None)
+        return contact_id, rec.list_all_open_items(session, contact_id=contact_id, q=state.q or None)
     if state.q:
-        return None, rec.list_open_items(session, q=state.q)
+        return None, rec.list_all_open_items(session, q=state.q)
     return None, []
 
 
@@ -309,7 +309,7 @@ def _initial_state(session: Session, detail: rec.TransactionDetail, items: list,
         take = suggested.get(item.ref)
         if take is not None:
             state.checked.add(key)
-            remaining -= take if not item.is_credit else -take
+            remaining -= take if rec.money_follows(detail.txn.direction, item.side, item.is_credit) else -take
         state.amounts[key] = _plain_amount(take if take is not None else min(item.open_cents, max(remaining, 0)))
     default = rec.direct_defaults(session, detail.txn.id)
     first = _empty_line()
@@ -343,6 +343,7 @@ def _detail_page(
         suggestions = rec.suggestions_for(session, txn_id)
         best = suggestions[0] if suggestions else None
         base = state or DetailState()
+        customers = list_contacts(session, role="customer")
         contact_id, items = _open_items_for(session, base, detail)
         if state is None or not state.posted:
             state = _initial_state(session, detail, items, best if best and best.kind == "match" else None)
@@ -359,7 +360,8 @@ def _detail_page(
             state=state,
             items=items,
             contact_id=contact_id,
-            suppliers=[c for c in list_contacts(session, role="supplier")],
+            customers=customers,
+            suppliers=[c for c in list_contacts(session, role="supplier") if c.id not in {x.id for x in customers}],
             account_groups=_account_groups(session, detail.bank_account_ledger_id),
             vat_codes=[v for v in ledger.list_vat_codes(session) if v.is_active],
             lines=lines,

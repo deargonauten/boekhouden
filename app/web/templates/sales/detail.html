@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, error_box, notice, pill, icon with context %}
+{% from "sales/_macros.html" import status_pill with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
+{% block content %}
+{% set credit = invoice.kind == "credit_note" %}
+{% set lead %}{% if credit %}Deze creditnota {{ info("creditnota") }} hoort bij{% if detail.original %} factuur <a href="/verkoop/{{ detail.original.id }}">{{ detail.original.number }}</a>{% endif %}. Hij is definitief en kan niet meer worden gewijzigd.{% else %}Deze factuur is definitief {{ info("definitief_maken") }}. Hij kan niet meer worden gewijzigd. Is er iets fout, maak dan een creditnota {{ info("creditnota") }}.{% endif %}{% endset %}
+{% call page_header(title, breadcrumb=[("Verkoop", "/verkoop"), (title, None)], lead=lead, icon_name="receipt") %}
+  <a class="btn btn-secondary" href="/verkoop/{{ invoice.id }}/pdf" hx-boost="false">{{ icon("download") }}PDF downloaden</a>
+  {% if detail.can_credit %}<a class="btn btn-secondary" href="/verkoop/{{ invoice.id }}/creditnota">Creditnota maken</a>{% endif %}
+  {% if can_remind %}<a class="btn" href="/verkoop/{{ invoice.id }}/herinnering">Betalingsherinnering maken</a>{% endif %}
+{% endcall %}
+{% if flash %}{{ notice(flash, "success") }}{% endif %}
+{% if new_reminder %}<div class="notice notice--success" role="status">{{ icon("download") }}<div><a href="/verkoop/herinneringen/{{ new_reminder }}/pdf" hx-boost="false">Download de herinnering als PDF</a></div></div>{% endif %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+{% if can_remind %}<p class="hint">Deze factuur is te laat betaald. Met een betalingsherinnering {{ info("herinnering") }} vraag je de klant vriendelijk om alsnog te betalen.</p>{% endif %}
+{% if mail %}
+<div class="card">
+  <div class="card__header"><h2>Factuur mailen</h2></div>
+  <div class="card__body stack">
+    <p class="hint">Download eerst de PDF en voeg die als bijlage toe aan je e-mail: het programma kan geen bijlage meesturen.</p>
+    <div class="field">
+      <label for="m-text">Voorgestelde tekst (kopieer hem voor je e-mail)</label>
+      <textarea id="m-text" rows="8" readonly>{{ mail.body }}</textarea>
+    </div>
+    <p>{% if mail.url %}<a class="btn btn-secondary" href="{{ mail.url }}" hx-boost="false">Mail aan klant</a>{% else %}<span class="hint">Bij deze klant staat geen e-mailadres. Voeg dat toe bij de klant om direct te kunnen mailen.</span>{% endif %}</p>
+  </div>
+</div>
+{% endif %}
+{% for w in detail.warnings %}{{ notice(w, "warning") }}{% endfor %}
+<div class="card">
+  <div class="card__header"><h2>Gegevens</h2><span class="cluster">{{ status_pill(detail.status, detail.status_label) }}{% if detail.reminders %} {{ pill("Herinnering gemaakt", "info") }}{% endif %}</span></div>
+  <div class="card__body">
+    <dl class="facts">
+      <dt>Nummer {{ info("factuurnummer") }}</dt><dd>{{ invoice.number }}</dd>
+      <dt>Klant {{ info("klant") }}</dt><dd><a href="/verkoop/debiteuren/{{ invoice.contact_id }}">{{ invoice.buyer_name }}</a></dd>
+      <dt>Datum</dt><dd>{{ invoice.invoice_date.strftime("%d-%m-%Y") }}</dd>
+      {% if invoice.service_date and invoice.service_date != invoice.invoice_date %}<dt>Leverdatum {{ info("leverdatum") }}</dt><dd>{{ invoice.service_date.strftime("%d-%m-%Y") }}</dd>{% endif %}
+      {% if not credit %}<dt>Vervaldatum {{ info("vervaldatum") }}</dt><dd>{{ invoice.due_date.strftime("%d-%m-%Y") }} ({% if invoice.payment_term_days == 0 %}direct betalen{% else %}{{ invoice.payment_term_days }} dagen{% endif %})</dd>{% endif %}
+      {% if invoice.reference %}<dt>Uw referentie</dt><dd>{{ invoice.reference }}</dd>{% endif %}
+      <dt>Totaal</dt><dd class="money">{{ invoice.total_incl_cents|euro }}</dd>
+      <dt>{% if credit %}Nog terug te geven{% else %}Nog te betalen{% endif %} {{ info("openstaand") }}</dt><dd class="money">{{ detail.open_cents|euro }}</dd>
+      {% if detail.applied_cents %}<dt>Verrekend {{ info("verrekening") }}</dt><dd class="money">{{ detail.applied_cents|euro }}</dd>{% endif %}
+      {% if invoice.note %}<dt>Opmerking</dt><dd>{{ invoice.note }}</dd>{% endif %}
+      {% if invoice.journal_entry_id %}<dt>Boeking</dt><dd><a href="/boeken/{{ invoice.journal_entry_id }}" hx-boost="false">Boeking {{ detail.journal_entry_number }}</a></dd>{% endif %}
+    </dl>
+  </div>
+</div>
+<div class="card card--flush">
+  <div class="card__header"><h2>Regels</h2></div>
+  <div class="table-wrap">
+  <table class="data lines-detail">
+    <thead><tr><th>Omschrijving</th><th class="num">Aantal</th><th class="num">Prijs zonder BTW</th><th class="num">BTW-tarief {{ info("btw_tarief") }}</th><th class="num">Bedrag zonder BTW {{ info("omzet") }}</th></tr></thead>
+    <tbody>
+    {% for l in invoice.lines %}
+    <tr><td>{{ l.description }}</td><td class="num">{{ l.quantity_milli|qty }} {{ l.unit }}</td><td class="num">{{ l.unit_price_cents|euro }}</td><td class="num">{{ l.vat_code.replace("NL_", "") }}%</td><td class="num">{{ l.line_excl_cents|euro }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card__body">
+    <dl class="facts">
+      <dt>Totaal zonder BTW {{ info("btw") }}</dt><dd class="money">{{ invoice.total_excl_cents|euro }}</dd>
+      {% for v in invoice.vat_rows|sort(attribute="rate_bp", reverse=true) %}<dt>BTW {{ (v.rate_bp / 100)|round|int }}% over {{ v.base_cents|euro }}</dt><dd class="money">{{ v.vat_cents|euro }}</dd>{% endfor %}
+      <dt><strong>Totaal inclusief BTW</strong></dt><dd class="money"><strong>{{ invoice.total_incl_cents|euro }}</strong></dd>
+    </dl>
+  </div>
+</div>
+{% if detail.credit_notes %}
+<div class="card card--flush">
+  <div class="card__header"><h2>Creditnota's bij deze factuur {{ info("creditnota") }}</h2></div>
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Nummer</th><th>Datum</th><th class="num">Bedrag</th></tr></thead>
+    <tbody>{% for c in detail.credit_notes %}<tr><td><a href="/verkoop/{{ c.id }}">{{ c.number }}</a></td><td class="nowrap">{{ c.invoice_date.strftime("%d-%m-%Y") }}</td><td class="num">{{ c.total_incl_cents|euro }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+{% if detail.reminders %}
+<div class="card card--flush">
+  <div class="card__header"><h2>Betalingsherinneringen {{ info("herinnering") }}</h2></div>
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Herinnering</th><th>Gemaakt op</th><th>Betalen vóór</th><th class="num">Bedrag</th><th>PDF</th></tr></thead>
+    <tbody>{% for r in detail.reminders %}<tr><td>Herinnering {{ r.level }}</td><td class="nowrap">{{ r.reminder_date.strftime("%d-%m-%Y") }}</td><td class="nowrap">{{ r.new_due_date.strftime("%d-%m-%Y") }}</td><td class="num">{{ r.open_cents|euro }}</td><td>{% if r.has_pdf %}<a href="/verkoop/herinneringen/{{ r.id }}/pdf" hx-boost="false">Download</a>{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+{% endblock %}

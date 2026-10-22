@@ -572,3 +572,87 @@ def test_new_terms_are_shown_with_info_icons(client, world):
     for key in ("afletteren", "direct_boeken", "matchingregel", "deelbetaling"):
         assert f'data-term="{key}"' in html
     assert 'data-term="afletteren"' in client.get("/bank/afletteren").text
+
+
+# --- sales invoices (debiteuren) ---------------------------------------------------------------------------
+
+
+def sales_invoice(world, name="Klant BV", iban=IBAN):
+    """A finalized verkoopfactuur of 121,00 dated today; returns (invoice_id, number)."""
+    from app.domain.company.service import save_company_profile
+    from app.domain.company.validation import CompanyInput
+    from app.domain.sales import ConceptInput, LineInput, create_concept, finalize
+
+    with Session(world.engine, expire_on_commit=False) as s:
+        save_company_profile(s, CompanyInput(
+            legal_name="Jansen Webdesign", legal_form="eenmanszaak", address_line="Dorpsstraat 1",
+            postal_code="1234 AB", city="Utrecht", kvk="12345678", btw_id="NL123456789B01",
+            iban=BANK_IBAN, email="info@jansen.nl",
+        ))
+        customer = create_contact(s, ContactInput(
+            name=name, is_customer=True, iban=iban, address_line="Hoofdweg 2",
+            postal_code="1000 AA", city="Amsterdam",
+        ))
+        account = s.scalar(select(Account.id).where(Account.code == "8000"))
+        inv = create_concept(s, ConceptInput(
+            contact_id=customer.id, invoice_date=TODAY,
+            lines=[LineInput("Website", 1000, 10000, "NL_21", account)],
+        ))
+        s.commit()
+        finalize(s, inv.id, storage=world.storage)
+        s.commit()
+        return inv.id, inv.number
+
+
+def test_list_shows_sales_suggestion_label(client, world):
+    inv_id, number = sales_invoice(world)
+    world.txn(amount=12100, desc=f"Betaling {number}", name="Klant BV")
+    html = client.get("/bank/afletteren").text
+    assert f"Verkoopfactuur {number} - Klant BV" in html
+    assert "Zeker" in html
+
+
+def test_accept_sales_suggestion_marks_invoice_paid_and_undo_restores(client, world):
+    inv_id, number = sales_invoice(world)
+    tid = world.txn(amount=12100, desc=f"Betaling {number}", name="Klant BV")
+    key = f"match:sales_invoice-{inv_id}-12100"
+    r = client.post(f"/bank/transacties/{tid}/akkoord", data={"suggestion": key}, follow_redirects=False)
+    assert r.status_code == 303
+    assert world.one("SELECT paid_cents FROM sales_invoice WHERE id = :i", i=inv_id) == 12100
+    assert client.post(f"/bank/transacties/{tid}/ongedaan-maken", follow_redirects=False).status_code == 303
+    assert world.one("SELECT paid_cents FROM sales_invoice WHERE id = :i", i=inv_id) == 0
+
+
+def test_detail_offers_customers_and_lists_their_invoices(client, world):
+    inv_id, number = sales_invoice(world)
+    tid = world.txn(amount=12100, desc="Betaling", name="Klant BV")
+    html = client.get(f"/bank/transacties/{tid}/afletteren").text
+    assert "klant of leverancier" in html
+    assert number in html and "Verkoopfactuur" in html
+    assert "Welke factuur is dit?" in html
+
+
+def test_manual_match_of_sales_invoice_and_mixed_refusal(client, world):
+    inv_id, number = sales_invoice(world, iban="NL02ABNA0123456789")
+    supplier_inv = world.invoice(number="F-1")
+    tid = world.txn(amount=12100, desc="Betaling", name="Klant BV")
+    bad = {
+        "item": [f"sales_invoice:{inv_id}", f"purchase_invoice:{supplier_inv}"],
+        f"amount_sales_invoice_{inv_id}": "60,00",
+        f"amount_purchase_invoice_{supplier_inv}": "61,00",
+    }
+    r = client.post(f"/bank/transacties/{tid}/afletteren", data=bad)
+    assert r.status_code == 422
+    assert "niet tegelijk aan verkoop- en inkoopfacturen" in r.text
+    good = {"item": [f"sales_invoice:{inv_id}"], f"amount_sales_invoice_{inv_id}": "121,00"}
+    r = client.post(f"/bank/transacties/{tid}/afletteren", data=good, follow_redirects=False)
+    assert r.status_code == 303
+    assert world.one("SELECT paid_cents FROM sales_invoice WHERE id = :i", i=inv_id) == 12100
+    assert "Verkoopfactuur" in client.get(f"/bank/transacties/{tid}/afletteren").text
+
+
+def test_detail_search_by_customer_name(client, world):
+    inv_id, number = sales_invoice(world)
+    tid = world.txn(amount=12100, desc="Betaling", name="Onbekend", iban=None)
+    html = client.get(f"/bank/transacties/{tid}/afletteren?q=Klant").text
+    assert number in html

@@ -23,7 +23,7 @@ class BankMatch(Base):
 
     __tablename__ = "bank_match"
     __table_args__ = (
-        CheckConstraint("source IN ('purchase_invoice','opening_item')", name="ck_bank_match_source"),
+        CheckConstraint("source IN ('purchase_invoice','opening_item','sales_invoice')", name="ck_bank_match_source"),
         CheckConstraint("amount_cents > 0", name="ck_bank_match_amount"),
         Index("ix_bank_match_source", "source", "source_id"),
         Index("ix_bank_match_bank_transaction_id", "bank_transaction_id"),
