@@ -323,8 +323,33 @@ def test_suggested_account_is_preselected_and_listed_first(client):
         conn.execute(text("UPDATE invoice_extraction_line SET account_id = :a"), {"a": suggested})
     html = client.get(f"/inbox/{doc_id}/nakijken").text
     first_option = html.split('name="line_account_code"')[1].split("</option>")[1]
-    assert 'value="4999" selected' in html and "4999" in first_option
+    assert 'value="4999" data-vat="NL_21" selected' in html and "4999" in first_option
     assert "Kies een rekening. Twijfel je?" not in html
+
+
+def _account_options(html: str) -> str:
+    return html.split('name="line_account_code"')[1].split("</select>")[0]
+
+
+def test_review_account_list_only_has_purchase_accounts_plus_selected(client):
+    doc_id = read_out(client)
+    options = _account_options(client.get(f"/inbox/{doc_id}/nakijken").text)
+    assert 'value="4210"' in options  # kosten: selectable at inkoop
+    assert 'value="1300"' not in options  # not an inkoop account
+    with client.app.state.engine.begin() as conn:
+        conn.execute(
+            text("UPDATE invoice_extraction_line SET account_id = (SELECT id FROM account WHERE code='1300')")
+        )
+    options = _account_options(client.get(f"/inbox/{doc_id}/nakijken").text)
+    assert 'value="1300" data-vat="' in options and "selected" in options.split('value="1300"')[1].split(">")[0]
+
+
+def test_review_options_carry_data_vat_and_script(client):
+    doc_id = read_out(client)
+    html = client.get(f"/inbox/{doc_id}/nakijken").text
+    assert '<script src="/static/js/vat-suggest.js"' in html
+    assert 'value="4210" data-vat="NL_21"' in html
+    assert 'value="4400" data-vat="GEEN"' in html
 
 
 def test_save_review_redirects_with_notice(client):

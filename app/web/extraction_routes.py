@@ -296,11 +296,16 @@ def _values_from_extraction(session: Session, extraction) -> dict:
 
 
 def _ordered_accounts(session: Session, selected: set[str]) -> list[Account]:
-    """Expense accounts, the ones in use (suggested) first, the rest by name."""
-    stmt = select(Account).where(
-        Account.type == "expense", Account.is_active.is_(True), Account.is_postable.is_(True)
-    )
-    accounts = sorted(session.scalars(stmt), key=lambda a: (a.name.lower(), a.code))
+    """Inkoop accounts, the ones in use (suggested) first, the rest by name.
+
+    An account already chosen on a line stays listed even when it is not selectable at inkoop.
+    """
+    accounts = list(ledger.list_accounts_for(session, "purchase"))
+    listed = {a.code for a in accounts}
+    missing = selected - listed
+    if missing:
+        accounts += session.scalars(select(Account).where(Account.code.in_(missing)))
+    accounts.sort(key=lambda a: (a.name.lower(), a.code))
     first = [a for a in accounts if a.code in selected]
     return first + [a for a in accounts if a.code not in selected]
 

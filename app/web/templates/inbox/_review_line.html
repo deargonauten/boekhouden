@@ -1,5 +1,6 @@
 {# Needs: line (dict), flags (dict field -> flags), accounts, vat_codes, no_account_hint #}
 {% from "partials/_ui.html" import icon, pill with context %}
+{% set _active_vats = vat_codes|map(attribute="code")|list %}
 <tr class="line-row">
   <td>
     <input name="line_description" value="{{ line.description }}" aria-label="Wat is er uitgegeven?" maxlength="255">
@@ -8,7 +9,7 @@
   <td>
     <select name="line_account_code" aria-label="Op welke rekening boeken?">
       <option value="">Kies een rekening</option>
-      {% for a in accounts %}<option value="{{ a.code }}"{% if line.account_code == a.code %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+      {% for a in accounts %}<option value="{{ a.code }}" data-vat="{{ a.default_vat_code if a.default_vat_code in _active_vats else '' }}"{% if line.account_code == a.code %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
     </select>
     {% if not line.account_code %}<span class="hint">{{ no_account_hint }}</span>{% endif %}
   </td>

@@ -63,6 +63,18 @@ def infer_vat_code(
     return best[1] if best else None
 
 
+def resolve_vat_code_for_account(
+    account_code: str | None,
+    default_vat_by_account: Mapping[str, str | None],
+    vat_rates: Mapping[str, int],
+) -> str | None:
+    """The account's standaard btw-code, only when it is an active code (else None)."""
+    if not account_code:
+        return None
+    default = default_vat_by_account.get(account_code)
+    return default if default and default in vat_rates else None
+
+
 def resolve_vat_code(
     line: ExtractedLine, vat_rates: Mapping[str, int]
 ) -> tuple[str | None, bool]:
