@@ -269,3 +269,13 @@ InvalidCompanyLegalFormError = _company_error(
 CompanyNameRequiredError = _company_error("CompanyNameRequiredError", COMPANY_NAME_REQUIRED)
 CompanyNameTooLongError = _company_error("CompanyNameTooLongError", COMPANY_NAME_TOO_LONG)
 CompanyIncompleteError = _company_error("CompanyIncompleteError", COMPANY_INCOMPLETE)
+
+
+# --- Btw-codes (grootboek-verfijning) ----------------------------------------
+# INVALID_VAT_CODE is defined above and reused for a bad code or missing name.
+DUPLICATE_CODE = "DUPLICATE_CODE"
+INVALID_VAT_RATE = "INVALID_VAT_RATE"
+INVALID_RUBRIEK = "INVALID_RUBRIEK"
+VAT_CODE_IN_LOCKED_PERIOD = "VAT_CODE_IN_LOCKED_PERIOD"
+VAT_CODE_IS_DEFAULT = "VAT_CODE_IS_DEFAULT"
+VAT_CODE_SYSTEM = "VAT_CODE_SYSTEM"

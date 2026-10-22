@@ -24,6 +24,11 @@ class VatCode(Base):
     name: Mapped[str] = mapped_column(String)
     rate_bp: Mapped[int] = mapped_column(Integer)
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("1"))
+    sales_rubriek: Mapped[str | None] = mapped_column(String)
+    purchase_rubriek: Mapped[str | None] = mapped_column(String)
+    is_system: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("0"), nullable=False
+    )
 
 
 class Account(Base):
@@ -47,6 +52,15 @@ class Account(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("1"))
     is_system: Mapped[bool] = mapped_column(Boolean, server_default=text("0"))
     default_vat_code: Mapped[str | None] = mapped_column(ForeignKey("vat_code.code"))
+    selectable_purchase: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("0"), nullable=False
+    )
+    selectable_sales: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("0"), nullable=False
+    )
+    selectable_bank: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("0"), nullable=False
+    )
 
 
 class Journal(Base):

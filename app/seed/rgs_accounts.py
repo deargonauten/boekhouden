@@ -108,3 +108,33 @@ SEED_JOURNALS: list[tuple[str, str, str, str | None]] = [
     ("KAS", "Kas", "kas", "1100"),
     ("MEM", "Memoriaal", "memoriaal", None),
 ]
+
+
+# System accounts the program uses itself: never shown in pick-lists.
+# (Revenue 8000 and the equity privé accounts 2010/2020/2030 are system too,
+# but they are not in this list.)
+_HIDDEN_SYSTEM_CODES = frozenset(
+    {"0190", "1100", "1210", "1230", "1300", "1400", "1410", "2000", "2900", "2910",
+     "3000", "3100", "3110", "3120", "3130", "3140", "3150", "4950", "4999"}
+)
+_ASSET_PURCHASE_CODES = frozenset({"0100", "0110", "0120"})
+_EQUITY_BANK_CODES = frozenset({"2010", "2020", "2030"})
+
+
+def default_contexts(type: str, is_system: bool, code: str) -> tuple[bool, bool, bool]:
+    """Where an account shows up by default: (purchase, sales, bank)."""
+    if code in _HIDDEN_SYSTEM_CODES:
+        return (False, False, False)
+    if type == "expense":
+        return (True, False, True)
+    if type == "revenue":
+        return (False, True, True)
+    if type == "asset":
+        if is_system:
+            return (False, False, False)
+        return (code in _ASSET_PURCHASE_CODES, False, True)
+    if type == "equity":
+        return (False, False, code in _EQUITY_BANK_CODES or not is_system)
+    if type == "liability":
+        return (False, False, not is_system)
+    return (False, False, False)
