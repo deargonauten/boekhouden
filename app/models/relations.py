@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, String, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -17,6 +17,10 @@ class Contact(Base):
             name="ck_contact_kvk",
         ),
         CheckConstraint("length(country) = 2", name="ck_contact_country"),
+        CheckConstraint(
+            "payment_term_days IS NULL OR (payment_term_days >= 0 AND payment_term_days <= 365)",
+            name="ck_contact_payment_term",
+        ),
         Index("ix_contact_name_key", "name_key"),
         Index("ix_contact_is_active", "is_active"),
         Index("uq_contact_kvk", "kvk", unique=True, sqlite_where=text("kvk IS NOT NULL")),
@@ -44,6 +48,7 @@ class Contact(Base):
     email: Mapped[str | None] = mapped_column(String)
     phone: Mapped[str | None] = mapped_column(String)
     notes: Mapped[str | None] = mapped_column(String)
+    payment_term_days: Mapped[int | None] = mapped_column(Integer)  # betaaltermijn for klanten
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("1"))
     created_at: Mapped[datetime] = mapped_column(DateTime)
     updated_at: Mapped[datetime] = mapped_column(DateTime)
