@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, aliased
 from app.domain.errors import LedgerError
 from app.domain.ledger.entries import NewEntry, NewLine, build_storno, validate_entry
 from app.domain.ledger.periods import generate_periods
+from app.seed.rgs_accounts import default_contexts
 from app.models import (
     Account,
     FiscalYear,
@@ -388,6 +389,9 @@ def add_account(
     rgs_code: str | None = None,
     default_vat_code: str | None = None,
     is_postable: bool = True,
+    selectable_purchase: bool | None = None,
+    selectable_sales: bool | None = None,
+    selectable_bank: bool | None = None,
 ) -> Account:
     code = (code or "").strip()
     name = (name or "").strip()
@@ -401,11 +405,15 @@ def add_account(
         raise _error("DUPLICATE_CODE", f"Rekeningnummer {code} bestaat al. Kies een ander nummer.")
     if default_vat_code is not None and session.get(VatCode, default_vat_code) is None:
         raise _error("INVALID_VAT_CODE", "Deze btw-code is onbekend of niet meer in gebruik. Kies een andere uit de lijst.")
+    d_purchase, d_sales, d_bank = default_contexts(type, False, code)
     account = Account(
         code=code,
         name=name,
         type=type,
         rgs_code=rgs_code,
+        selectable_purchase=d_purchase if selectable_purchase is None else selectable_purchase,
+        selectable_sales=d_sales if selectable_sales is None else selectable_sales,
+        selectable_bank=d_bank if selectable_bank is None else selectable_bank,
         default_vat_code=default_vat_code,
         is_postable=is_postable,
         is_active=True,
@@ -421,6 +429,68 @@ def _get_account(session: Session, account_id: int) -> Account:
     if account is None:
         raise _error("ACCOUNT_NOT_FOUND", "Deze rekening bestaat niet meer. Kies een andere rekening.")
     return account
+
+
+def set_account_vat_default(session: Session, account_id: int, vat_code: str | None) -> Account:
+    """Set (or clear) the suggested btw-code of an account; only a UI hint, allowed in any period."""
+    account = _get_account(session, account_id)
+    if not account.is_postable:
+        raise _error("INVALID_ACCOUNT", "Een kopregel heeft geen btw-tarief; kies een rekening eronder.")
+    if vat_code is not None:
+        vc = session.get(VatCode, vat_code)
+        if vc is None or not vc.is_active:
+            raise _error("INVALID_VAT_CODE", "Deze btw-code is onbekend of niet meer in gebruik. Kies een andere uit de lijst.")
+    account.default_vat_code = vat_code
+    session.flush()
+    return account
+
+
+def set_account_contexts(
+    session: Session, account_id: int, *, purchase: bool, sales: bool, bank: bool
+) -> Account:
+    """Choose where an account shows up in pick-lists (inkoop, verkoop, bank)."""
+    account = _get_account(session, account_id)
+    if account.is_system and default_contexts(account.type, True, account.code) == (False, False, False):
+        raise _error(
+            "SYSTEM_ACCOUNT",
+            "Dit is een standaardrekening die het programma zelf gebruikt; hij verschijnt niet in "
+            "keuzelijsten en dat kun je niet aanpassen.",
+        )
+    account.selectable_purchase = bool(purchase)
+    account.selectable_sales = bool(sales)
+    account.selectable_bank = bool(bank)
+    session.flush()
+    return account
+
+
+_CONTEXT_COLUMNS = {
+    "purchase": Account.selectable_purchase,
+    "sales": Account.selectable_sales,
+    "bank": Account.selectable_bank,
+}
+
+
+def list_accounts_for(session: Session, context: str) -> list[Account]:
+    """Active, postable accounts that are selectable in `context` (purchase|sales|bank), by code."""
+    column = _CONTEXT_COLUMNS.get(context)
+    if column is None:
+        raise ValueError(f"Onbekende context: {context!r}")
+    return list(
+        session.scalars(
+            select(Account)
+            .where(Account.is_active.is_(True), Account.is_postable.is_(True), column.is_(True))
+            .order_by(Account.code)
+        )
+    )
+
+
+def suggest_vat_code(session: Session, account_id: int) -> str | None:
+    """The account's default btw-code, only if that code is still active."""
+    account = session.get(Account, account_id)
+    if account is None or account.default_vat_code is None:
+        return None
+    vc = session.get(VatCode, account.default_vat_code)
+    return vc.code if vc is not None and vc.is_active else None
 
 
 def set_account_active(session: Session, account_id: int, active: bool) -> Account:
