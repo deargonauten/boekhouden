@@ -195,6 +195,29 @@
   syncSidebar();
   document.addEventListener("htmx:afterSettle", syncSidebar);
 
+  // --- Keep the scroll position of a list when you act on a row and come back (link or form with data-keep-scroll) ---
+  function listKey() {
+    var u = new URL(location.href);
+    u.searchParams.delete("melding");
+    return u.pathname + u.search;
+  }
+  function saveScroll(e) {
+    if (!e.target.closest || !e.target.closest("[data-keep-scroll]")) return;
+    try { sessionStorage.setItem("bh.scroll", JSON.stringify({ key: listKey(), y: window.scrollY })); } catch (err) { /* storage blocked: list opens at the top */ }
+  }
+  document.addEventListener("click", saveScroll);
+  document.addEventListener("submit", saveScroll);
+  function restoreScroll() {
+    try {
+      var saved = JSON.parse(sessionStorage.getItem("bh.scroll") || "null");
+      if (!saved || saved.key !== listKey()) return;
+      sessionStorage.removeItem("bh.scroll");
+      window.scrollTo(0, saved.y);
+    } catch (err) { /* nothing saved */ }
+  }
+  restoreScroll();
+  document.addEventListener("htmx:afterSettle", restoreScroll);
+
   // --- Boosted navigation swaps only <body>: load stylesheets the new page adds in <head> ---
   document.addEventListener("htmx:beforeSwap", function (e) {
     var html = e.detail.serverResponse || "";

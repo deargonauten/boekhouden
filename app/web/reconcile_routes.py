@@ -81,6 +81,11 @@ def _safe_back(value: str | None) -> str:
     return LIST_URL
 
 
+def _list_url(params: dict) -> str:
+    query = urlencode({k: v for k, v in params.items() if v not in (None, "")})
+    return LIST_URL + (f"?{query}" if query else "")
+
+
 def _with_melding(url: str, key: str) -> str:
     return f"{url}{'&' if '?' in url else '?'}{urlencode({'melding': key})}"
 
@@ -107,9 +112,7 @@ def _list_context(
         "richting": richting,
         "status": status,
         "params": params,
-        "back": LIST_URL + (f"?{urlencode({k: v for k, v in params.items() if v not in (None, '')})}" if any(
-            v not in (None, "") for v in params.values()
-        ) else ""),
+        "back": _list_url({**params, "page": result.page if result.page > 1 else ""}),
         "to_process": rec.to_process_count(session),
     }
 
@@ -174,6 +177,7 @@ class DetailState:
     remember: bool = False
     needle: str = ""
     posted: bool = False
+    back: str = LIST_URL
 
 
 def _item_key(item: rec.OpenItem) -> str:
@@ -204,6 +208,7 @@ async def _read_state(request: Request) -> DetailState:
         remember=bool(form.get("remember")),
         needle=str(form.get("remember_needle", "")).strip(),
         posted=True,
+        back=_safe_back(str(form.get("terug", ""))),
     )
     for key in form.getlist("item"):
         state.checked.add(str(key))
@@ -327,12 +332,13 @@ def _detail_page(
     error=None,
     melding="",
     status_code=200,
+    back=LIST_URL,
 ):
     try:
         detail = rec.get_transaction_detail(session, txn_id)
     except LedgerError as exc:
         return _not_found_or_error(request, exc)
-    ctx: dict = {"detail": detail, "error": error, "melding_text": MELDINGEN.get(melding, ""), "state": state}
+    ctx: dict = {"detail": detail, "error": error, "melding_text": MELDINGEN.get(melding, ""), "state": state, "back": back}
     if detail.status == "nieuw":
         suggestions = rec.suggestions_for(session, txn_id)
         best = suggestions[0] if suggestions else None
@@ -377,18 +383,20 @@ def reconcile_detail(
     contact: str = "",
     q: str = "",
     melding: str = "",
+    terug: str = "",
     session: Session = Depends(get_session),
 ):
     state = DetailState(contact=contact.strip(), q=q.strip()) if (contact or q) else None
-    return _detail_page(request, session, txn_id, state, melding=melding)
+    return _detail_page(request, session, txn_id, state, melding=melding, back=_safe_back(terug))
 
 
 @router.post("/bank/transacties/{txn_id:int}/afletteren", response_class=HTMLResponse)
 async def reconcile_book(request: Request, txn_id: int, session: Session = Depends(get_session)):
     state = await _read_state(request)
+    back = state.back
     allocations, directs, errors, _ = _parse_state(session, state)
     if errors:
-        return _detail_page(request, session, txn_id, state, error=errors, status_code=422)
+        return _detail_page(request, session, txn_id, state, error=errors, status_code=422, back=back)
     draft = None
     if state.remember:
         draft = rec.RuleDraft(
@@ -402,8 +410,8 @@ async def reconcile_book(request: Request, txn_id: int, session: Session = Depen
         session.rollback()
         if status_for(exc) == 404:
             return web.not_found_response(request)
-        return _detail_page(request, session, txn_id, state, error=exc.message, status_code=status_for(exc))
-    return _see_other(_with_melding(LIST_URL, "geboekt"))
+        return _detail_page(request, session, txn_id, state, error=exc.message, status_code=status_for(exc), back=back)
+    return _see_other(_with_melding(back, "geboekt"))
 
 
 @router.post("/bank/transacties/{txn_id:int}/afletteren/controle", response_class=HTMLResponse)
@@ -436,8 +444,11 @@ def _simple_action(request: Request, session: Session, txn_id: int, action, meld
 
 
 @router.post("/bank/transacties/{txn_id:int}/negeren", response_class=HTMLResponse)
-def reconcile_ignore(request: Request, txn_id: int, session: Session = Depends(get_session)):
-    return _simple_action(request, session, txn_id, rec.ignore, "genegeerd", LIST_URL)
+async def reconcile_ignore(request: Request, txn_id: int, session: Session = Depends(get_session)):
+    form = await request.form()
+    return _simple_action(
+        request, session, txn_id, rec.ignore, "genegeerd", _safe_back(str(form.get("terug", "")))
+    )
 
 
 @router.post("/bank/transacties/{txn_id:int}/terugzetten", response_class=HTMLResponse)

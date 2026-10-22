@@ -31,13 +31,13 @@
     <td class="nowrap">
       {% if status == "nieuw" %}
         {% if r.suggestion %}
-        <form method="post" action="/bank/transacties/{{ r.id }}/akkoord" class="inline-form" hx-boost="false">
+        <form method="post" action="/bank/transacties/{{ r.id }}/akkoord" class="inline-form" hx-boost="false" data-keep-scroll>
           <input type="hidden" name="suggestion" value="{{ r.suggestion.key }}">
           <input type="hidden" name="terug" value="{{ back }}">
           <button type="submit" class="btn btn-small">Akkoord</button>
         </form>
         {% endif %}
-        <a class="btn btn-secondary btn-small" href="/bank/transacties/{{ r.id }}/afletteren">{% if r.suggestion %}Anders{% else %}Verwerken{% endif %}</a>
+        <a class="btn btn-secondary btn-small" href="/bank/transacties/{{ r.id }}/afletteren?terug={{ back|urlencode }}" data-keep-scroll>{% if r.suggestion %}Anders{% else %}Verwerken{% endif %}</a>
       {% else %}
         <form method="post" action="/bank/transacties/{{ r.id }}/terugzetten" class="inline-form" hx-boost="false">
           <button type="submit" class="btn btn-secondary btn-small">Terugzetten</button>

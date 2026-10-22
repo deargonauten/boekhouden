@@ -129,14 +129,27 @@ def test_list_shows_suggestion_with_confidence_and_accept_button(client, world):
     assert "Zeker" in html
     assert f'action="/bank/transacties/{tid}/akkoord"' in html
     assert "Akkoord" in html
-    assert f'href="/bank/transacties/{tid}/afletteren"' in html
+    assert f'href="/bank/transacties/{tid}/afletteren?terug=' in html
+
+
+def test_accept_returns_to_same_page_of_the_list(client, world):
+    world.invoice(number="F-2026-001")
+    tid = world.txn(desc="Betaling factuur F-2026-001")
+    r = client.post(
+        f"/bank/transacties/{tid}/akkoord",
+        data={"suggestion": "x", "terug": "/bank/afletteren?q=bol&page=3"},
+        follow_redirects=False,
+    )
+    assert r.status_code in (303, 409, 422)
+    if r.status_code == 303:
+        assert r.headers["location"].startswith("/bank/afletteren?q=bol&page=3&melding=")
 
 
 def test_list_row_without_suggestion_has_no_accept_button(client, world):
     tid = world.txn(desc="Bankkosten", name="ING", iban="NL20INGB0001234567", amount=-250)
     html = client.get("/bank/afletteren").text
     assert f"/bank/transacties/{tid}/akkoord" not in html
-    assert f'href="/bank/transacties/{tid}/afletteren"' in html
+    assert f'href="/bank/transacties/{tid}/afletteren?terug=' in html
 
 
 def test_list_filters_direction_and_text(client, world):

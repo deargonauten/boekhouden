@@ -25,6 +25,7 @@
 
 {% if detail.status == "nieuw" %}
 <form method="get" action="/bank/transacties/{{ t.id }}/afletteren" class="inline-form" hx-boost="false" role="search">
+  <input type="hidden" name="terug" value="{{ back }}">
   <label>Van welke leverancier is de factuur?
     <select name="contact">
       <option value="">Kies een leverancier</option>
@@ -40,6 +41,7 @@
 <form method="post" action="/bank/transacties/{{ t.id }}/afletteren" class="stack" hx-boost="false">
   <input type="hidden" name="contact" value="{{ state.contact }}">
   <input type="hidden" name="q" value="{{ state.q }}">
+  <input type="hidden" name="terug" value="{{ back }}">
   <div hx-post="/bank/transacties/{{ t.id }}/afletteren/controle" hx-trigger="input delay:400ms, change" hx-target="#reconcile-summary" hx-swap="innerHTML" hx-include="closest form" class="stack">
 
     <section class="card card--flush">
@@ -114,12 +116,13 @@
   </div>
   <div class="cluster">
     <button type="submit" class="btn">Boeken</button>
-    <a class="btn btn-secondary" href="/bank/afletteren">Terug naar de lijst</a>
+    <a class="btn btn-secondary" href="{{ back }}">Terug naar de lijst</a>
   </div>
 </form>
 
 <form method="post" action="/bank/transacties/{{ t.id }}/negeren" class="inline-form"
       hx-confirm="Deze mutatie komt niet in je boekhouding. Alleen doen als het echt niet hoort, bijvoorbeeld een dubbele regel.">
+  <input type="hidden" name="terug" value="{{ back }}">
   <button type="submit" class="btn btn-secondary btn-small">Negeren</button>
 </form>
 
