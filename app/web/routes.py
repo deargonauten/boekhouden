@@ -13,6 +13,7 @@ from app.web.purchase_routes import router as purchase_router
 from app.web.bank_routes import router as bank_router
 from app.web.reconcile_routes import router as reconcile_router
 from app.web.opening_routes import router as opening_router
+from app.web.sales_routes import router as sales_router
 from app.domain.glossary import terms_alphabetical
 from app.web.navigation import NAV_ITEMS, NavItem
 
@@ -29,7 +30,8 @@ router.include_router(purchase_router)
 router.include_router(bank_router)
 router.include_router(reconcile_router)
 router.include_router(opening_router)
-LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox", "inkoop", "bank"}
+router.include_router(sales_router)
+LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox", "inkoop", "bank", "verkoop"}
 
 
 @router.get("/", include_in_schema=False)

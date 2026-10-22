@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, pill, empty_state, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/purchase.css">{% endblock %}
+{% block content %}
+{% call page_header("Verkoop", breadcrumb=[("Verkoop", "/verkoop"), ("Wie moet nog betalen", None)], term="debiteuren", icon_name="receipt",
+   lead="Per klant zie je wat er nog openstaat en hoe lang het al te laat is.",
+   tab_items=tab_items, tab_label="Weergave van verkoop") %}<a class="btn" href="/verkoop/nieuw">{{ icon("plus") }}Nieuwe factuur maken</a>{% endcall %}
+{% include "sales/_stats.html" %}
+<div class="card card--flush">
+  <div class="card__header"><h2>Hoe lang staat het open? {{ info("ouderdomsanalyse") }}</h2></div>
+  {% if not rows %}
+    {{ empty_state("Niemand hoeft nog te betalen", "Er staat niets open bij je klanten. Zodra je een factuur definitief maakt, zie je hem hier.", "Maak een factuur", "/verkoop/nieuw", "check") }}
+  {% else %}
+  <div class="table-wrap">
+  <table class="data purchase-table">
+    <thead><tr>
+      <th>Klant {{ info("klant") }}</th>
+      {% for key, label in buckets.items() %}<th class="num">{{ label }}</th>{% endfor %}
+      <th class="num">Totaal openstaand {{ info("openstaand") }}</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><a href="/verkoop/debiteuren/{{ r.contact_id }}">{{ r.contact_name }}</a>{% if r.reminder_count %} {{ pill("Herinnering gemaakt", "info") }}{% endif %}</td>
+      <td class="num">{{ r.not_due_cents|euro }}</td>
+      <td class="num">{{ r.d1_30_cents|euro }}</td>
+      <td class="num">{{ r.d31_60_cents|euro }}</td>
+      <td class="num">{{ r.d61_90_cents|euro }}</td>
+      <td class="num">{{ r.over_90_cents|euro }}</td>
+      <td class="num">{{ r.total_cents|euro }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr>
+      <td><strong>Totaal</strong></td>
+      <td class="num">{{ totals.not_due_cents|euro }}</td>
+      <td class="num">{{ totals.d1_30_cents|euro }}</td>
+      <td class="num">{{ totals.d31_60_cents|euro }}</td>
+      <td class="num">{{ totals.d61_90_cents|euro }}</td>
+      <td class="num">{{ totals.over_90_cents|euro }}</td>
+      <td class="num">{{ totals.total_cents|euro }}</td>
+    </tr></tfoot>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

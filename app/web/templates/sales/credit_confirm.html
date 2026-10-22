@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, error_box with context %}
+{% block content %}
+{{ page_header("Creditnota maken", breadcrumb=[("Verkoop", "/verkoop"), ("Factuur " ~ invoice.number, "/verkoop/" ~ invoice.id), ("Creditnota maken", None)], icon_name="receipt",
+   lead="Met een creditnota corrigeer je een factuur die al definitief is.") }}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+<section class="card">
+  <div class="card__header"><h2>Wat gebeurt er?</h2></div>
+  <div class="card__body stack">
+    <p>Je krijgt een concept {{ info("concept_factuur") }} van een creditnota {{ info("creditnota") }} met de regels van factuur {{ invoice.number }}. Je verlaagt de aantallen of haalt regels weg. Prijzen en BTW-tarieven {{ info("btw") }} blijven zoals ze waren.</p>
+    <p>Na het definitief maken {{ info("definitief_maken") }} wordt het bedrag verrekend {{ info("verrekening") }} met wat de klant nog moet betalen.</p>
+  </div>
+</section>
+<div class="form-actions">
+  {% if not errors %}<form method="post" action="/verkoop/{{ invoice.id }}/creditnota" hx-boost="false"><button type="submit" class="btn">Maak een concept van de creditnota</button></form>{% endif %}
+  <a href="/verkoop/{{ invoice.id }}">Terug naar de factuur</a>
+</div>
+{% endblock %}

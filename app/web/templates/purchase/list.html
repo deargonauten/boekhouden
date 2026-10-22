@@ -62,7 +62,7 @@
     <div class="card__header"><h2>Nog te betalen uit je beginbalans {{ info("beginbalans") }}</h2></div>
     <div class="table-wrap">
     <table class="data">
-      <thead><tr><th>Leverancier {{ info("leverancier") }}</th><th>Factuurnummer</th><th>Datum van de factuur</th><th>Vervaldatum</th><th class="num">Nog te betalen {{ info("openstaand") }}</th></tr></thead>
+      <thead><tr><th>Leverancier {{ info("leverancier") }}</th><th>Factuurnummer {{ info("factuurnummer") }}</th><th>Datum van de factuur</th><th>Vervaldatum {{ info("vervaldatum") }}</th><th class="num">Nog te betalen {{ info("openstaand") }}</th></tr></thead>
       <tbody>
       {% for i in opening_items %}
       <tr>
@@ -84,7 +84,7 @@
     <div class="table-wrap">
     <table class="data purchase-table">
       <thead><tr>
-        <th>Datum</th><th>Leverancier {{ info("leverancier") }}</th><th>Factuurnummer</th><th class="num">Totaal</th><th class="num">Nog te betalen {{ info("openstaand") }}</th><th>Vervaldatum</th><th>Status</th><th>Bekijken</th>
+        <th>Datum</th><th>Leverancier {{ info("leverancier") }}</th><th>Factuurnummer {{ info("factuurnummer") }}</th><th class="num">Totaal</th><th class="num">Nog te betalen {{ info("openstaand") }}</th><th>Vervaldatum {{ info("vervaldatum") }}</th><th>Status</th><th>Bekijken</th>
       </tr></thead>
       <tbody>
       {% for i in invoices.items %}

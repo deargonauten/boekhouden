@@ -24,6 +24,10 @@ from app.domain.errors import (
 
 NAME_MAX = 200
 PAYMENT_TERM_MAX = 365
+
+
+class InvalidPaymentTermError(RelationError):
+    code = "INVALID_PAYMENT_TERM"
 POSTAL_CODE_MAX = 12
 
 _KVK_RE = re.compile(r"^[0-9]{8}$")
@@ -168,8 +172,7 @@ def validate_payment_term(raw: "str | int | None") -> int | None:
         return None
     text = str(raw).strip()
     if not re.fullmatch(r"\d{1,3}", text) or int(text) > PAYMENT_TERM_MAX:
-        raise RelationError(
-            "INVALID_PAYMENT_TERM",
+        raise InvalidPaymentTermError(
             f"De betaaltermijn is een aantal dagen tussen 0 en {PAYMENT_TERM_MAX}. "
             "Vul bijvoorbeeld 30 in, of laat het leeg voor de standaard van 30 dagen.",
         )

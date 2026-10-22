@@ -1,0 +1,5 @@
+{% from "partials/_ui.html" import pill %}
+{% macro status_pill(status, label) -%}
+{%- set tones = {"concept": "neutral", "openstaand": "warning", "te_laat": "danger", "deels_betaald": "warning", "betaald": "success", "gecrediteerd": "success", "verrekend": "success", "gestorneerd": "neutral"} -%}
+{{ pill(label, tones.get(status, "neutral")) }}
+{%- endmacro %}

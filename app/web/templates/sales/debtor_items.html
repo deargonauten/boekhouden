@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, pill, empty_state with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/purchase.css">{% endblock %}
+{% block content %}
+{{ page_header("Openstaand bij " ~ contact.name, breadcrumb=[("Verkoop", "/verkoop"), ("Wie moet nog betalen", "/verkoop/debiteuren"), (contact.name, None)], icon_name="receipt",
+   lead="Dit zijn de facturen van deze klant die nog niet (helemaal) betaald zijn. Een creditnota staat met een min-teken.") }}
+<div class="card card--flush">
+  <div class="card__header"><h2>Openstaande facturen en creditnota's van deze klant {{ info("klant") }} {{ info("creditnota") }}</h2><span>Totaal {{ total_cents|euro }}</span></div>
+  {% if not items %}
+    {{ empty_state("Niets openstaand", "Deze klant heeft alles betaald.", "Terug naar Verkoop", "/verkoop/debiteuren", "check") }}
+  {% else %}
+  <div class="table-wrap">
+  <table class="data purchase-table">
+    <thead><tr><th>Nummer {{ info("factuurnummer") }}</th><th>Datum</th><th>Vervaldatum {{ info("vervaldatum") }}</th><th>Hoe laat</th><th class="num">Nog te betalen {{ info("openstaand") }}</th></tr></thead>
+    <tbody>
+    {% for i in items %}
+    <tr>
+      <td class="nowrap">{% if i.source == "sales_invoice" %}<a href="/verkoop/{{ i.id }}">{{ i.number }}</a>{% else %}{{ i.number }} <span class="hint">(uit beginbalans {{ info("beginbalans") }})</span>{% endif %}{% if i.kind == "credit_note" %} {{ pill("Creditnota", "info") }}{% endif %}{% if i.reminder_count %} {{ pill("Herinnering gemaakt", "info") }}{% endif %}</td>
+      <td class="nowrap">{{ i.invoice_date.strftime("%d-%m-%Y") }}</td>
+      <td class="nowrap">{% if i.due_date %}{{ i.due_date.strftime("%d-%m-%Y") }}{% endif %}</td>
+      <td>{{ buckets[i.bucket] }}{% if i.days_overdue > 0 %} ({{ i.days_overdue }} dagen te laat){% endif %}</td>
+      <td class="num">{{ i.open_cents|euro }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
