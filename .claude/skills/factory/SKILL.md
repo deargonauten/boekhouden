@@ -22,7 +22,7 @@ You are the **orchestrator**. You do not write the spec, the feature code or the
 state.md                 current step, round counters, branch names, open questions
 spec.md                  the spec (step 1)
 build/round-N/<builder>.md   builder reports
-reviews/round-N/{security,ux,ui,code}.md
+reviews/round-N/{security,ux,ui,code}.md   (ux and ui may be one file, `ux-ui.md`)
 approval.md              approver verdict
 ```
 
@@ -33,6 +33,16 @@ Update `state.md` after every step so the run can be resumed.
 1. Worktrees need git. If the folder is not a git repo: `git init`, add a `.gitignore`, make an initial commit. Tell the user once.
 2. If the working tree is dirty, commit it as `factory: baseline` (or ask if it looks like unrelated user work).
 3. Create branch `factory/<slug>` from the current branch. All integration happens there.
+
+## Token budget (important)
+
+A run costs roughly the sum of every agent's cold start (CLAUDE.md + spec + code reads) plus repeated test runs. Keep it lean:
+
+- **Fewest agents that work.** Default to at most **3 builders**; merge small or dependent parts (schema + domain + glossary is one builder; each web area another). Only split further when parts are large and truly independent.
+- **Models:** pass `model: "sonnet"` for builders on well-specified parts and for reviewers; use `haiku` for the approver. Keep the spec writer on the default model (the spec is where quality matters most). Use a stronger model for a builder only when the part is subtle (money/VAT logic, migrations).
+- **Tests run once per stage, by the orchestrator.** Builders run only their own tests plus the full suite once before finishing. Reviewers and the approver do **not** rerun the full suite; they read the orchestrator's last result (put it in `state.md`: command, count, date) and run only targeted tests if they need to verify a specific claim.
+- **Narrow prompts.** Give each agent only the spec sections and files it needs (its part, acceptance criteria it covers, owned files), not "read everything". Tell reviewers to review `git diff <base>...HEAD` and open other files only to verify a finding.
+- **Wave by dependency, but don't over-wave.** Small schema parts that everything depends on belong in the same builder as the domain code that uses them.
 
 ## Communication rules (important)
 
@@ -54,13 +64,13 @@ Show the user a short summary of the spec (not the whole file) and the path. Pro
 ## Step 2 — Build
 
 1. Read the work breakdown in `spec.md`. Parts must have disjoint file ownership; if they overlap, ask the spec writer to re-split, or merge those parts into one builder.
-2. Spawn one **builder** per part **in parallel**, each with `isolation: "worktree"` (`roles/builder.md`). Each gets: the full spec, its part, and its owned files. Builders write tests first where the repo has a test setup, commit on their own worktree branch, and write `build/round-N/<builder>.md` (what was done, deviations, anything the integrator must know).
+2. Group the parts into at most 3 builders (see Token budget). Spawn them **in parallel** where independent (otherwise in dependency order), each with `isolation: "worktree"` (`roles/builder.md`). Each gets: its part(s) and the spec sections it needs, and its owned files. Builders write tests first where the repo has a test setup, commit on their own worktree branch, and write `build/round-N/<builder>.md` (what was done, deviations, anything the integrator must know).
 3. Handle builder `QUESTIONS:` per the communication rules above.
 4. **Integrate:** merge each builder branch into `factory/<slug>`, resolve conflicts yourself (prefer the spec as tiebreaker), run the project's tests/build/lint, fix integration breakage. Remove the worktrees afterwards. If integration needs real feature work, spawn a builder for it rather than doing it silently.
 
 ## Step 3 — Review (max 2 review rounds)
 
-Spawn four reviewers **in parallel**, read-only, each on the integrated branch (`roles/reviewer.md` with the lens: `security`, `ux`, `ui`, `code`). Each writes `reviews/round-N/<lens>.md` with a first line `VERDICT: PASS` or `VERDICT: REWORK`, followed by findings.
+Spawn reviewers **in parallel**, read-only, each on the integrated branch (`roles/reviewer.md`). Default to **three** reviewers: `security`, `code`, and one combined `ux-ui` reviewer (covers both lenses; writes `ux-ui.md`). Skip lenses that do not apply (write PASS (n/a) yourself, no agent needed): no UI → no `ux-ui`; no input handling, auth, data exposure or new routes → fold `security` into `code`. For a small diff (roughly under 300 changed lines) use a single reviewer covering all applicable lenses. Each writes `reviews/round-N/<lens>.md` with a first line `VERDICT: PASS` or `VERDICT: REWORK`, followed by findings. Tell them the test result from `state.md` and not to rerun the full suite.
 
 Review calibration (state this in every reviewer prompt): be realistic. Only REWORK for issues that would genuinely hurt: broken acceptance criteria, real vulnerabilities, clear usability failures, bugs, maintainability traps. Style nits and speculative concerns go in a `Nice-to-have` section and do **not** justify REWORK. "Nothing to report" with PASS is a perfectly good review. Skip a lens that does not apply (e.g. `ui`/`ux` for a pure backend feature) by writing PASS (n/a).
 
@@ -72,7 +82,7 @@ Each REWORK finding must include: severity, location, what is wrong, and what do
 
 ## Step 4 — Approval
 
-Spawn one **approver** (`roles/approver.md`). It reads spec, build reports, all review rounds, the diff, and the test results, and checks the whole process was followed and the acceptance criteria are met. It writes `approval.md` with `VERDICT: APPROVE` or `VERDICT: HUMAN_REVIEW` and its reasoning. Outstanding REWORK findings after round 2 should normally lead to HUMAN_REVIEW, unless it judges them acceptable.
+Spawn one **approver** (`roles/approver.md`, `model: "haiku"` unless review findings were mixed). It reads spec, build reports, review verdicts and the test result in `state.md`, and walks the acceptance criteria as a checklist, spot-checking code only where a criterion is unclear. It does not rerun the full suite. It writes `approval.md` with `VERDICT: APPROVE` or `VERDICT: HUMAN_REVIEW` and its reasoning. Outstanding REWORK findings after round 2 should normally lead to HUMAN_REVIEW, unless it judges them acceptable.
 
 - **APPROVE** → finish (below).
 - **HUMAN_REVIEW** → present to the user: summary, what the approver is unsure about, branch name, how to run it, links to the review files. Ask: approve, or rework (with their feedback).
@@ -90,4 +100,5 @@ Spawn one **approver** (`roles/approver.md`). It reads spec, build reports, all 
 - Never skip a step, and never mark `[x]` before approval.
 - Round counters live in `state.md`; respect the caps.
 - Ask the user only for genuine business decisions or when a subagent is blocked. Resolve technical choices with sensible defaults and record them in the spec.
+- Do not re-read files or rerun the full suite without a reason; each repeat costs tokens.
 - Keep your own messages to the user short: one line per step transition.
