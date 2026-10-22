@@ -7,6 +7,7 @@
 {% call settings_header("Grootboek") %}<a class="btn" href="#rekening-toevoegen" data-modal-open="#rekening-toevoegen">{{ icon("plus") }}Rekening toevoegen</a>{% endcall %}
 {% endblock %}
 {% block settings_content %}
+{% set lock_note = "Dit is een standaardrekening die het programma zelf gebruikt; hij verschijnt niet in keuzelijsten en dat kun je niet aanpassen." %}
 <p class="lead">Dit is de lijst met alle rekeningen waarop je boekingen worden vastgelegd, zoals Bank, Omzet en Kantoorkosten. {{ info("bank") }} Samen heet dit je grootboek. {{ info("grootboek") }}</p>
 {% if error and not add_error %}{{ error_box(error) }}{% endif %}
 {% call modal("rekening-toevoegen", "Rekening toevoegen", open=(true if add_error else false)) %}
@@ -24,7 +25,21 @@
     <div class="field">
       <label for="acc-type">{{ term_label("grootrekening", "Soort rekening") }}</label>
       <select id="acc-type" name="type">{% for key, label in account_types %}<option value="{{ key }}"{% if values.type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <span class="field__hint">Dit zijn voorstellen; je kunt ze straks aanpassen.</span>
     </div>
+    <div class="field">
+      <label for="acc-vat">Standaard btw-tarief {{ info("btw") }} {{ info("standaard_btw") }}</label>
+      <select id="acc-vat" name="default_vat_code">
+        <option value="">Geen suggestie</option>
+        {% for v in vat_codes %}<option value="{{ v.code }}"{% if values.default_vat_code == v.code %} selected{% endif %}>{{ v.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <fieldset class="field ctx-fieldset">
+      <legend>Selecteerbaar bij {{ info("selecteerbaar_bij") }}</legend>
+      <label class="ctx-check"><input type="checkbox" name="purchase" value="1"{% if values.purchase %} checked{% endif %}> Inkoop</label>
+      <label class="ctx-check"><input type="checkbox" name="sales" value="1"{% if values.sales %} checked{% endif %}> Verkoop</label>
+      <label class="ctx-check"><input type="checkbox" name="bank" value="1"{% if values.bank %} checked{% endif %}> Bank</label>
+    </fieldset>
     <div class="modal__footer">
       <button type="button" class="btn btn-secondary" data-modal-close>Annuleren</button>
       <button type="submit" class="btn">Rekening toevoegen</button>
@@ -44,13 +59,37 @@
   <div class="card__header"><h3>{{ label }} {{ info(term_key) }}</h3></div>
   <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>Code</th><th>Naam</th><th>RGS {{ info("rgs") }}</th><th>Status</th><th class="visually-hidden">Acties</th></tr></thead>
+    <thead><tr><th>Code</th><th>Naam</th><th>RGS {{ info("rgs") }}</th><th>Btw-tarief (standaard) {{ info("standaard_btw") }}</th><th>Selecteerbaar bij {{ info("selecteerbaar_bij") }}</th><th>Status</th><th class="visually-hidden">Acties</th></tr></thead>
     <tbody>
     {% for a in accounts %}
     <tr{% if not a.is_active %} class="inactive"{% endif %}>
       <td class="nowrap">{{ a.code }}</td>
       <td>{{ a.name }}{% if a.is_system %} {{ pill("Systeem", "neutral") }} {{ info("systeemrekening") }}{% endif %}</td>
       <td>{{ a.rgs_code or "" }}</td>
+      {% if not a.is_postable %}
+      <td></td><td></td>
+      {% elif a.id in locked_ids %}
+      <td title="{{ lock_note }}">&ndash;</td>
+      <td title="{{ lock_note }}"><span class="muted">Niet te kiezen</span></td>
+      {% else %}
+      <td>
+        <form method="post" action="/instellingen/grootboek/{{ a.id }}/btw" class="inline-form" hx-boost="false">
+          <select name="vat_code" aria-label="Standaard btw-tarief van {{ a.name }}">
+            <option value="">Geen suggestie</option>
+            {% for v in vat_codes %}<option value="{{ v.code }}"{% if a.default_vat_code == v.code %} selected{% endif %}>{{ v.name }}</option>{% endfor %}
+          </select>
+          <button type="submit" class="btn btn-secondary btn-small">Opslaan</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/instellingen/grootboek/{{ a.id }}/selecteerbaar" class="inline-form" hx-boost="false">
+          <label class="ctx-check"><input type="checkbox" name="purchase" value="1"{% if a.selectable_purchase %} checked{% endif %}> Inkoop</label>
+          <label class="ctx-check"><input type="checkbox" name="sales" value="1"{% if a.selectable_sales %} checked{% endif %}> Verkoop</label>
+          <label class="ctx-check"><input type="checkbox" name="bank" value="1"{% if a.selectable_bank %} checked{% endif %}> Bank</label>
+          <button type="submit" class="btn btn-secondary btn-small">Opslaan</button>
+        </form>
+      </td>
+      {% endif %}
       <td>{{ pill("Actief", "success") if a.is_active else pill("Inactief", "neutral") }}</td>
       <td>
         <form method="post" action="/instellingen/grootboek/{{ a.id }}/actief" class="row-actions" hx-boost="false">
