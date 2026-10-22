@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, error_box, empty_state, dropzone, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% block content %}
+{{ page_header("Bankafschrift importeren", breadcrumb=[("Bank", "/bank"), ("Bankafschrift importeren", None)], term="bankafschrift", icon_name="upload",
+   lead="Kies het bestand dat je in het internetbankieren hebt gedownload. Je ziet eerst wat erin staat; pas als je bevestigt wordt het opgeslagen.") }}
+{% if error %}{{ error_box(error) }}{% endif %}
+{% if not accounts %}
+<div class="card card--flush">
+  {{ empty_state("Voeg eerst je bankrekening toe", "Zonder bankrekening weet het programma niet bij welke rekening het bankafschrift hoort.", "Bankrekening toevoegen", "/bank/rekeningen/nieuw", "bank") }}
+</div>
+{% else %}
+<form method="post" action="/bank/importeren" enctype="multipart/form-data" class="stack bank-form" hx-boost="false">
+  <section class="card">
+    <div class="card__header"><h2>Welk bestand?</h2></div>
+    <div class="card__body stack">
+      <div class="field">
+        <label for="bank_account_id">Van welke bankrekening is dit bankafschrift?</label>
+        <select id="bank_account_id" name="bank_account_id">
+          {% for a in accounts %}<option value="{{ a.id }}"{% if rekening == a.id %} selected{% endif %}>{{ a.name }} ({{ a.iban|bank_iban }})</option>{% endfor %}
+        </select>
+      </div>
+      {{ dropzone("file", ".xml,.sta,.mt940,.txt,.csv,.tab,.xls", "Kies het bestand van je bank", "Maximaal " ~ max_mb ~ " MB. Het programma herkent zelf welk soort bestand het is.", multiple=False) }}
+      <div class="bank-formats">
+        <p class="bank-formats__title">Dit soort bestanden kan het programma lezen:</p>
+        <ul>
+          <li>{{ term_label("camt053") }}</li>
+          <li>{{ term_label("mt940") }}</li>
+          <li>{{ term_label("csv_export") }}: exports van ING, Rabobank, ABN AMRO en bunq</li>
+        </ul>
+        <p class="hint">Biedt je bank {{ info("bank") }} meer dan één formaat aan? Kies dan Bankbestand (XML), want dat is het betrouwbaarst.</p>
+      </div>
+      <p class="hint">Het originele bestand wordt bewaard en nooit verwijderd. Dat komt door de bewaarplicht {{ info("bewaarplicht") }}.</p>
+    </div>
+  </section>
+  <div class="form-actions">
+    <button type="submit" class="btn">{{ icon("upload") }}Bekijk wat erin staat</button>
+    <a class="btn btn-secondary" href="/bank">Annuleren</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

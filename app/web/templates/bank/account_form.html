@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, error_box with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% block content %}
+{{ page_header(title, breadcrumb=[("Bank", "/bank"), (title, None)], icon_name="bank",
+   lead="Vul eenmalig de gegevens van je zakelijke rekening in. Het programma stelt zelf de juiste rekening in je administratie voor; je hoeft alleen te controleren.") }}
+{% if error %}{{ error_box(error) }}{% endif %}
+<form method="post" action="{% if bank_account %}/bank/rekeningen/{{ bank_account.id }}/bewerken{% else %}/bank/rekeningen/nieuw{% endif %}" class="stack bank-form" hx-boost="false">
+  <section class="card">
+    <div class="card__header"><h2>Je bankrekening {{ info("bankrekening") }}</h2></div>
+    <div class="card__body form-grid">
+      <div class="field">
+        <label for="bank">Bij welke bank {{ info("bank") }} zit je?</label>
+        <select id="bank" name="bank" aria-describedby="bank-hint">
+          <option value="">Weet ik niet / maakt niet uit</option>
+          {% for key, label in bank_choices %}<option value="{{ key }}"{% if values.bank == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <p class="field__hint hint" id="bank-hint">Dit helpt het programma een CSV-bestand {{ info("csv_export") }} van je bank goed te lezen.</p>
+      </div>
+      <div class="field">
+        <label for="name">Hoe wil je deze rekening noemen?</label>
+        <input id="name" name="name" value="{{ values.name }}" maxlength="100" aria-describedby="name-hint">
+        <p class="field__hint hint" id="name-hint">Bijvoorbeeld Zakelijke rekening ING. Laat je dit leeg, dan kiest het programma een naam.</p>
+      </div>
+      <div class="field span-2">
+        <label for="iban">{{ term_label("iban", "Rekeningnummer") }}</label>
+        <input id="iban" name="iban" value="{{ values.iban }}" autocomplete="off"{% if locked %} disabled{% endif %} aria-describedby="iban-hint">
+        <p class="field__hint hint" id="iban-hint">{% if locked %}Je kunt het rekeningnummer niet meer wijzigen, omdat er al afschriften van zijn ingelezen.{% else %}Bijvoorbeeld NL91 ABNA 0417 1643 00. Je vindt het in je internetbankieren.{% endif %}</p>
+      </div>
+      <div class="field span-2">
+        <label for="account_id">{{ term_label("grootrekening", "Rekening in je administratie") }}</label>
+        <select id="account_id" name="account_id"{% if locked %} disabled{% endif %} aria-describedby="account-hint">
+          {% for c in choices %}
+          <option value="{{ c.id }}"{% if values.account_id == c.id %} selected{% endif %}{% if c.taken_by %} disabled{% endif %}>{{ c.code }} {{ c.name }}{% if c.taken_by %} (al in gebruik bij {{ c.taken_by }}){% endif %}</option>
+          {% endfor %}
+        </select>
+        <p class="field__hint hint" id="account-hint">{% if locked %}Dit kun je niet meer wijzigen, omdat er al afschriften zijn ingelezen.{% else %}Hierop komt het geld van deze bankrekening te staan. Meestal is de voorgestelde rekening goed.{% endif %}</p>
+      </div>
+      <p class="field span-2 hint">Het programma maakt zelf de map voor de bijbehorende bankboekingen aan: {{ term_label("bankdagboek", "map voor bankmutaties") }}. Hier hoef je niets voor te kiezen.</p>
+    </div>
+  </section>
+  <div class="form-actions">
+    <button type="submit" class="btn">{% if bank_account %}Opslaan{% else %}Bankrekening toevoegen{% endif %}</button>
+    <a class="btn btn-secondary" href="/bank">Annuleren</a>
+    {% if bank_account and bank_account.is_active %}
+    <button type="submit" name="actie" value="deactiveren" class="btn btn-danger" formnovalidate>Deze rekening uitzetten</button>
+    {% endif %}
+  </div>
+  {% if bank_account and bank_account.is_active %}<p class="hint">Een rekening die je uitzet, accepteert geen nieuwe afschriften meer. Wat je al had ingelezen blijft bewaard.</p>{% endif %}
+</form>
+{% endblock %}

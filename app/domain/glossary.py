@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Term:
-    key: str  # lowercase ascii slug, [a-z_]+
+    key: str  # lowercase ascii slug, [a-z][a-z0-9_]*
     term: str  # bookkeeping term as displayed
     plain: str  # short plain-Dutch phrase
     explanation: str  # 1-2 sentences, max 220 chars
@@ -197,6 +197,31 @@ _TERMS: list[Term] = [
          (_NEVER,)),
     Term("kor", "KOR", "Kleineondernemersregeling",
          "Met de KOR reken je geen btw aan en trek je ook geen btw af, zolang je omzet onder de grens blijft. Je doet dan geen btw-aangifte."),
+    # Bankafschriften importeren
+    Term("bankrekening", "Bankrekening", "Je rekening bij de bank",
+         "Je zakelijke rekening bij de bank. Elke bankrekening hoort bij precies één grootboekrekening, zodat het programma later weet waar het geld heen gaat.",
+         (_NEVER,)),
+    Term("bankafschrift", "Bankafschrift", "Overzicht van bij- en afschrijvingen",
+         "Een bestand met alle bij- en afschrijvingen van je rekening over een bepaalde tijd. Je downloadt het in het internetbankieren van je bank.",
+         (r"\bbankafschrift(en)?\b",)),
+    Term("camt053", "CAMT.053", "Bankbestand (XML)",
+         "Het standaard XML-bestand dat de meeste banken aanbieden voor afschriften. Het is het betrouwbaarste formaat: kies dit als je bank het heeft.",
+         (r"\bcamt\.?053\b",)),
+    Term("mt940", "MT940", "Bankbestand (oud formaat)",
+         "Een ouder formaat voor bankafschriften, vaak met de extensie .sta of .txt. Het programma kan het lezen als je bank geen CAMT.053 aanbiedt.",
+         (r"\bmt940\b",)),
+    Term("csv_export", "CSV", "Bankbestand voor Excel",
+         "Een tabel als tekstbestand, zoals je die uit internetbankieren voor Excel downloadt. Het programma herkent de exports van ING, Rabobank, ABN AMRO en bunq.",
+         (r"\bcsv\b",)),
+    Term("bijschrijving_afschrijving", "Bij / Af", "Geld erbij / geld eraf",
+         "Bij betekent dat er geld op je rekening kwam, Af dat er geld van je rekening ging. In de lijst staat bij in groen en af in rood.",
+         (_NEVER,)),
+    Term("dubbele_transactie", "Dubbele transactie", "Staat er al",
+         "Het programma controleert of een regel al eerder is ingelezen. 'Mogelijk dubbel' betekent: zelfde datum, bedrag en tegenpartij, maar andere tekst. Kijk of het echt dezelfde betaling is.",
+         (_NEVER,)),
+    Term("transactie", "Transactie", "Een bij- of afschrijving",
+         "Eén regel op je bankafschrift: geld dat op je rekening kwam of eraf ging. Ingelezen transacties kun je niet meer wijzigen.",
+         (_NEVER,)),
 ]
 
 GLOSSARY: dict[str, Term] = {t.key: t for t in _TERMS}

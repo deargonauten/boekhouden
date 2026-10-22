@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, stat_cards, notice, empty_state, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% block content %}
+{% if has_accounts %}
+{% call page_header("Bank", breadcrumb=[("Bank", None)], term="bank", icon_name="bank",
+   lead="Hier lees je de bij- en afschrijvingen van je bankrekening in. Download in het internetbankieren een bankafschrift en importeer het hier. Er wordt niets geboekt: je ziet alleen wat er op je rekening is gebeurd.",
+   tab_items=[
+    ("Transacties", "/bank", tab == "transacties", None, "transactie"),
+    ("Importgeschiedenis", "/bank?tab=geschiedenis", tab == "geschiedenis", None, "bankafschrift"),
+   ], tab_label="Weergave van bank") %}
+<a class="btn btn-secondary" href="/bank/rekeningen/nieuw">{{ icon("plus") }}Bankrekening toevoegen</a>
+{% endcall %}
+{% else %}
+{{ page_header("Bank", breadcrumb=[("Bank", None)], term="bank", icon_name="bank",
+   lead="Hier lees je de bij- en afschrijvingen van je bankrekening in.") }}
+{% endif %}
+
+{% if melding == "rekening_toegevoegd" %}{{ notice("De bankrekening is toegevoegd. Je kunt nu een bankafschrift importeren.", "success") }}
+{% elif melding == "rekening_opgeslagen" %}{{ notice("De wijzigingen zijn opgeslagen.", "success") }}
+{% elif melding == "rekening_uitgezet" %}{{ notice("De bankrekening is uitgezet. Je kunt er geen afschriften meer voor importeren; wat je al had ingelezen blijft bewaard.", "success") }}
+{% endif %}
+
+{% if not has_accounts %}
+<div class="card card--flush">
+  {{ empty_state("Voeg eerst je bankrekening toe", "Vul eenmalig de naam en het rekeningnummer van je zakelijke rekening in. Daarna kun je afschriften van je bank inlezen en zie je hier al je bij- en afschrijvingen.", "Bankrekening toevoegen", "/bank/rekeningen/nieuw", "bank") }}
+  <p class="empty-note">Een bankrekening {{ info("bankrekening") }} koppel je aan een rekening in je administratie ({{ term_label("grootrekening", "grootboekrekening") }}). Het programma stelt de juiste voor. Daarna importeer je een bankafschrift {{ info("bankafschrift") }} uit het internetbankieren.</p>
+</div>
+{% else %}
+{{ stat_cards(stat_data) }}
+
+<div class="bank-accounts">
+  {% for a in accounts %}
+  <section class="card bank-account{% if not a.is_active %} bank-account--inactive{% endif %}">
+    <div class="card__body">
+      <h2 class="bank-account__name">{{ a.name }}{% if not a.is_active %} <span class="pill pill--neutral">Niet actief</span>{% endif %}</h2>
+      <p class="bank-account__iban"><span class="muted">IBAN {{ info("iban") }}</span> <span class="nowrap">{{ a.iban|bank_iban }}</span></p>
+      <div class="cluster">
+        {% if a.is_active %}<a class="btn" href="/bank/importeren?rekening={{ a.id }}">{{ icon("upload") }}Afschrift importeren</a>{% endif %}
+        <a class="btn btn-secondary" href="/bank/rekeningen/{{ a.id }}/bewerken">Bewerken</a>
+      </div>
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<div class="card card--flush">
+{% if tab == "geschiedenis" %}
+  {% include "bank/_batches.html" %}
+{% else %}
+  <form class="toolbar" method="get" action="/bank" role="search" hx-get="/bank/transacties" hx-target="#bank-transactions" hx-push-url="false" hx-boost="false">
+    <div class="toolbar__search">
+      {{ icon("search") }}
+      <input type="search" name="q" value="{{ q }}" placeholder="Zoek op naam, omschrijving, rekeningnummer of bedrag" aria-label="Zoek op naam, omschrijving, rekeningnummer of bedrag">
+    </div>
+    {% if accounts|length > 1 %}
+    <div class="toolbar__filters">
+      <select name="rekening" aria-label="Kies een bankrekening">
+        <option value="">Alle bankrekeningen</option>
+        {% for a in accounts %}<option value="{{ a.id }}"{% if rekening == a.id %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    {% if batch %}<input type="hidden" name="importeren" value="{{ batch }}">{% endif %}
+    <div class="toolbar__spacer"></div>
+    <button type="submit" class="btn btn-secondary">Zoeken</button>
+  </form>
+  {% if batch %}<p class="bank-filter-note">Je ziet alleen de transacties van één import. <a href="/bank">Toon alles</a></p>{% endif %}
+  <div id="bank-transactions">{% include "bank/_transactions.html" %}</div>
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}
