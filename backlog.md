@@ -34,3 +34,5 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 
 ## Walkthrough uitkomst (2026-10-21)
 Zie factory/moneymonk-style-restyle/feature-candidates.md "Besluiten". Uitgestelde items zijn als (later) gemarkeerd; niet-gekozen features staan alleen in die lijst.
+
+- [x] Ongeboekte inbox-documenten kunnen verwijderen (ad hoc, done 2026-10-22)
