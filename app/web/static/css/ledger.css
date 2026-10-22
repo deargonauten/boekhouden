@@ -60,3 +60,10 @@
 }
 table.data.lines-detail thead th { white-space: normal; }
 table.data.lines-detail td.num { white-space: nowrap; }
+
+/* Grootboek: standaard btw-tarief and Selecteerbaar bij */
+.inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.inline-form select { min-width: 8rem; }
+.ctx-check { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
+.ctx-fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.ctx-fieldset legend { padding: 0; margin-bottom: var(--space-1); }

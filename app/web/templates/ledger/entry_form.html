@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/_info.html" import info, term_label with context %}
 {% from "partials/_ui.html" import page_header, error_box, icon with context %}
-{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css"><script src="/static/js/vat-suggest.js" defer></script>{% endblock %}
 {% block content %}
 {% set lead %}Met een handmatige boeking leg je zelf vast wat er gebeurd is. {{ info("boeking") }} Elke boeking heeft twee kanten die even groot moeten zijn {{ info("balans_evenwicht") }}: debet {{ info("debet") }} en credit {{ info("credit") }}.{% endset %}
 {{ page_header("Nieuwe boeking", breadcrumb=[("Boeken", "/boeken"), ("Nieuwe boeking", None)], lead=lead, icon_name="book") }}

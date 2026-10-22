@@ -4,7 +4,7 @@
       <option value="">Kies een rekening</option>
       {% for label, group in account_groups %}
       <optgroup label="{{ label }}">
-        {% for a in group %}<option value="{{ a.id }}"{% if row.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+        {% for a in group %}<option value="{{ a.id }}" data-vat="{{ a.default_vat_code if a.default_vat_code in active_vat_codes else '' }}"{% if row.account_id == a.id|string %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
       </optgroup>
       {% endfor %}
     </select>
@@ -12,7 +12,7 @@
   <td><input name="line_debit" value="{{ row.debit }}" inputmode="decimal" class="num" aria-label="Debet (bedrag links)" placeholder="0,00"></td>
   <td><input name="line_credit" value="{{ row.credit }}" inputmode="decimal" class="num" aria-label="Credit (bedrag rechts)" placeholder="0,00"></td>
   <td>
-    <select name="line_vat" aria-label="Btw-code (btw-tarief)">
+    <select name="line_vat" aria-label="Btw-code (btw-tarief)"{% if row.vat_code %} data-touched="1"{% endif %}>
       <option value="">Geen btw</option>
       {% for v in vat_codes %}<option value="{{ v.code }}"{% if row.vat_code == v.code %} selected{% endif %}>{{ v.name }} ({{ v.code }})</option>{% endfor %}
     </select>

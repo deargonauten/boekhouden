@@ -14,6 +14,7 @@ from app.db import get_session
 from app.domain import ledger
 from app.domain.ledger import LedgerError, NewEntry, NewLine
 from app.domain.money import parse_euro
+from app.seed.rgs_accounts import default_contexts
 
 router = APIRouter(include_in_schema=False)
 
@@ -24,6 +25,7 @@ CONFLICT_CODES = {
     "CANNOT_REVERSE_STORNO",
     "YEAR_EXISTS",
     "ACCOUNT_IN_USE",
+    "SYSTEM_ACCOUNT",
 }
 ACCOUNT_TYPES = list(ledger.ACCOUNT_TYPE_LABELS.items())
 JOURNAL_TYPES = list(ledger.JOURNAL_TYPE_LABELS.items())
@@ -48,6 +50,8 @@ MAX_JOURNAL_TABS = 6
 
 
 def _status_for(error: LedgerError) -> int:
+    if error.code == "ACCOUNT_NOT_FOUND":
+        return 404
     return 409 if error.code in CONFLICT_CODES else 422
 
 
@@ -91,6 +95,7 @@ def entries_list(
 
 def _form_context(session: Session, **extra) -> dict:
     accounts = [a for a in ledger.list_accounts(session) if a.is_active and a.is_postable]
+    vat_codes = [v for v in ledger.list_vat_codes(session) if v.is_active]
     return {
         "title": "Nieuwe boeking",
         "journals": [j for j in ledger.list_journals(session) if j.is_active],
@@ -99,7 +104,8 @@ def _form_context(session: Session, **extra) -> dict:
             for key, label in ACCOUNT_TYPES
             if any(a.type == key for a in accounts)
         ],
-        "vat_codes": [v for v in ledger.list_vat_codes(session) if v.is_active],
+        "vat_codes": vat_codes,
+        "active_vat_codes": {v.code for v in vat_codes},
         **extra,
     }
 
@@ -295,6 +301,17 @@ def settings_index() -> RedirectResponse:
     return RedirectResponse("/instellingen/grootboek", status_code=307)
 
 
+def _context_values(type: str) -> dict:
+    """Form suggestions for a new account: standaard btw-tarief and Selecteerbaar bij, by type."""
+    purchase, sales, bank = default_contexts(type, False, "")
+    return {
+        "default_vat_code": "NL_21" if type == "expense" else "",
+        "purchase": purchase,
+        "sales": sales,
+        "bank": bank,
+    }
+
+
 def _accounts_page(request, session, *, error=None, status=200, values=None, add_error=False):
     accounts = ledger.list_accounts(session)
     groups = [
@@ -308,6 +325,12 @@ def _accounts_page(request, session, *, error=None, status=200, values=None, add
         title="Grootboek",
         groups=groups,
         account_types=ACCOUNT_TYPES,
+        vat_codes=[v for v in ledger.list_vat_codes(session) if v.is_active],
+        locked_ids={
+            a.id
+            for a in accounts
+            if a.is_system and default_contexts(a.type, True, a.code) == (False, False, False)
+        },
         error=error,
         add_error=add_error,
         values=values
@@ -315,6 +338,7 @@ def _accounts_page(request, session, *, error=None, status=200, values=None, add
             "code": ledger.suggest_account_code(session, "expense"),
             "name": "",
             "type": "expense",
+            **_context_values("expense"),
         },
     )
 
@@ -330,10 +354,23 @@ def accounts_add(
     code: str = Form(""),
     name: str = Form(""),
     type: str = Form(""),
+    default_vat_code: str = Form(""),
+    purchase: str = Form(""),
+    sales: str = Form(""),
+    bank: str = Form(""),
     session: Session = Depends(get_session),
 ):
     try:
-        ledger.add_account(session, code=code.strip(), name=name.strip(), type=type)
+        ledger.add_account(
+            session,
+            code=code.strip(),
+            name=name.strip(),
+            type=type,
+            default_vat_code=default_vat_code or None,
+            selectable_purchase=purchase == "1",
+            selectable_sales=sales == "1",
+            selectable_bank=bank == "1",
+        )
         session.commit()
     except LedgerError as exc:
         session.rollback()
@@ -343,7 +380,15 @@ def accounts_add(
             error=exc.message,
             add_error=True,
             status=_status_for(exc),
-            values={"code": code, "name": name, "type": type},
+            values={
+                "code": code,
+                "name": name,
+                "type": type,
+                "default_vat_code": default_vat_code,
+                "purchase": purchase == "1",
+                "sales": sales == "1",
+                "bank": bank == "1",
+            },
         )
     return _see_other("/instellingen/grootboek")
 
@@ -363,6 +408,46 @@ def accounts_toggle(
         return _accounts_page(
             request, session, error=exc.message, status=_status_for(exc)
         )
+    return _see_other("/instellingen/grootboek")
+
+
+@router.post("/instellingen/grootboek/{account_id:int}/btw")
+def accounts_vat_default(
+    request: Request,
+    account_id: int,
+    vat_code: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    try:
+        ledger.set_account_vat_default(session, account_id, vat_code or None)
+        session.commit()
+    except LedgerError as exc:
+        session.rollback()
+        return _accounts_page(request, session, error=exc.message, status=_status_for(exc))
+    return _see_other("/instellingen/grootboek")
+
+
+@router.post("/instellingen/grootboek/{account_id:int}/selecteerbaar")
+def accounts_contexts(
+    request: Request,
+    account_id: int,
+    purchase: str = Form(""),
+    sales: str = Form(""),
+    bank: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    try:
+        ledger.set_account_contexts(
+            session,
+            account_id,
+            purchase=purchase == "1",
+            sales=sales == "1",
+            bank=bank == "1",
+        )
+        session.commit()
+    except LedgerError as exc:
+        session.rollback()
+        return _accounts_page(request, session, error=exc.message, status=_status_for(exc))
     return _see_other("/instellingen/grootboek")
 
 
