@@ -92,7 +92,7 @@ def test_post_books_and_redirects_to_inkoop(client):
     doc_id = reviewed_doc(client)
     r = client.post(f"/inbox/{doc_id}/boeken", follow_redirects=False)
     assert r.status_code == 303
-    assert r.headers["location"] == "/inkoop?melding=geboekt"
+    assert r.headers["location"].startswith("/inkoop?melding=geboekt&boeking=")
     assert sql(client, "SELECT status FROM document WHERE id = :i", i=doc_id) == [("geboekt",)]
     assert sql(client, "SELECT count(*) FROM purchase_invoice") == [(1,)]
     assert entries(client) == 1

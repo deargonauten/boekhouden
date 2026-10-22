@@ -109,7 +109,8 @@ def booking_preview(request: Request, document_id: int, session: Session = Depen
 @router.post("/inbox/{document_id:int}/boeken")
 def book_document(request: Request, document_id: int, session: Session = Depends(get_session)):
     try:
-        book_extraction(session, document_id)
+        invoice = book_extraction(session, document_id)
+        entry_id = invoice.journal_entry_id
         session.commit()
     except LedgerError as exc:
         session.rollback()
@@ -117,4 +118,4 @@ def book_document(request: Request, document_id: int, session: Session = Depends
             return web.not_found_response(request)
         preview, _ = _preview_or_404(request, session, document_id)
         return _page(request, preview, 422, error=exc)
-    return RedirectResponse("/inkoop?melding=geboekt", status_code=303)
+    return RedirectResponse(f"/inkoop?melding=geboekt&boeking={entry_id}", status_code=303)
