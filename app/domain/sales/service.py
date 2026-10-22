@@ -173,7 +173,8 @@ def _reversed_ids(session: Session) -> set[int]:
 
 def _applied_maps(session: Session) -> tuple[dict[int, int], dict[int, int]]:
     """(applied per invoice, applied per credit note); applications of storno'd credit notes
-    do not count (that credit note no longer reduces the debt)."""
+    do not count (that credit note no longer reduces the debt), and a credit note's applications
+    to a storno'd invoice are released (that invoice no longer has a debt to set off)."""
     reversed_ids = _reversed_ids(session)
     to_invoice: dict[int, int] = {}
     by_credit: dict[int, int] = {}
@@ -184,7 +185,8 @@ def _applied_maps(session: Session) -> tuple[dict[int, int], dict[int, int]]:
             SalesCreditApplication.amount_cents,
         )
     ):
-        by_credit[credit_id] = by_credit.get(credit_id, 0) + amount
+        if invoice_id not in reversed_ids:
+            by_credit[credit_id] = by_credit.get(credit_id, 0) + amount
         if credit_id not in reversed_ids:
             to_invoice[invoice_id] = to_invoice.get(invoice_id, 0) + amount
     return to_invoice, by_credit
@@ -555,7 +557,7 @@ def _snapshot(invoice: SalesInvoice, company, contact: Contact) -> None:
 
 def _document(
     session: Session, invoice: SalesInvoice, lines: Sequence[SalesInvoiceLine], groups: Sequence[VatGroup],
-    rates: dict[str, int],
+    rates: dict[str, int], *, is_concept: bool | None = None,
 ) -> InvoiceDocument:
     original = session.get(SalesInvoice, invoice.credited_invoice_id) if invoice.credited_invoice_id else None
     s = lambda v: v or ""  # noqa: E731
@@ -596,7 +598,7 @@ def _document(
         note=invoice.note,
         credited_number=original.number if original else None,
         credited_date=original.invoice_date if original else None,
-        is_concept=invoice.status == CONCEPT,
+        is_concept=invoice.status == CONCEPT if is_concept is None else is_concept,
     )
 
 
@@ -643,6 +645,7 @@ def finalize(session: Session, invoice_id: int, *, storage: DocumentStorage | No
             [(l.original_line_id, l.quantity_milli) for l in lines],
             {l.id: (l.quantity_milli, credited.get(l.id, 0)) for l in original.lines},
         )
+        totals = _cap_credit_totals(session, original, invoice, lines, totals)
     check_finalizable(
         FinalizeInput(
             kind=invoice.kind,
@@ -703,7 +706,9 @@ def finalize(session: Session, invoice_id: int, *, storage: DocumentStorage | No
         entry.source_id = invoice.id
         session.flush()
         try:
-            pdf_bytes = sales_pdf.render_invoice_pdf(_document(session, invoice, invoice.lines, totals.groups, rates))
+            # the status flips to definitief only below (rollback must stay possible), so say it here
+            pdf_bytes = sales_pdf.render_invoice_pdf(
+                _document(session, invoice, invoice.lines, totals.groups, rates, is_concept=False))
             stored = storage.write(pdf_bytes, "pdf")
         except LedgerError:
             raise
@@ -723,6 +728,53 @@ def finalize(session: Session, invoice_id: int, *, storage: DocumentStorage | No
         except IntegrityError as exc:  # e.g. a parallel finalize took the same number
             raise SalesError(PDF_FAILED, "De factuur kon niet worden vastgelegd. Probeer het opnieuw.") from exc
     return invoice
+
+
+def _cap_credit_totals(
+    session: Session, original: SalesInvoice, credit: SalesInvoice, lines: Sequence[LineInput], totals: Totals
+) -> Totals:
+    """Cumulative money limit of the credit notes of one invoice (the quantity limit is checked
+    separately). Every credit rounds on its own, so several partial credits could add up to a cent
+    or two more than the invoice. A line amount is therefore capped at what is left of the
+    original line, and the VAT of a btw-code at what is left of the original VAT; so the last
+    partial credit takes the remainder."""
+    line_left = {l.id: l.line_excl_cents for l in original.lines}
+    vat_left = {v.vat_code: v.vat_cents for v in original.vat_rows}
+    others = (
+        select(SalesInvoice.id)
+        .where(SalesInvoice.credited_invoice_id == original.id, SalesInvoice.status == DEFINITIEF,
+               SalesInvoice.id != credit.id, _not_storno_d())
+    )
+    for lid, amount in session.execute(
+        select(SalesInvoiceLine.original_line_id, func.sum(SalesInvoiceLine.line_excl_cents))
+        .where(SalesInvoiceLine.invoice_id.in_(others), SalesInvoiceLine.original_line_id.is_not(None))
+        .group_by(SalesInvoiceLine.original_line_id)
+    ):
+        line_left[lid] = line_left.get(lid, 0) - int(amount)
+    for code, amount in session.execute(
+        select(SalesInvoiceVat.vat_code, func.sum(SalesInvoiceVat.vat_cents))
+        .where(SalesInvoiceVat.invoice_id.in_(others)).group_by(SalesInvoiceVat.vat_code)
+    ):
+        vat_left[code] = vat_left.get(code, 0) - int(amount)
+
+    amounts, bases = [], {}
+    for line, amount in zip(lines, totals.line_excl_cents):
+        amount = max(min(amount, line_left.get(line.original_line_id, amount)), 0)
+        if line.original_line_id in line_left:
+            line_left[line.original_line_id] -= amount
+        amounts.append(amount)
+        bases[line.vat_code] = bases.get(line.vat_code, 0) + amount
+    groups = tuple(
+        VatGroup(g.vat_code, g.rate_bp, bases.get(g.vat_code, 0),
+                 max(min(_vat_of(bases.get(g.vat_code, 0), g.rate_bp), vat_left.get(g.vat_code, g.vat_cents)), 0))
+        for g in totals.groups
+    )
+    excl, vat = sum(g.base_cents for g in groups), sum(g.vat_cents for g in groups)
+    return Totals(tuple(amounts), groups, excl, vat, excl + vat)
+
+
+def _vat_of(base_cents: int, rate_bp: int) -> int:
+    return (2 * base_cents * rate_bp + 10000) // 20000
 
 
 def _relative_path(storage: DocumentStorage, path: Path) -> str:

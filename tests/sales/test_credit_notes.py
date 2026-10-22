@@ -164,3 +164,59 @@ def test_trial_balance_after_credit(session, original, storage):
     assert tb["1300"].debit_cents == tb["1300"].credit_cents
     assert tb["3100"].debit_cents == tb["3100"].credit_cents
     assert tb["8000"].debit_cents == tb["8000"].credit_cents
+
+
+def _credit(session, storage, original, qty_milli):
+    note = create_credit_concept(session, original.id, today=date(2026, 3, 15))
+    session.commit()
+    save_concept(session, note.id, ConceptInput(note.contact_id, note.invoice_date, credit_lines(note, {0: qty_milli})))
+    finalize(session, note.id, storage=storage)
+    session.commit()
+    return note
+
+
+@pytest.mark.parametrize("vat_code", ["NL_0", "NL_21"])
+def test_partial_credits_never_exceed_the_original_amounts(session, make_final, customer, acc, storage, vat_code):
+    original = make_final(customer, lines=[LineInput("Klus", 1000, 101, vat_code, acc("8000"))])
+    notes = [_credit(session, storage, original, 500), _credit(session, storage, original, 500)]
+    assert sum(n.total_excl_cents for n in notes) == original.total_excl_cents == 101
+    assert sum(n.total_vat_cents for n in notes) == original.total_vat_cents
+    assert sum(n.total_incl_cents for n in notes) == original.total_incl_cents
+    assert [n.lines[0].line_excl_cents for n in notes] == [51, 50]  # last credit takes the remainder
+    assert open_amount(session, original) == 0 and open_amount(session, notes[1]) == 0
+    tb = {r.code: r for r in trial_balance(session)}
+    assert tb["1300"].debit_cents == tb["1300"].credit_cents
+
+
+def test_three_thirds_stay_within_original(session, make_final, customer, acc, storage):
+    original = make_final(customer, lines=[LineInput("Klus", 1000, 101, "NL_21", acc("8000"))])
+    notes = [_credit(session, storage, original, 333) for _ in range(3)]
+    assert sum(n.total_excl_cents for n in notes) <= original.total_excl_cents
+    assert sum(n.total_vat_cents for n in notes) <= original.total_vat_cents
+    assert sum(n.total_incl_cents for n in notes) <= original.total_incl_cents
+    assert all(n.total_incl_cents >= 0 for n in notes)
+    assert open_amount(session, original) >= 0
+
+
+def test_reversed_original_releases_credit_application(session, original, storage, acc):
+    from app.domain.reconcile import list_open_items
+    from app.domain.sales import debiteuren_overview, stats
+
+    note = create_credit_concept(session, original.id)
+    finalize(session, note.id, storage=storage)
+    session.commit()
+    assert stats(session, date(2026, 3, 20)).total_open_cents == 0
+    reverse_entry(session, original.journal_entry_id)
+    session.commit()
+
+    tb = {r.code: r for r in trial_balance(session)}
+    balance_1300 = tb["1300"].debit_cents - tb["1300"].credit_cents  # negative: we owe the klant
+    assert balance_1300 == -original.total_incl_cents
+    assert open_amount(session, original) == 0
+    assert open_amount(session, note) == note.total_incl_cents  # the credit is open again
+    assert get_detail(session, note.id, today=date(2026, 3, 20)).status == "openstaand"
+    assert stats(session, date(2026, 3, 20)).total_open_cents == balance_1300
+    rows = debiteuren_overview(session, date(2026, 3, 20))
+    assert sum(r.total_cents for r in rows) == balance_1300
+    items = [i for i in list_open_items(session, "debiteur") if i.source == "sales_invoice"]
+    assert [(i.source_id, i.open_cents, i.is_credit) for i in items] == [(note.id, note.total_incl_cents, True)]
