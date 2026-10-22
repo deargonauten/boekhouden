@@ -7,6 +7,7 @@ from app.domain.vat.filing import (
     file_vat_return,
     get_return,
     get_snapshot,
+    kind_for_year,
     list_returns,
 )
 from app.domain.vat.icp import (
@@ -29,10 +30,14 @@ from app.domain.vat.periods import (
 )
 from app.domain.vat.rates import parse_rate_bp
 from app.domain.vat.report import (
+    DIRECTION_LABELS,
+    DrillLine,
     RubriekLine,
     VatReport,
     VatWarning,
     build_vat_report,
+    drilldown,
+    year_omzet_cents,
 )
 from app.domain.vat.rubrieken import (
     ALSO_INPUT_VAT,
@@ -58,9 +63,9 @@ from app.domain.vat.service import (
 )
 
 __all__ = [
-    "FiledReturn", "IcpReport", "IcpRow", "IcpUnassigned", "KOR_LIMIT_CENTS", "ReturnRow",
+    "DIRECTION_LABELS", "DrillLine", "FiledReturn", "IcpReport", "IcpRow", "IcpUnassigned", "KOR_LIMIT_CENTS", "ReturnRow",
     "ReturnSnapshot", "RubriekLine", "VatPeriod", "VatReport", "VatSettings", "VatWarning",
-    "build_icp", "build_vat_report", "couple_entry_contact", "deadline", "file_vat_return",
+    "build_icp", "drilldown", "kind_for_year", "year_omzet_cents", "build_vat_report", "couple_entry_contact", "deadline", "file_vat_return",
     "get_return", "get_snapshot", "get_vat_settings", "is_kor", "list_returns", "months",
     "period_for_date", "period_range", "periods_of_year", "previous", "quarter_of",
     "save_vat_settings", "suggest_contact",

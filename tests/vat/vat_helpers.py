@@ -109,3 +109,17 @@ def link_invoice(session, entry, contact, *, btw="DE123456789", country="DE", na
     session.add(inv)
     session.flush()
     return inv
+
+
+def set_company(session, btw_id="NL123456789B01", name="Jansen Advies"):
+    from datetime import datetime
+
+    from app.models import CompanyProfile
+
+    row = session.get(CompanyProfile, 1)
+    now = datetime(2026, 1, 1)
+    if row is None:
+        session.add(CompanyProfile(id=1, legal_name=name, btw_id=btw_id, created_at=now, updated_at=now))
+    else:
+        row.btw_id, row.legal_name = btw_id, name
+    session.flush()
