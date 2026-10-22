@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     database_path: Path = Path("data/boekhouden.db")
     documents_dir: Path = Path("data/documents")
+    bank_dir: Path = Path("data/bank")
     app_host: str = "127.0.0.1"
     app_port: int = 8000
     app_reload: bool = True
@@ -35,6 +36,7 @@ class Settings(BaseSettings):
         # Resolve relative paths against the repo root so cwd does not matter.
         self.database_path = _resolve(self.database_path)
         self.documents_dir = _resolve(self.documents_dir)
+        self.bank_dir = _resolve(self.bank_dir)
 
     @property
     def database_url(self) -> str:
@@ -49,3 +51,4 @@ def get_settings() -> Settings:
 def ensure_data_dirs(settings: Settings) -> None:
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
     settings.documents_dir.mkdir(parents=True, exist_ok=True)
+    settings.bank_dir.mkdir(parents=True, exist_ok=True)
