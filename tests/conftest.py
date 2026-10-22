@@ -13,6 +13,7 @@ def test_settings(tmp_path) -> Settings:
         _env_file=None,
         database_path=tmp_path / "data" / "test.db",
         documents_dir=tmp_path / "data" / "documents",
+        bank_dir=tmp_path / "data" / "bank",
     )
 
 

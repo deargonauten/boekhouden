@@ -372,7 +372,7 @@ async def import_start(
 
 
 def _preview_page(request: Request, session: Session, storage, batch, *, error=None, status=200):
-    preview = bank_service.get_preview(session, storage, batch.id)
+    preview = bank_service.preview_batch(session, storage, batch.id)
     account = _get_bank_account(session, batch.bank_account_id)
     return _render(
         request,

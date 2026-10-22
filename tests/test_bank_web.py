@@ -162,7 +162,7 @@ class FakeBank:
         self.batches[batch.id] = batch
         return self._classify(batch)[1]
 
-    def get_preview(self, session, storage, batch_id):
+    def preview_batch(self, session, storage, batch_id):
         return self._classify(self.batches[batch_id])[1]
 
     def confirm_import(self, session, storage, batch_id, include_maybe_ids):
@@ -220,7 +220,7 @@ def bank(client, monkeypatch, tmp_path):
     client.app.dependency_overrides[bank_routes.get_storage] = lambda: storage
     for module, names in (
         (bank_accounts, ("suggest_account", "list_bank_accounts", "create_bank_account", "update_bank_account", "deactivate")),
-        (bank_service, ("start_import", "get_preview", "confirm_import", "list_transactions", "list_batches", "bank_stats")),
+        (bank_service, ("start_import", "preview_batch", "confirm_import", "list_transactions", "list_batches", "bank_stats")),
     ):
         for name in names:
             monkeypatch.setattr(module, name, getattr(fake, name), raising=False)
