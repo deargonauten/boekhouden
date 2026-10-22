@@ -17,6 +17,7 @@ from app.domain.ledger.service import (
     delete_account,
     get_entry,
     list_accounts,
+    list_accounts_for,
     list_entries,
     list_fiscal_years,
     list_journals,
@@ -26,6 +27,8 @@ from app.domain.ledger.service import (
     rename_account,
     reverse_entry,
     set_account_active,
+    set_account_contexts,
+    set_account_vat_default,
     set_journal_active,
     trial_balance,
 )
@@ -37,6 +40,7 @@ from app.domain.ledger.suggestions import (
     suggest_account_code,
     suggest_fiscal_year,
 )
+from app.domain.ledger.service import suggest_vat_code
 
 __all__ = [
     "ACCOUNT_TYPE_LABELS", "JOURNAL_TYPE_LABELS", "default_journal_id",
@@ -45,7 +49,7 @@ __all__ = [
     "NewLine", "Page", "TrialBalanceRow", "add_account", "add_journal", "build_storno",
     "close_fiscal_year", "create_fiscal_year", "delete_account", "generate_periods",
     "get_entry", "list_accounts", "list_entries", "list_fiscal_years", "list_journals",
-    "list_vat_codes", "lock_period", "period_for_date", "post_entry", "rename_account",
+    "list_vat_codes", "list_accounts_for", "set_account_contexts", "set_account_vat_default", "suggest_vat_code", "lock_period", "period_for_date", "post_entry", "rename_account",
     "reverse_entry", "set_account_active", "set_journal_active", "trial_balance",
     "validate_entry",
 ]
