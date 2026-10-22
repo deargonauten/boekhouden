@@ -7,7 +7,7 @@
 {% call settings_header("Btw-codes") %}<a class="btn" href="#btw-code-toevoegen" data-modal-open="#btw-code-toevoegen">{{ icon("plus") }}Btw-code toevoegen</a>{% endcall %}
 {% endblock %}
 {% block settings_content %}
-<p class="lead">Een btw-code is het btw-tarief dat je bij een bedrag kiest, bijvoorbeeld 21% of 'btw verlegd'. {{ info("btw_code") }} Bij elke code staat in welk vakje van je btw-aangifte het bedrag later terechtkomt. {{ info("rubriek") }}</p>
+<p class="lead">Een btw-code is het btw-tarief dat je bij een bedrag kiest, bijvoorbeeld 21% of 'btw verlegd'. {{ info("btw_code") }} Bij elke code staat in welk vakje van je btw-aangifte het bedrag later terechtkomt. {{ info("btw") }} {{ info("rubriek") }}</p>
 <p class="field__hint">Bij inkoop is dat meestal het vakje met je voorbelasting. {{ info("voorbelasting") }} Werk je met de kleineondernemersregeling? {{ info("kor") }} Voeg dan een code van 0% toe en laat de vakjes leeg.</p>
 {% if error and not add_error and not edit_code %}{{ error_box(error) }}{% endif %}
 

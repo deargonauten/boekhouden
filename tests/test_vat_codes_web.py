@@ -155,3 +155,9 @@ def test_rubriek_suggestion_fragment(client):
     assert 'value="1e" selected' in r.text
     # unparseable rate falls back to the 21% suggestion without an error page
     assert client.get("/instellingen/btw-codes/voorstel", params={"rate": "zz"}).status_code == 200
+
+
+def test_page_is_plain_language(client):
+    from tests.web_helpers import assert_plain_language
+
+    assert_plain_language(client, "/instellingen/btw-codes")
