@@ -13,6 +13,7 @@
   {# htmx 2.0.4, vendored in static/htmx.min.js; no CDN at runtime #}
   <script src="/static/htmx.min.js" defer></script>
   <script src="/static/app.js" defer></script>
+  <script src="/static/js/combobox.js" defer></script>
   {# htmx does not swap 4xx by default; our forms return 409/422 with the error message rendered in the page #}
   <script>
     document.addEventListener("htmx:beforeSwap", function (e) {
