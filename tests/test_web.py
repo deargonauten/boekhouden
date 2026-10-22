@@ -9,7 +9,6 @@ from app.web.navigation import NAV_ITEMS, mark_active
 PAGES = [
     ("/bank", "Bank"),
     ("/verkoop", "Verkoop"),
-    ("/inkoop", "Inkoop"),
     ("/btw", "BTW"),
     ("/rapportages", "Rapportages"),
     ("/activa", "Activa"),
