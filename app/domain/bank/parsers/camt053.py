@@ -77,13 +77,11 @@ def _amount(el: Element | None, where: str) -> tuple[int, str | None]:
     return cents, el.get("Ccy")
 
 
-def _signed(cents: int, indicator: str | None, reversal: bool, where: str) -> int:
+def _signed(cents: int, indicator: str | None, where: str) -> int:
+    # CdtDbtInd already states the booked effect on the balance, also for reversals (RvslInd).
     if indicator not in ("CRDT", "DBIT"):
         raise parse_error(where, "heeft geen bij/af-aanduiding (CdtDbtInd)")
-    sign = 1 if indicator == "CRDT" else -1
-    if reversal:
-        sign = -sign
-    return sign * cents
+    return cents if indicator == "CRDT" else -cents
 
 
 def _party_name(party: Element | None) -> str | None:
@@ -133,7 +131,7 @@ def _balance(stmt: Element, codes: tuple[str, ...], where: str) -> int | None:
         if code in codes:
             cents, ccy = _amount(_child(bal, "Amt"), where + " (saldo)")
             require_eur(ccy, where)
-            return _signed(cents, _text(bal, "CdtDbtInd"), False, where + " (saldo)")
+            return _signed(cents, _text(bal, "CdtDbtInd"), where + " (saldo)")
     return None
 
 
@@ -237,7 +235,7 @@ class Camt053Parser:
         return out
 
     def _build(self, entry, tx, cents, indicator, reversal, booking, value, entry_ref, raw, where):
-        amount = _signed(cents, indicator, reversal, where)
+        amount = _signed(cents, indicator, where)
         if amount == 0:
             raise parse_error(where, "heeft een bedrag van 0")
         name, iban = _counterparty(tx, amount > 0)

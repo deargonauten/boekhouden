@@ -21,7 +21,7 @@
       <div class="field">
         <label for="name">Hoe wil je deze rekening noemen?</label>
         <input id="name" name="name" value="{{ values.name }}" maxlength="100" aria-describedby="name-hint">
-        <p class="field__hint hint" id="name-hint">Bijvoorbeeld Zakelijke rekening ING. Laat je dit leeg, dan kiest het programma een naam.</p>
+        <p class="field__hint hint" id="name-hint">Bijvoorbeeld Zakelijke rekening ING. {% if bank_account %}Vul een naam in; zonder naam kun je dit niet opslaan.{% else %}Laat je dit leeg, dan kiest het programma een naam.{% endif %}</p>
       </div>
       <div class="field span-2">
         <label for="iban">{{ term_label("iban", "Rekeningnummer") }}</label>

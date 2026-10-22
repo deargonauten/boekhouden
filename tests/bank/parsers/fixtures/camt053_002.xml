@@ -78,7 +78,7 @@
         </NtryDtls>
       </Ntry>
       <Ntry>
-        <Amt Ccy="EUR">20.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><RvslInd>true</RvslInd><Sts>BOOK</Sts>
+        <Amt Ccy="EUR">20.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><RvslInd>true</RvslInd><Sts>BOOK</Sts>
         <BookgDt><Dt>2024-03-04</Dt></BookgDt>
         <AcctSvcrRef>REF-0005</AcctSvcrRef>
         <AddtlNtryInf>Terugboeking</AddtlNtryInf>

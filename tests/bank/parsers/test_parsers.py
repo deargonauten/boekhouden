@@ -44,7 +44,7 @@ def test_camt053_002_golden():
         (date(2024, 3, 4), -350, None, None, "Koffie"),
         (date(2024, 3, 4), 10000, "Klant A", None, "Deel A"),
         (date(2024, 3, 4), 5000, "Klant B", None, "Deel B"),
-        (date(2024, 3, 4), 2000, None, None, "Terugboeking"),  # reversal of a debit flips the sign
+        (date(2024, 3, 4), 2000, None, None, "Terugboeking"),  # reversed debit: CRDT + RvslInd, sign from CdtDbtInd only
     ]
     assert_balances(st)
 
