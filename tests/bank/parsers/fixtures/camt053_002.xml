@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <BkToCstmrStmt>
+    <GrpHdr><MsgId>MSG-1</MsgId><CreDtTm>2024-03-05T08:00:00</CreDtTm></GrpHdr>
+    <Stmt>
+      <Id>STMT-1</Id>
+      <Acct>
+        <Id><IBAN>NL91ABNA0417164300</IBAN></Id>
+        <Ccy>EUR</Ccy>
+        <Svcr><FinInstnId><BIC>ABNANL2A</BIC></FinInstnId></Svcr>
+      </Acct>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="EUR">1000.00</Amt><CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>2024-02-29</Dt></Dt>
+      </Bal>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="EUR">2150.90</Amt><CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>2024-03-04</Dt></Dt>
+      </Bal>
+      <Ntry>
+        <NtryRef>N1</NtryRef>
+        <Amt Ccy="EUR">12.10</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2024-03-01</Dt></BookgDt><ValDt><Dt>2024-03-01</Dt></ValDt>
+        <AcctSvcrRef>REF-0001</AcctSvcrRef>
+        <NtryDtls><TxDtls>
+          <Refs><EndToEndId>E2E-001</EndToEndId></Refs>
+          <RltdPties>
+            <Cdtr><Nm>Kantoor BV</Nm></Cdtr>
+            <CdtrAcct><Id><IBAN>NL02ABNA0123456789</IBAN></Id></CdtrAcct>
+          </RltdPties>
+          <RmtInf><Ustrd>Factuur 2024-001</Ustrd><Ustrd>kantoorartikelen</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">1000.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2024-03-02</Dt></BookgDt><ValDt><Dt>2024-03-02</Dt></ValDt>
+        <AcctSvcrRef>REF-0002</AcctSvcrRef>
+        <NtryDtls><TxDtls>
+          <Refs><EndToEndId>NOTPROVIDED</EndToEndId></Refs>
+          <RltdPties>
+            <Dbtr><Nm>Klant BV</Nm></Dbtr>
+            <DbtrAcct><Id><IBAN>NL71INGB0009876543</IBAN></Id></DbtrAcct>
+          </RltdPties>
+          <RmtInf><Ustrd>Betaling factuur 17</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">3.50</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2024-03-04</Dt></BookgDt>
+        <AcctSvcrRef>REF-0003</AcctSvcrRef>
+        <AddtlNtryInf>Koffie</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">3.50</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2024-03-04</Dt></BookgDt>
+        <AcctSvcrRef>REF-0003</AcctSvcrRef>
+        <AddtlNtryInf>Koffie</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">150.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2024-03-04</Dt></BookgDt>
+        <AcctSvcrRef>REF-0004</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs><EndToEndId>BATCH-1</EndToEndId></Refs>
+            <Amt Ccy="EUR">100.00</Amt>
+            <RltdPties><Dbtr><Nm>Klant A</Nm></Dbtr></RltdPties>
+            <RmtInf><Ustrd>Deel A</Ustrd></RmtInf>
+          </TxDtls>
+          <TxDtls>
+            <Refs><EndToEndId>BATCH-2</EndToEndId></Refs>
+            <Amt Ccy="EUR">50.00</Amt>
+            <RltdPties><Dbtr><Nm>Klant B</Nm></Dbtr></RltdPties>
+            <RmtInf><Ustrd>Deel B</Ustrd></RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">20.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><RvslInd>true</RvslInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2024-03-04</Dt></BookgDt>
+        <AcctSvcrRef>REF-0005</AcctSvcrRef>
+        <AddtlNtryInf>Terugboeking</AddtlNtryInf>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

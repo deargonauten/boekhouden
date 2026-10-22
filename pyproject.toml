@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings",
     "python-multipart",
     "anthropic>=1.17.0",
+    "defusedxml>=0.7.1",
 ]
 
 [dependency-groups]

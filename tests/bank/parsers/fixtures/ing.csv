@@ -1,0 +1,5 @@
+"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen"
+"20240301";"Kantoor BV";"NL20INGB0001234567";"NL02ABNA0123456789";"OV";"Af";"12,10";"Overschrijving";"Factuur 2024-001"
+"20240302";"Klant BV";"NL20INGB0001234567";"NL71INGB0009876543";"OV";"Bij";"1.000,00";"Overschrijving";"Betaling factuur 17"
+"20240304";"Koffiebar";"NL20INGB0001234567";"";"BA";"Af";"3,50";"Betaalautomaat";"Koffie"
+"20240304";"Koffiebar";"NL20INGB0001234567";"";"BA";"Af";"3,50";"Betaalautomaat";"Koffie"
