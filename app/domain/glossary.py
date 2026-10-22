@@ -172,6 +172,18 @@ _TERMS: list[Term] = [
     Term("claude_abonnement", "Claude-abonnement", "Uitlezen via je eigen Claude-account",
          "Het uitlezen gebruikt je eigen Claude-account, zonder extra kosten buiten je abonnement. Alternatief: zet een API-sleutel in .env en betaal per factuur.",
          (_NEVER,)),
+    Term("rubriek", "Rubriek", "Vakje in de btw-aangifte",
+         "Een genummerd vakje op het btw-formulier, zoals 1a of 5b. Het programma zet elk bedrag in het juiste vakje op basis van de btw-code.",
+         (r"\brubriek(?:en)?\b",)),
+    Term("standaard_btw", "Standaard btw-tarief", "Tarief dat vooraf wordt ingevuld",
+         "Het btw-tarief dat het programma voorstelt als je deze rekening kiest. Je kunt het bij elke boeking nog aanpassen."),
+    Term("selecteerbaar_bij", "Selecteerbaar bij", "Waar de rekening in de lijst staat",
+         "Bepaalt in welke keuzelijsten de rekening verschijnt: bij inkoop, verkoop of bank. Zo houd je de lijst kort en kies je sneller de goede rekening."),
+    Term("voorbelasting", "Voorbelasting", "Btw die je terugkrijgt",
+         "De btw op je inkopen en kosten. Die mag je aftrekken van de btw die je zelf moet afdragen.",
+         (r"\bvoorbelasting\b",)),
+    Term("kor", "KOR", "Kleineondernemersregeling",
+         "Met de KOR reken je geen btw aan en trek je ook geen btw af, zolang je omzet onder de grens blijft. Je doet dan geen btw-aangifte."),
 ]
 
 GLOSSARY: dict[str, Term] = {t.key: t for t in _TERMS}
