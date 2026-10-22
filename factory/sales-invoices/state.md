@@ -12,3 +12,5 @@ Step 2 done: A, B, C merged into factory/sales-invoices. Worktrees removed.
 Tests: .venv/bin/python -m pytest -q -> 2210 passed, 1 deselected (2026-10-22)
 Step 3: review round 1 starting. Base: main
 Step 3 review round 1: security PASS, code REWORK (3), ux-ui REWORK (1). Fix builders D (service.py) and E (edit.html/confirm) started.
+Round-2 fixes: E merged (2217 passed on E branch). D pending.
+Round-2 fixes D,E merged. Tests: .venv/bin/python -m pytest -q -> 2222 passed, 1 deselected (2026-10-22). Review round 2 started.
