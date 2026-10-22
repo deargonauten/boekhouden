@@ -365,3 +365,42 @@ def test_other_mem_entries_do_not_count(session, year2025, acc, jrn):
     )
     session.commit()
     assert get_opening_balance(session) is None
+
+
+# --- concurrency ---------------------------------------------------------------------------
+def test_overlapping_first_submissions_leave_one_active_entry(engine, session, year2025, acc, people):
+    """A second submission that completes while the first one is about to take the write
+    lock must not produce a second active beginbalans (the lookup and the writes of the
+    first submission belong to one transaction)."""
+    from sqlalchemy.orm import Session
+
+    first = OpeningInput(balances=[(acc("1210"), 1000000)], items=[])
+    second = OpeningInput(balances=[(acc("1210"), 2000000)], items=[])
+    real_open = opening_service._open_transaction
+    fired = []
+
+    def interleaved(sess):
+        if not fired:
+            fired.append(True)
+            with Session(engine, expire_on_commit=False) as other:
+                book(other, second)
+        real_open(sess)
+
+    opening_service._open_transaction = interleaved
+    try:
+        try:
+            book(session, first)
+        except OpeningError:
+            session.rollback()
+    finally:
+        opening_service._open_transaction = real_open
+
+    assert fired
+    session.expire_all()
+    stornoed = select(JournalEntry.reverses_entry_id).where(JournalEntry.reverses_entry_id.is_not(None))
+    active = session.scalars(
+        select(JournalEntry).where(JournalEntry.kind == "opening", JournalEntry.id.not_in(stornoed),
+                                   JournalEntry.reverses_entry_id.is_(None))
+    ).all()
+    assert len(active) == 1
+    assert get_opening_balance(session).assets_cents == 1000000  # the later submission replaced the earlier

@@ -53,8 +53,9 @@
         <tbody>
         {% for a in assets %}
         <tr>
-          <td>{{ a.code }} {{ a.name }}</td>
-          <td><input type="hidden" name="balance_account" value="{{ a.id }}"><input name="balance_amount" value="{{ state.balances.get(a.id, '') }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag voor {{ a.code }} {{ a.name }}"></td>
+          {% set key = account_terms.get(a.code) %}
+          <td>{% if key %}<strong>{{ explain(key).plain }}</strong> <span class="hint">{{ a.code }} {{ a.name }}</span> {{ info(key) }}{% else %}{{ a.code }} {{ a.name }}{% endif %}</td>
+          <td><input type="hidden" name="balance_account" value="{{ a.id }}"><input name="balance_amount" value="{{ state.balances.get(a.id, '') }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag voor {{ explain(key).plain ~ ' - ' if key }}{{ a.code }} {{ a.name }}"></td>
         </tr>
         {% endfor %}
         </tbody>
@@ -73,8 +74,9 @@
         <tbody>
         {% for a in liabilities %}
         <tr>
-          <td>{{ a.code }} {{ a.name }}</td>
-          <td><input type="hidden" name="balance_account" value="{{ a.id }}"><input name="balance_amount" value="{{ state.balances.get(a.id, '') }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag voor {{ a.code }} {{ a.name }}"></td>
+          {% set key = account_terms.get(a.code) %}
+          <td>{% if key %}<strong>{{ explain(key).plain }}</strong> <span class="hint">{{ a.code }} {{ a.name }}</span> {{ info(key) }}{% else %}{{ a.code }} {{ a.name }}{% endif %}</td>
+          <td><input type="hidden" name="balance_account" value="{{ a.id }}"><input name="balance_amount" value="{{ state.balances.get(a.id, '') }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag voor {{ explain(key).plain ~ ' - ' if key }}{{ a.code }} {{ a.name }}"></td>
         </tr>
         {% endfor %}
         </tbody>

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.domain import ledger
 from app.domain.glossary import GLOSSARY
-from app.web import ledger_routes
+from app.web import ledger_routes, opening_routes
 from app.web.navigation import NAV_ITEMS
 from tests.web_helpers import (
     assert_plain_language,
@@ -172,8 +172,10 @@ def template_keys() -> set[str]:
 
 
 def label_table_keys() -> set[str]:
-    return set(ledger_routes.ACCOUNT_TYPE_TERM.values()) | set(
-        ledger_routes.JOURNAL_TYPE_TERM.values()
+    return (
+        set(ledger_routes.ACCOUNT_TYPE_TERM.values())
+        | set(ledger_routes.JOURNAL_TYPE_TERM.values())
+        | set(opening_routes.ACCOUNT_TERM.values())
     )
 
 

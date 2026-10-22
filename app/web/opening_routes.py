@@ -156,6 +156,21 @@ def parse_form(
     return OpeningInput(balances=balances, items=items), state, errors
 
 
+# Glossary key that explains the bookkeeping-flavoured accounts (label table for the info icons).
+ACCOUNT_TERM = {
+    "0190": "cumulatieve_afschrijvingen",
+    "1230": "kruisposten",
+    "1400": "voorbelasting",
+    "1410": "verlegd",
+    "3100": "btw_af_te_dragen",
+    "3110": "btw_af_te_dragen",
+    "3120": "btw_af_te_dragen",
+    "3130": "verlegd",
+    "3140": "btw_af_te_dragen",
+    "3150": "btw_rekening_courant",
+}
+
+
 def _contact_groups(session: Session, side: str):
     """Active relaties for the select: the matching role first, then the others."""
     flag = "is_customer" if side == DEBITEUR else "is_supplier"
@@ -185,6 +200,7 @@ def _page(request: Request, session: Session, *, state: FormState | None = None,
             assets=[a for a in accounts if a.type == "asset"],
             liabilities=[a for a in accounts if a.type == "liability"],
             state=state,
+            account_terms=ACCOUNT_TERM,
             summary=preview(session, data or OpeningInput()),
             sides=[(DEBITEUR, SIDE_TITLES[DEBITEUR]), (CREDITEUR, SIDE_TITLES[CREDITEUR])],
             contact_groups={s: _contact_groups(session, s) for s in (DEBITEUR, CREDITEUR)},

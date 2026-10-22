@@ -214,3 +214,21 @@ def test_page_is_plain_language(client):
     book(client, {"1210": "100,00"}, [("crediteur", supplier, "F-1", "2024-12-01", "", "10,00")])
     assert_plain_language(client, URL)
     assert_plain_language(client, "/inkoop")
+
+
+def test_account_rows_lead_with_plain_dutch_and_have_explainers(client):
+    start_year(client)
+    html = client.get(URL).text
+    # A plain label first, then the grootboek name, then the info marker whose
+    # explainer lives in the glossary.
+    from app.domain.glossary import GLOSSARY
+    from app.web.opening_routes import ACCOUNT_TERM
+
+    for code, key in ACCOUNT_TERM.items():
+        row = re.search(rf"<td><strong>[^<]*</strong> <span class=\"hint\">{code} .*?</td>", html, re.S)
+        assert row, f"geen uitleg-rij voor {code}"
+        cell = row.group(0)
+        assert f'data-term="{key}"' in cell, f"{code}: geen uitleg ({key})"
+        assert cell.index(GLOSSARY[key].plain) < cell.index(code), f"{code}: gewone taal komt niet eerst"
+    for plain in ("Al afgeschreven waarde", "Geld dat nog onderweg is", "Btw-saldo met de Belastingdienst"):
+        assert plain in html

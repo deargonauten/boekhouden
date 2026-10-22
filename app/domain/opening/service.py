@@ -352,6 +352,10 @@ def book_opening_balance(session: Session, data: OpeningInput, *, year: int | No
     `year`, if given, must be the first boekjaar (else NOT_FIRST_YEAR). Raises OpeningError
     or the ledger's LedgerError (locked period, inactive rekening). Nothing persists on failure.
     """
+    # Take SQLite's write lock first: the lookup of the active beginbalans, the replacement
+    # checks and the writes below are then one transaction, so two overlapping submissions
+    # cannot both see "no beginbalans yet" (the second waits, then replaces the first).
+    _open_transaction(session)
     fy = _require_year(session, year)
     journal_id = default_journal_id(session, "memoriaal")
     if journal_id is None:
@@ -379,7 +383,6 @@ def book_opening_balance(session: Session, data: OpeningInput, *, year: int | No
             if item.paid_cents > 0:
                 raise OpeningError(ITEM_PAID, item_paid_message(item.invoice_number))
 
-    _open_transaction(session)
     with session.begin_nested():
         if old is not None:
             reverse_entry(
