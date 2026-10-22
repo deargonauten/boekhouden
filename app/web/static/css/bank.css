@@ -1,8 +1,12 @@
 /* Bank (bankafschriften importeren): only screen-specific layout; shared looks live in app.css. */
-.bank-accounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--space-5); margin-bottom: var(--space-5); }
+.bank-accounts { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); margin-bottom: var(--space-5); }
 .bank-account { margin: 0; }
 .bank-account__name { margin: 0 0 var(--space-2); font-size: var(--text-lg); overflow-wrap: anywhere; }
-.bank-account__iban { margin: 0 0 var(--space-4); }
+.bank-account__iban { margin: 0; }
+/* One account = one full-width row: name and IBAN left, actions right; wraps below on narrow screens */
+.bank-account .card__body { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-6); }
+.bank-account__info { min-width: 0; }
+.bank-account .cluster { margin-left: auto; }
 .bank-account--inactive { opacity: 0.75; }
 
 .bank-table td.num, .bank-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -21,7 +25,6 @@
 
 @media (max-width: 599px) {
   .bank-filter-note { padding: var(--space-3) var(--space-4); }
-  .bank-accounts { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Afletteren */

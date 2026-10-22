@@ -377,7 +377,11 @@ button[disabled].htmx-request { cursor: progress; }
 .card__body { padding: var(--space-6); }
 .card__footer { padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border); }
 .card--flush { padding: 0; overflow: clip; } /* clip, not hidden: keeps .pager--sticky stuck to the viewport */
-.card--flush > .card__body { padding: 0; }
+.card--flush > .card__body:has(> .table-wrap, > table) { padding: 0; } /* text and form bodies keep their padding */
+.card--flush > .table-wrap + .card__body { border-top: 1px solid var(--border); }
+/* Table edges line up with the card header text */
+.card--flush table.data th:first-child, .card--flush table.data td:first-child { padding-left: var(--space-6); }
+.card--flush table.data th:last-child, .card--flush table.data td:last-child { padding-right: var(--space-6); }
 .card details > summary { cursor: pointer; padding: var(--space-4) var(--space-6); font-weight: 600; list-style: none; }
 .card details > summary::-webkit-details-marker { display: none; }
 .card details[open] > summary { border-bottom: 1px solid var(--border); }
@@ -839,15 +843,15 @@ iframe.file-view { height: 75vh; }
 .cb { position: relative; display: inline-block; max-width: 100%; vertical-align: middle; }
 .cb--fill { display: block; }
 .cb__native { opacity: 0; pointer-events: none; }
-.cb .cb__input {
+.cb .cb__input.cb__input {
   position: absolute; inset: 0; width: 100%; min-width: 0; box-sizing: border-box; margin: 0;
   padding-right: 2.25rem; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23586075' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
 }
-.cb.is-open .cb__input { border-color: var(--primary); box-shadow: var(--focus-ring); cursor: text; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 6.5l5-5 5 5' fill='none' stroke='%23586075' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
-.cb.is-placeholder .cb__input { color: var(--muted); }
-.cb .cb__input::placeholder { color: var(--fg); opacity: 0.55; }
-.cb .cb__input:disabled { opacity: 0.6; cursor: not-allowed; }
+.cb.is-open .cb__input.cb__input { border-color: var(--primary); box-shadow: var(--focus-ring); cursor: text; background-repeat: no-repeat; background-position: right 0.75rem center; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 6.5l5-5 5 5' fill='none' stroke='%23586075' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.cb.is-placeholder .cb__input.cb__input { color: var(--muted); }
+.cb .cb__input.cb__input::placeholder { color: var(--fg); opacity: 0.55; }
+.cb .cb__input.cb__input:disabled { opacity: 0.6; cursor: not-allowed; }
 .cb__panel {
   position: fixed; z-index: 100; box-sizing: border-box; overflow: hidden; padding: var(--space-1) 0 var(--space-2);
   background: var(--surface); color: var(--fg); border: 1px solid var(--border);
@@ -857,8 +861,8 @@ iframe.file-view { height: 75vh; }
 .cb__search { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
 .cb__icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .cb__icon--search { color: var(--muted); }
-.cb .cb__q { flex: 1; min-width: 0; border: 0; outline: 0; box-shadow: none; background: transparent; padding: var(--space-1) 0; font: inherit; color: var(--fg); }
-.cb .cb__q::placeholder { color: var(--muted); }
+.cb .cb__q.cb__q { flex: 1; min-width: 0; border: 0; outline: 0; box-shadow: none; background: transparent; padding: var(--space-1) 0; font: inherit; color: var(--fg); }
+.cb .cb__q.cb__q::placeholder { color: var(--muted); }
 .cb__clear { flex: none; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--muted); cursor: pointer; }
 .cb__clear[hidden] { display: none; }
 .cb__clear .cb__icon { width: 12px; height: 12px; stroke-width: 2.5; }

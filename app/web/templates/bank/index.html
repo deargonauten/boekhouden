@@ -39,8 +39,10 @@
   {% for a in accounts %}
   <section class="card bank-account{% if not a.is_active %} bank-account--inactive{% endif %}">
     <div class="card__body">
+      <div class="bank-account__info">
       <h2 class="bank-account__name">{{ a.name }}{% if not a.is_active %} <span class="pill pill--neutral">Niet actief</span>{% endif %}</h2>
       <p class="bank-account__iban"><span class="muted">IBAN {{ info("iban") }}</span> <span class="nowrap">{{ a.iban|bank_iban }}</span></p>
+      </div>
       <div class="cluster">
         {% if a.is_active %}<a class="btn" href="/bank/importeren?rekening={{ a.id }}">{{ icon("upload") }}Afschrift importeren</a>{% endif %}
         <a class="btn btn-secondary" href="/bank/rekeningen/{{ a.id }}/bewerken">Bewerken</a>
