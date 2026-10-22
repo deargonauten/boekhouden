@@ -30,7 +30,7 @@
   {% if result.items %}
   <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>Boekstuk {{ info("boekstuk") }}</th><th>Datum</th><th>Dagboek {{ info("dagboek") }}</th><th>Omschrijving</th><th class="num">Totaal</th><th class="visually-hidden">Acties</th></tr></thead>
+    <thead><tr><th>Boekstuk {{ info("boekstuk") }}</th><th>Datum</th><th>Dagboek {{ info("dagboek") }}</th><th>Omschrijving</th><th class="num">Totaal</th><th><span class="visually-hidden">Acties</span></th></tr></thead>
     <tbody>
     {% for e in result.items %}
     <tr{% if e.kind == "storno" %} class="row--warn"{% endif %}>

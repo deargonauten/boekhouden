@@ -46,7 +46,7 @@
 <section class="card card--flush">
   <div class="table-wrap">
   <table class="data" id="journal-table">
-    <thead><tr><th>Code</th><th>Naam</th><th>Soort</th><th>Status</th><th class="visually-hidden">Acties</th></tr></thead>
+    <thead><tr><th>Code</th><th>Naam</th><th>Soort</th><th>Status</th><th><span class="visually-hidden">Acties</span></th></tr></thead>
     <tbody>
     {% for j in journals %}
     <tr{% if not j.is_active %} class="inactive"{% endif %}>

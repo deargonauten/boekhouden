@@ -87,13 +87,13 @@
       <td class="nowrap">{{ d.received_at|datum_tijd }}</td>
       <td>{{ SOURCE_LABELS.get(d.source, d.source) }}</td>
       <td>{{ pill(STATUS_LABELS[d.status], {"nieuw": "info", "herkend": "warning", "geboekt": "success"}.get(d.status, "neutral")) }}</td>
-      <td class="cluster">
+      <td><div class="cluster">
         <a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}" data-drawer-open="#inbox-drawer" hx-get="/inbox/{{ d.id }}" hx-target="#inbox-drawer-body" hx-push-url="false" hx-boost="false" aria-label="Bekijken: {{ d.original_filename }}">Bekijken</a>
         {% if d.status == "nieuw" %}{% with document=d, compact=true, label="Lees uit" %}{% include "inbox/_extract_button.html" %}{% endwith %}
         {% elif d.status == "herkend" %}<a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}/nakijken">Nakijken</a>{% endif %}
         {% if d.status in ("nieuw", "herkend") %}<a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}/verwijderen" aria-label="Verwijderen: {{ d.original_filename }}">Verwijderen</a>
         {% else %}<span class="hint">Bewaard (bewaarplicht)</span>{% endif %}
-      </td>
+      </div></td>
     </tr>
     {% endfor %}
     </tbody>

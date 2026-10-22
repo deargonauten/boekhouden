@@ -245,7 +245,7 @@ def test_static_assets_contract():
     ).split():
         assert f"{token}:" in css, token
     # no hard-coded hex colors outside the two token blocks
-    body = re.sub(r":root\s*\{[^}]*\}", "", css)
+    body = re.sub(r":root[^{]*\{[^}]*\}", "", css)
     assert not re.search(r"#[0-9a-fA-F]{3,8}\b", body)
     js = (STATIC / "app.js").read_text()
     assert len(js.splitlines()) < 260

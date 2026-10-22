@@ -195,6 +195,15 @@
   syncSidebar();
   document.addEventListener("htmx:afterSettle", syncSidebar);
 
+  // --- Dark/light switcher: no saved choice follows the system; a click saves the opposite of what you see now ---
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest("[data-theme-toggle]")) return;
+    var now = root.getAttribute("data-theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var next = now === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("bh.theme", next); } catch (err) { /* storage blocked: stays for this page only */ }
+  });
+
   // --- Keep the scroll position of a list when you act on a row and come back (link or form with data-keep-scroll) ---
   function listKey() {
     var u = new URL(location.href);

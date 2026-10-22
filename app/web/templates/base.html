@@ -6,10 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ title|default("Boekhouden") }}{% endblock %} - Boekhouden</title>
   <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/tailwind.css">
   <link rel="stylesheet" href="/static/app.css">
   {% block head %}{% endblock %}
   {# Applied before first paint: scripting is on, and the sidebar keeps the collapsed state the user chose. #}
-  <script>(function (d) { d.classList.add("js"); try { if (localStorage.getItem("bh.sidebar") === "collapsed") d.classList.add("sidebar-collapsed"); } catch (e) {} })(document.documentElement);</script>
+  <script>(function (d) { d.classList.add("js"); try { var th = localStorage.getItem("bh.theme"); if (th === "dark" || th === "light") d.setAttribute("data-theme", th); } catch (e) {} try { if (localStorage.getItem("bh.sidebar") === "collapsed") d.classList.add("sidebar-collapsed"); } catch (e) {} })(document.documentElement);</script>
   {# htmx 2.0.4, vendored in static/htmx.min.js; no CDN at runtime #}
   <script src="/static/htmx.min.js" defer></script>
   <script src="/static/app.js" defer></script>

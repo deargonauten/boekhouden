@@ -23,7 +23,7 @@
     <td class="num nowrap {{ 'amount--in' if r.amount_cents > 0 else 'amount--out' }}">{{ "+" if r.amount_cents > 0 }}{{ r.amount_cents|euro }}</td>
     <td>
       {% if r.suggestion %}
-      {{ pill("Zeker" if r.suggestion.confidence == "zeker" else "Waarschijnlijk", "success" if r.suggestion.confidence == "zeker" else "warning") }}
+      {% if r.suggestion.confidence == "zeker" %}<span class="d-badge d-badge-soft d-badge-success">Zeker</span>{% else %}{{ pill("Waarschijnlijk", "warning") }}{% endif %}
       <span class="bank-sub">{{ r.suggestion.label }}{% if r.suggestion.reasons %} ({{ r.suggestion.reasons|join(", ") }}){% endif %}</span>
       {% elif status == "nieuw" %}<span class="muted">Geen voorstel</span>
       {% else %}{{ pill(r.status_label, "neutral") }}{% endif %}
