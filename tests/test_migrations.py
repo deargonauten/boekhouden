@@ -17,7 +17,7 @@ def test_upgrade_downgrade_check(test_settings):
     cfg = alembic_config(test_settings)
 
     command.upgrade(cfg, "head")
-    assert _version(test_settings) == ["0013_bank_match_sales"]
+    assert _version(test_settings) == ["0014_btw_aangifte"]
 
     command.check(cfg)  # raises on drift
 
