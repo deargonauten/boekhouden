@@ -34,7 +34,12 @@ from app.domain.errors import (
     UNAVAILABLE_MESSAGE,
 )
 from app.domain.extraction.review import ParsedReview, ReviewInput, parse_review
-from app.domain.extraction.suggestions import AccountRef, resolve_account_code, resolve_vat_code
+from app.domain.extraction.suggestions import (
+    AccountRef,
+    resolve_account_code,
+    resolve_vat_code,
+    resolve_vat_code_for_account,
+)
 from app.domain.extraction.types import (
     AccountHint,
     ExtractedInvoice,
@@ -70,6 +75,10 @@ def _vat_rates(session: Session) -> dict[str, int]:
 
 def _account_ids(session: Session) -> dict[str, int]:
     return {code: id_ for id_, code in session.execute(select(Account.id, Account.code))}
+
+
+def _default_vats(session: Session) -> dict[str, str | None]:
+    return {code: vat for code, vat in session.execute(select(Account.code, Account.default_vat_code))}
 
 
 # --- flags (stored as JSON) -------------------------------------------------------------
@@ -185,11 +194,14 @@ def _line_rows(
     accounts: list[AccountRef],
     vat_rates: dict[str, int],
     account_ids: dict[str, int],
+    default_vats: dict[str, str | None] | None = None,
 ) -> list[dict]:
     rows = []
     for i, line in enumerate(lines):
         account_code = resolve_account_code(line.suggested_account_code, accounts)
         vat_code, _inferred = resolve_vat_code(line, vat_rates)
+        if vat_code is None:  # fall back to the account's standaard btw-tarief
+            vat_code = resolve_vat_code_for_account(account_code, default_vats or {}, vat_rates)
         rows.append(
             dict(
                 description=line.description,
@@ -256,7 +268,14 @@ def store_result(
     _replace_lines(
         session,
         extraction,
-        _line_rows(list(invoice.lines), per_line, accounts, vat_rates, _account_ids(session)),
+        _line_rows(
+            list(invoice.lines),
+            per_line,
+            accounts,
+            vat_rates,
+            _account_ids(session),
+            _default_vats(session),
+        ),
     )
     if document.status == "nieuw":
         mark_recognized(session, document_id)

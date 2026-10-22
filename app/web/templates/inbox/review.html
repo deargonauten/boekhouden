@@ -6,7 +6,8 @@
 <div class="flag-item">{{ pill(level_labels.get(f.level, "Let op"), {"low": "danger", "medium": "warning"}.get(f.level, "neutral")) }} <span class="flag-reason">{{ f.reason }}</span></div>
 {%- endfor -%}
 {%- endmacro %}
-{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">
+<script src="/static/js/vat-suggest.js" defer></script>{% endblock %}
 {% block content %}
 {{ page_header("Nakijken: " ~ document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Nakijken", None)], term="nakijken", icon_name="file",
    lead="Links zie je het originele bestand, rechts wat het programma eruit heeft gelezen. Controleer vooral de gemarkeerde velden.") }}
