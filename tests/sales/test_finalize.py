@@ -310,3 +310,22 @@ def test_two_finalizes_in_parallel_get_distinct_numbers(engine, session, make_co
         t.join()
     assert not errors, errors
     assert sorted(results) == ["2026-0001", "2026-0002"]
+
+
+def test_stored_pdf_of_issued_invoice_has_no_concept_marker(session, make_concept, make_final, customer, storage):
+    import re
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    def text_of(pdf: bytes) -> str:
+        return re.sub(r"\s+", " ", " ".join(p.extract_text() for p in PdfReader(BytesIO(pdf)).pages))
+
+    inv = make_final(customer)
+    stored = text_of(storage.open(inv.pdf_sha256, "pdf").read())
+    assert "CONCEPT" not in stored and inv.number in stored
+    # the preview of a concept is still marked
+    concept = make_concept(customer)
+    from app.domain.sales import pdf as sales_pdf
+
+    assert "CONCEPT" in text_of(sales_pdf.render_invoice_pdf(build_document(session, concept.id)))
