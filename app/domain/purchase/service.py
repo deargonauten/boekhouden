@@ -17,6 +17,7 @@ from app.domain.errors import LedgerError
 from app.domain.extraction.service import flagged_count
 from app.domain.ledger import Page, default_journal_id, post_entry
 from app.domain.ledger.service import _check_accounts, _check_vat_codes, _find_period
+from app.domain.opening.service import list_opening_items
 from app.domain.purchase.booking import (
     CREDIT_NOTE,
     SOURCE_TYPE,
@@ -391,6 +392,7 @@ class SupplierOpenRow:
     invoice_count: int
     open_cents: int
     overdue_count: int
+    opening_count: int = 0  # how many of invoice_count are openstaande posten uit de beginbalans
 
 
 @dataclass(frozen=True)
@@ -470,20 +472,31 @@ def list_invoices(
 
 
 def open_by_supplier(session: Session, q: str | None = None, today: date | None = None) -> OpenOverview:
-    """What is still to be paid, per leverancier (largest amount first), plus the totals."""
+    """What is still to be paid, per leverancier (largest amount first), plus the totals.
+
+    Includes the open crediteur posten of the beginbalans (counted in `opening_count`).
+    """
     today = today or date.today()
     per_supplier: dict[int, dict] = {}
+
+    def add(contact_id: int, name: str, open_cents: int, overdue: bool, opening: bool) -> None:
+        s = per_supplier.setdefault(contact_id, dict(name=name, count=0, open=0, overdue=0, opening=0))
+        s["count"] += 1
+        s["open"] += open_cents
+        s["overdue"] += int(overdue)
+        s["opening"] += int(opening)
+
     for r in session.execute(_invoice_query(q, open_only=True)).all():
         row = _row(*r, today)
-        s = per_supplier.setdefault(
-            row.contact_id, dict(name=row.supplier_name, count=0, open=0, overdue=0)
-        )
-        s["count"] += 1
-        s["open"] += row.open_cents
-        s["overdue"] += int(row.is_overdue)
+        add(row.contact_id, row.supplier_name, row.open_cents, row.is_overdue, False)
+    needle = (q or "").strip().casefold()
+    for item in list_opening_items(session, "crediteur", open_only=True, today=today):
+        if needle and needle not in item.relation_name.casefold() and needle not in item.invoice_number.casefold():
+            continue
+        add(item.contact_id, item.relation_name, item.open_cents, item.is_overdue, True)
     rows = sorted(
         (
-            SupplierOpenRow(cid, s["name"], s["count"], s["open"], s["overdue"])
+            SupplierOpenRow(cid, s["name"], s["count"], s["open"], s["overdue"], s["opening"])
             for cid, s in per_supplier.items()
             if s["open"]
         ),

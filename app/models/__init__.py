@@ -14,3 +14,4 @@ from app.models.ledger import (  # noqa: F401
     VatCode,
 )
 from app.models.purchase import PurchaseInvoice, SupplierDefault  # noqa: F401
+from app.models.opening import OpeningItem  # noqa: F401

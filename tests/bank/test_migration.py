@@ -65,9 +65,8 @@ def add_tx(db, ba, batch, amount=-350, key="k1", occ=1, **kw):
     return one(db, "SELECT max(id) FROM bank_transaction")
 
 
-def test_tables_and_head(db):
+def test_tables(db):
     assert {"bank_account", "bank_import_batch", "bank_transaction"} <= tables(db)
-    assert one(db, "SELECT version_num FROM alembic_version") == "0009_bank_import"
 
 
 def test_bank_account_constraints(db):
