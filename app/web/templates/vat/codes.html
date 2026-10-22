@@ -1,0 +1,103 @@
+{% extends "base_settings.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import pill, icon, modal, error_box with context %}
+{% from "ledger/_settings_nav.html" import settings_header with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/ledger.css">{% endblock %}
+{% block settings_header %}
+{% call settings_header("Btw-codes") %}<a class="btn" href="#btw-code-toevoegen" data-modal-open="#btw-code-toevoegen">{{ icon("plus") }}Btw-code toevoegen</a>{% endcall %}
+{% endblock %}
+{% block settings_content %}
+<p class="lead">Een btw-code is het btw-tarief dat je bij een bedrag kiest, bijvoorbeeld 21% of 'btw verlegd'. {{ info("btw_code") }} Bij elke code staat in welk vakje van je btw-aangifte het bedrag later terechtkomt. {{ info("rubriek") }}</p>
+<p class="field__hint">Bij inkoop is dat meestal het vakje met je voorbelasting. {{ info("voorbelasting") }} Werk je met de kleineondernemersregeling? {{ info("kor") }} Voeg dan een code van 0% toe en laat de vakjes leeg.</p>
+{% if error and not add_error and not edit_code %}{{ error_box(error) }}{% endif %}
+
+{% call modal("btw-code-toevoegen", "Btw-code toevoegen", open=(true if add_error else false)) %}
+  {% if add_error %}{{ error_box(error) }}{% endif %}
+  <form method="post" action="/instellingen/btw-codes" class="settings-form" hx-boost="false">
+    <div class="field">
+      <label for="add-code">Code</label>
+      <input id="add-code" name="code" value="{{ values.code }}" maxlength="12" pattern="[A-Za-z0-9_]{2,12}" aria-describedby="add-code-hint" required>
+      <span class="field__hint" id="add-code-hint">Een korte afkorting, bijvoorbeeld KOR of NL_5. Alleen hoofdletters, cijfers en liggende streepjes.</span>
+    </div>
+    <div class="field">
+      <label for="add-name">Naam</label>
+      <input id="add-name" name="name" value="{{ values.name }}" placeholder="BTW 6%" required>
+    </div>
+    <div class="field">
+      <label for="add-rate">{{ term_label("btw_tarief", "Percentage") }}</label>
+      <input id="add-rate" name="rate" value="{{ values.rate }}" inputmode="decimal" aria-describedby="add-rate-hint" required
+             hx-get="/instellingen/btw-codes/voorstel" hx-trigger="change" hx-target="#add-rubrieken" hx-swap="innerHTML" hx-include="this">
+      <span class="field__hint" id="add-rate-hint">Bijvoorbeeld 21 of 6,5. Als je het percentage wijzigt, stellen we de vakjes hieronder voor.</span>
+    </div>
+    <div id="add-rubrieken">
+      {% with sales_value=values.sales_rubriek, purchase_value=values.purchase_rubriek, sales_options=sales_options, purchase_options=purchase_options, prefix="add" %}{% include "vat/_rubriek_fields.html" %}{% endwith %}
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn-secondary" data-modal-close>Annuleren</button>
+      <button type="submit" class="btn">Btw-code toevoegen</button>
+    </div>
+  </form>
+{% endcall %}
+
+{% for c in codes %}
+{% call modal("btw-code-" ~ c.code, "Btw-code bewerken", open=(true if edit_code == c.code else false)) %}
+  {% if edit_code == c.code and error %}{{ error_box(error) }}{% endif %}
+  <form method="post" action="/instellingen/btw-codes/{{ c.code }}" class="settings-form" hx-boost="false">
+    <div class="field">
+      <label for="edit-{{ c.code }}-name">Naam</label>
+      <input id="edit-{{ c.code }}-name" name="name" value="{{ c.name }}" required>
+      <span class="field__hint">Code: {{ c.code }}</span>
+    </div>
+    <div class="field">
+      <label for="edit-{{ c.code }}-rate">Percentage</label>
+      <input id="edit-{{ c.code }}-rate" value="{{ format_rate(c.rate_bp) }}%" readonly aria-describedby="edit-{{ c.code }}-rate-hint">
+      <span class="field__hint" id="edit-{{ c.code }}-rate-hint">Het percentage kun je niet meer wijzigen. Maak een nieuwe code aan als het tarief verandert.</span>
+    </div>
+    {% with sales_value=c.sales_rubriek, purchase_value=c.purchase_rubriek, sales_options=sales_options, purchase_options=purchase_options, prefix="edit-" ~ c.code %}{% include "vat/_rubriek_fields.html" %}{% endwith %}
+    <div class="modal__footer">
+      <button type="button" class="btn btn-secondary" data-modal-close>Annuleren</button>
+      <button type="submit" class="btn">Opslaan</button>
+    </div>
+  </form>
+{% endcall %}
+{% endfor %}
+
+<section class="card card--flush">
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr>
+      <th>Naam</th>
+      <th>Percentage</th>
+      <th>Vakje bij verkoop {{ info("rubriek") }}</th>
+      <th>Vakje bij inkoop {{ info("rubriek") }}</th>
+      <th>Status</th>
+      <th class="visually-hidden">Acties</th>
+    </tr></thead>
+    <tbody>
+    {% for c in codes %}
+    <tr{% if not c.is_active %} class="inactive"{% endif %}>
+      <td>{{ c.name }} <small class="muted">{{ c.code }}</small>{% if c.code == "VERLEGD" %} {{ info("verlegd") }}{% endif %}</td>
+      <td class="nowrap">{{ format_rate(c.rate_bp) }}%</td>
+      <td>{% if c.sales_rubriek %}<strong>{{ c.sales_rubriek }}</strong> {{ sales_labels[c.sales_rubriek] }}{% else %}Telt niet mee in de aangifte{% endif %}</td>
+      <td>{% if c.purchase_rubriek %}<strong>{{ c.purchase_rubriek }}</strong> {{ purchase_labels[c.purchase_rubriek] }}{% else %}Telt niet mee in de aangifte{% endif %}</td>
+      <td>{{ pill("Actief", "success") if c.is_active else pill("Inactief", "neutral") }}{% if c.is_system %} {{ pill("Standaard", "neutral") }}{% endif %}</td>
+      <td>
+        <div class="row-actions">
+          <button type="button" class="btn-icon" data-modal-open="#btw-code-{{ c.code }}" aria-label="Btw-code bewerken" title="Pas de naam of de vakjes van deze code aan.">{{ icon("edit") }}</button>
+          <form method="post" action="/instellingen/btw-codes/{{ c.code }}/actief" hx-boost="false">
+            <input type="hidden" name="active" value="{{ '0' if c.is_active else '1' }}">
+            {% if c.is_active %}
+            <button type="submit" class="btn-icon" aria-label="Btw-code uitzetten" title="Verbergt de code bij nieuwe boekingen; bestaande boekingen blijven staan.">{{ icon("archive") }}</button>
+            {% else %}
+            <button type="submit" class="btn-icon" aria-label="Btw-code aanzetten" title="Maakt de code weer beschikbaar bij nieuwe boekingen.">{{ icon("restore") }}</button>
+            {% endif %}
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

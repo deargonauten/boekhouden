@@ -1,0 +1,16 @@
+{# Rubriek selects. Context: sales_options, purchase_options, sales_value, purchase_value, prefix.
+   Also returned as an htmx fragment by /instellingen/btw-codes/voorstel. #}
+<div class="field">
+  <label for="{{ prefix }}-sales">Vakje bij verkoop</label>
+  <select id="{{ prefix }}-sales" name="sales_rubriek">
+    <option value=""{% if not sales_value %} selected{% endif %}>Telt niet mee in de aangifte</option>
+    {% for key, label in sales_options %}<option value="{{ key }}"{% if sales_value == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</div>
+<div class="field">
+  <label for="{{ prefix }}-purchase">Vakje bij inkoop</label>
+  <select id="{{ prefix }}-purchase" name="purchase_rubriek">
+    <option value=""{% if not purchase_value %} selected{% endif %}>Telt niet mee in de aangifte</option>
+    {% for key, label in purchase_options %}<option value="{{ key }}"{% if purchase_value == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</div>

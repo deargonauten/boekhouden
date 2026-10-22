@@ -54,6 +54,7 @@ def test_settings_nav_contract():
     items = SETTINGS_NAV[1].items
     assert [(i.label, i.path, i.term_key) for i in items] == [
         ("Grootboek", "/instellingen/grootboek", "grootboek"),
+        ("Btw-codes", "/instellingen/btw-codes", "btw_code"),
         ("Dagboeken", "/instellingen/dagboeken", "dagboek"),
         ("Boekjaren", "/instellingen/boekjaren", "boekjaar"),
     ]
@@ -76,10 +77,10 @@ def test_base_settings_renders_secondary_nav_with_active_link():
     nav = re.search(r'<nav class="settings-nav" aria-label="Instellingen">.*?</nav>', html, re.S).group(0)
     assert 'settings-nav__heading">Boekhouding<' in nav
     assert 'settings-nav__heading">Mijn bedrijf<' in nav
-    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 4
+    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 5
     assert nav.count('aria-current="page"') == 1
     assert re.search(r'href="/instellingen/dagboeken" aria-current="page">Dagboeken', nav)
-    for key in ("bedrijfsgegevens", "grootboek", "dagboek", "boekjaar"):
+    for key in ("bedrijfsgegevens", "grootboek", "btw_code", "dagboek", "boekjaar"):
         assert f'data-term="{key}"' in nav
     assert html.index("<h1>Kop</h1>") < html.index('class="settings-layout"')  # band sits above the columns
     assert '<div class="settings-content">' in html and "<p>Inhoud</p>" in html
