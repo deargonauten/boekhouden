@@ -227,3 +227,52 @@ def test_claude_md_documents_the_exception():
     text = (Path(__file__).parent.parent / "CLAUDE.md").read_text()
     assert "the only exception is an unbooked inbox document" in text
     assert "Bank import files are never deleted." in text
+
+
+# --- same-origin guard (cross-site protection) ---
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"Origin": "http://evil.example"},
+        {"Origin": "http://testserver:9999"},
+        {"Sec-Fetch-Site": "cross-site"},
+        {"Sec-Fetch-Site": "same-site"},
+    ],
+)
+def test_cross_site_delete_is_blocked(client, headers):
+    doc_id = add_doc(client)
+    path = file_of(client, PDF)
+    r = client.post(f"/inbox/{doc_id}/verwijderen", headers=headers, follow_redirects=False)
+    assert r.status_code == 403
+    assert "Dit verzoek kwam niet van deze website" in r.text
+    assert count(client) == 1
+    assert path.is_file()
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [{"Origin": "http://testserver"}, {"Sec-Fetch-Site": "same-origin"}, {"Sec-Fetch-Site": "none"}, {}],
+)
+def test_same_origin_and_headerless_delete_works(client, headers):
+    doc_id = add_doc(client)
+    r = client.post(f"/inbox/{doc_id}/verwijderen", headers=headers, follow_redirects=False)
+    assert r.status_code == 303
+    assert count(client) == 0
+
+
+def test_cross_site_guard_is_app_wide_but_get_is_safe(client):
+    r = client.post("/inbox/upload", headers={"Origin": "http://evil.example"})
+    assert r.status_code == 403
+    assert client.get("/inbox", headers={"Origin": "http://evil.example"}).status_code == 200
+
+
+def test_booked_message_leads_with_plain_dutch_and_explains_storno(client):
+    doc_id = add_doc(client)
+    book(client, doc_id)
+    for r in (
+        client.get(f"/inbox/{doc_id}/verwijderen"),
+        client.post(f"/inbox/{doc_id}/verwijderen"),
+    ):
+        assert "Maak de boeking eerst ongedaan (storno)" in r.text
+        assert 'data-term="storno"' in r.text

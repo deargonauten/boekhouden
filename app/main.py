@@ -9,6 +9,7 @@ from app import web
 from app.config import Settings, ensure_data_dirs, get_settings
 from app.db import create_db_engine
 from app.health import router as health_router
+from app.web.security import SameOriginMiddleware
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -25,6 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Engines connect lazily, so creating it here touches no file.
     app.state.engine = create_db_engine(settings)
 
+    app.add_middleware(SameOriginMiddleware)
     app.mount("/static", StaticFiles(directory=web.STATIC_DIR), name="static")
     app.include_router(health_router)
     app.include_router(web.router)

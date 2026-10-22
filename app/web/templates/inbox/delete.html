@@ -19,6 +19,7 @@
       </form>
       {% else %}
       {% if not error_message %}{{ error_box(not_allowed_message) }}{% endif %}
+      <p class="hint">Wil je dit toch kwijt? Maak de boeking eerst ongedaan (storno) {{ info("storno") }}. Het document blijft dan bij de boeking bewaard.</p>
       <p class="hint">Waarom kan dit niet? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
       <p class="cluster"><a class="btn btn-secondary" href="/inbox/{{ document.id }}">Terug naar het document</a></p>
       {% endif %}

@@ -178,7 +178,7 @@ def mark_booked(session: Session, document_id: int, journal_entry_id: int) -> Do
 
 DELETE_NOT_ALLOWED_MESSAGE = (
     "Dit document is al geboekt en kan niet worden verwijderd, want het hoort bij je "
-    "administratie (bewaarplicht). Klopt de boeking niet? Maak dan een stornoboeking: "
+    "administratie (bewaarplicht). Klopt de boeking niet? Maak de boeking eerst ongedaan (storno): "
     "open de boeking en kies 'Stornoboeking maken'. Het document blijft dan bij de boeking bewaard."
 )
 
