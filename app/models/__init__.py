@@ -12,3 +12,4 @@ from app.models.ledger import (  # noqa: F401
     Period,
     VatCode,
 )
+from app.models.purchase import PurchaseInvoice, SupplierDefault  # noqa: F401

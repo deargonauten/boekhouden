@@ -215,6 +215,15 @@ def _line_rows(
     return rows
 
 
+def _apply_learned_defaults(
+    session: Session, extraction: InvoiceExtraction, inferred_vat_positions: set[int] | None = None
+) -> None:
+    """Leerfunctie: lines without a rekening get the leverancier's learned choice."""
+    from app.domain.purchase.learned import apply_to_lines  # late import: purchase imports extraction
+
+    apply_to_lines(session, extraction, inferred_vat_positions=inferred_vat_positions or set())
+
+
 def store_result(
     session: Session,
     document_id: int,
@@ -276,6 +285,11 @@ def store_result(
             _account_ids(session),
             _default_vats(session),
         ),
+    )
+    _apply_learned_defaults(
+        session,
+        extraction,
+        inferred_vat_positions={i for i, ln in enumerate(invoice.lines) if resolve_vat_code(ln, vat_rates)[1]},
     )
     if document.status == "nieuw":
         mark_recognized(session, document_id)
@@ -449,6 +463,7 @@ def save_review(
             )
         )
     _replace_lines(session, extraction, rows)
+    _apply_learned_defaults(session, extraction)
     if document.status == "nieuw":
         mark_recognized(session, document_id)
     log.info("extraction reviewed document=%s finish=%s", document_id, finish)
