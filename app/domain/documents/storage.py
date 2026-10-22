@@ -1,12 +1,14 @@
 """Content-addressed file storage for documents (bewaarplicht).
 
 Layout: <root>/<sha256[0:2]>/<sha256>.<ext>. Files are written atomically,
-made read-only and never overwritten. There is deliberately no way to delete
-or truncate a stored file in this module.
+made read-only and never overwritten. The only way to delete a stored file is
+`DocumentStorage.remove`, used solely by `delete_document` for unbooked inbox
+documents (never for booked ones). There is no way to truncate or overwrite.
 """
 
 import hashlib
 import os
+import re
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +20,14 @@ STORAGE_FAILED_MESSAGE = (
     "Het bestand kon niet worden opgeslagen. Controleer of er nog schijfruimte is "
     "en of de map data/documents beschrijfbaar is, en probeer het opnieuw."
 )
+
+DELETE_FAILED_MESSAGE = (
+    "Het bestand kon niet worden verwijderd. Controleer of de map data/documents "
+    "beschrijfbaar is en probeer het opnieuw."
+)
+
+DOCUMENT_EXTS = frozenset({"pdf", "jpg", "png", "webp"})
+_SHA_RE = re.compile(r"[0-9a-f]{64}")
 
 
 @dataclass(frozen=True)
@@ -48,6 +58,8 @@ class DocumentStorage:
 
     def path_for(self, sha256: str, ext: str) -> Path:
         return self.root / sha256[:2] / f"{sha256}.{ext}"
+
+    allowed_exts = DOCUMENT_EXTS
 
     def exists(self, sha256: str, ext: str) -> bool:
         return self.path_for(sha256, ext).is_file()
@@ -86,3 +98,28 @@ class DocumentStorage:
         except OSError as exc:
             raise _failed() from exc
         return stored
+
+    def remove(self, sha256: str, ext: str) -> bool:
+        """Delete exactly one stored file; True if a file was removed, False if absent.
+
+        Only for `delete_document`. Raises ValueError for a malformed sha256/ext and lets
+        OSError (e.g. permissions) propagate. An emptied shard directory is cleaned up.
+        """
+        if not _SHA_RE.fullmatch(sha256) or ext not in self.allowed_exts:
+            raise ValueError("Ongeldige bestandsverwijzing")
+        path = self.path_for(sha256, ext)
+        root = self.root.resolve()
+        if path.parent.resolve().parent != root:
+            raise ValueError("Ongeldige bestandsverwijzing")
+        if not path.is_file():
+            return False
+        os.chmod(path, 0o644)  # stored files are read-only
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            return False
+        try:
+            path.parent.rmdir()  # only succeeds when empty
+        except OSError:
+            pass
+        return True

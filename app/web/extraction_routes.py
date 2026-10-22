@@ -27,6 +27,7 @@ from app.domain.documents import (
     list_documents,
 )
 from app.domain.errors import (
+    DocumentNotFoundError,
     ExtractionError,
     ExtractionNotAllowedError,
     ExtractionNotFoundError,
@@ -47,7 +48,7 @@ from app.domain.extraction import (
 from app.domain.extraction.extractors.factory import get_extractor
 from app.domain.money import format_euro
 from app.models import Account, Contact
-from app.web.inbox_routes import DOCUMENT_STATUSES, LIST_LIMIT, get_storage
+from app.web.inbox_routes import DOCUMENT_STATUSES, LIST_LIMIT, _list_page, get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ BATCH_LIMIT = 10
 LEVELS = ("low", "medium")  # flag levels that count as "controleer dit"
 LEVEL_LABELS = {"medium": "Controleer", "low": "Onzeker"}
 SAVED_MESSAGE = "Opgeslagen."
+DELETED_MESSAGE = "Dit document is ondertussen verwijderd. Ga terug naar je inbox."
 FINISHED_MESSAGE = "Klaar met nakijken. De volgende stap is boeken."
 NO_ACCOUNT_HINT = "Kies een rekening. Twijfel je? Kies 4999 Nog te verdelen."
 HEADER_FIELDS = (
@@ -156,9 +158,11 @@ def _extract_one(
     try:
         invoice = extractor.extract(request)
     except ExtractionError as exc:
+        session.expire_all()  # re-read: the document may have been deleted meanwhile
         store_failure(session, document_id, extractor.name, exc)
         session.commit()
         return exc
+    session.expire_all()
     store_result(session, document_id, extractor.name, extractor.model, invoice)
     session.commit()
     return None
@@ -174,6 +178,13 @@ def _detail_page(request: Request, document, status: int = 200, **ctx):
         status_label=STATUS_LABELS[document.status],
         **ctx,
     )
+
+
+def _deleted_meanwhile(request: Request, session: Session):
+    """The document was deleted while we worked on it: say so in plain Dutch, no 500."""
+    session.rollback()
+    results = [{"kind": "error", "name": "", "message": DELETED_MESSAGE}]
+    return _list_page(request, session, results=results, status=404)
 
 
 @router.post("/inbox/{document_id:int}/uitlezen")
@@ -192,6 +203,8 @@ def extract_document(
     except ExtractionNotAllowedError as exc:
         session.rollback()
         return _detail_page(request, document, 422, extract_error=exc.message)
+    except DocumentNotFoundError:
+        return _deleted_meanwhile(request, session)
     if error is not None:
         session.refresh(document)
         return _detail_page(request, document, extract_error=error.message)
@@ -215,6 +228,10 @@ def extract_all(
         except ExtractionNotAllowedError as exc:
             session.rollback()
             error = exc
+        except DocumentNotFoundError:
+            session.rollback()  # deleted while the extractor was working: skip it
+            results.append({"name": name, "id": doc_id, "ok": False, "message": DELETED_MESSAGE})
+            continue
         results.append({"name": name, "id": doc_id, "ok": error is None,
                         "message": error.message if error else ""})
         if isinstance(error, (ExtractorUnavailableError, ExtractionRateLimitedError)):
@@ -434,6 +451,8 @@ async def review_save(
     except ExtractionNotFoundError:
         session.rollback()
         return _review_page(request, session, document)
+    except DocumentNotFoundError:
+        return _deleted_meanwhile(request, session)
     if finish:
         return RedirectResponse("/inbox?melding=klaar", status_code=303)
     return RedirectResponse(f"/inbox/{document_id}/nakijken?melding=opgeslagen", status_code=303)

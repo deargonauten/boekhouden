@@ -1,6 +1,6 @@
 {# Needs: document, status_label. Optional: in_drawer. Shared by the inbox drawer and the full detail page. #}
 {% from "partials/_info.html" import info with context %}
-{% from "partials/_ui.html" import pill with context %}
+{% from "partials/_ui.html" import pill, icon with context %}
 {% if in_drawer %}<h3 class="drawer-filename">{{ document.original_filename }}</h3>
 <p class="cluster"><a class="btn btn-secondary btn-small" href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand</a>{% if document.status == "herkend" %}<a class="btn btn-small" href="/inbox/{{ document.id }}/nakijken">Nakijken</a>{% endif %}<a href="/inbox/{{ document.id }}">Open op een eigen pagina</a></p>{% endif %}
 <div class="stack">
@@ -27,7 +27,12 @@
         {% endif %}
         <dt>Vingerafdruk van het bestand {{ info("vingerafdruk") }}</dt><dd><span class="fingerprint">{{ document.sha256 }}</span></dd>
       </dl>
-      <p class="hint">Dit bestand wordt bewaard en nooit verwijderd (bewaarplicht {{ info("bewaarplicht") }}).</p>
+      <p class="hint">Een geboekt document wordt altijd bewaard (bewaarplicht {{ info("bewaarplicht") }}). Een document dat nog niet is geboekt kun je verwijderen.</p>
+      {% if document.status in ("nieuw", "herkend") %}
+      <p><a class="btn btn-secondary btn-small" href="/inbox/{{ document.id }}/verwijderen">{{ icon("file", 16) }}Verwijderen</a></p>
+      {% else %}
+      <p class="hint">Dit document is geboekt en kan niet worden verwijderd. {{ info("bewaarplicht") }}</p>
+      {% endif %}
     </div>
   </section>
 

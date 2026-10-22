@@ -1,7 +1,7 @@
 """Content-addressed storage for original bank files (bewaarplicht).
 
 Same guarantees as DocumentStorage (atomic write, read-only, never overwritten, no
-delete API) but in its own root (`data/bank/`) with its own allowed extensions.
+delete API: `remove` is disabled) but in its own root (`data/bank/`) with its own allowed extensions.
 Layout: <root>/<sha256[0:2]>/<sha256>.<ext>
 """
 
@@ -40,6 +40,9 @@ class BankFileStorage(DocumentStorage):
         if not _SHA_RE.fullmatch(sha256) or ext not in ALLOWED_EXTS:
             raise ValueError("Ongeldige bestandsverwijzing")
         return super().path_for(sha256, ext)
+
+    def remove(self, sha256: str, ext: str) -> bool:
+        raise DocumentStorageFailedError("Bankbestanden worden nooit verwijderd (bewaarplicht).")
 
     def write(self, content: bytes, ext: str) -> StoredFile:
         if ext not in ALLOWED_EXTS:

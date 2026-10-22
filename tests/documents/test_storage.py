@@ -58,7 +58,8 @@ def test_open_reads_back(storage):
 
 
 def test_no_delete_api(storage):
-    for name in ("delete", "remove", "unlink", "purge"):
+    # `remove` is the single, explicit exception (used by delete_document only)
+    for name in ("delete", "unlink", "purge"):
         assert not hasattr(storage, name)
         assert not hasattr(DocumentStorage, name)
 

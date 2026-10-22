@@ -7,7 +7,7 @@ from app.db import Base
 
 
 class Document(Base):
-    """An uploaded/received invoice or receipt. Never deleted (bewaarplicht)."""
+    """An uploaded/received invoice or receipt. Never deleted once booked (bewaarplicht); an unbooked one can be deleted."""
 
     __tablename__ = "document"
     __table_args__ = (

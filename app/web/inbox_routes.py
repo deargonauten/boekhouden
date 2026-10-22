@@ -7,7 +7,7 @@ import logging
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
@@ -18,12 +18,15 @@ from app.domain.documents import (
     DocumentError,
     DocumentStorage,
     add_document,
+    can_delete,
     count_by_status,
+    delete_document,
     document_path,
     get_document,
     list_documents,
     validation,
 )
+from app.domain.documents.service import DELETE_NOT_ALLOWED_MESSAGE
 
 DOCUMENT_STATUSES = tuple(STATUS_LABELS)  # nieuw, herkend, geboekt
 format_size = validation.format_size
@@ -208,3 +211,48 @@ def document_file(
     if document.content_type != "application/pdf":
         headers["Content-Security-Policy"] = "sandbox"
     return FileResponse(path, media_type=document.content_type, headers=headers)
+
+
+def _delete_page(request: Request, session: Session, document, status: int = 200, error=None):
+    return _render(
+        request,
+        "inbox/delete.html",
+        status,
+        title="Document verwijderen?",
+        document=document,
+        can_delete=can_delete(session, document),
+        error_message=error,
+        not_allowed_message=DELETE_NOT_ALLOWED_MESSAGE,
+    )
+
+
+@router.get("/inbox/{document_id:int}/verwijderen")
+def document_delete_confirm(
+    request: Request, document_id: int, session: Session = Depends(get_session)
+):
+    document = _load(session, document_id)
+    if document is None:
+        return web.not_found_response(request)
+    return _delete_page(request, session, document)
+
+
+@router.post("/inbox/{document_id:int}/verwijderen")
+def document_delete(
+    request: Request,
+    document_id: int,
+    session: Session = Depends(get_session),
+    storage: DocumentStorage = Depends(get_storage),
+):
+    document = _load(session, document_id)
+    if document is None:
+        return web.not_found_response(request)
+    try:
+        delete_document(session, storage, document_id)
+        session.commit()
+    except DocumentError as exc:
+        session.rollback()
+        if exc.code == "DOCUMENT_NOT_FOUND":
+            return web.not_found_response(request)
+        failed = exc.code == STORAGE_FAILED_CODE
+        return _delete_page(request, session, document, 500 if failed else 409, error=exc.message)
+    return RedirectResponse("/inbox?melding=verwijderd", status_code=303)

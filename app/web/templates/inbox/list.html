@@ -19,7 +19,7 @@
 <form method="post" action="/inbox/upload" enctype="multipart/form-data" class="upload-form" hx-boost="false">
   {% if only_errors %}{% include "inbox/_results.html" %}{% endif %}
   {{ dropzone("files", ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*", "Kies een of meer bestanden", "PDF of foto (JPEG, PNG, WebP), maximaal 20 MB per bestand.") }}
-  <p class="hint">Je bestand wordt bewaard en daarna kun je het laten uitlezen. Bestanden worden nooit verwijderd. Waarom? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
+  <p class="hint">Je bestand wordt bewaard en daarna kun je het laten uitlezen. Een geboekt document wordt altijd bewaard (bewaarplicht {{ info("bewaarplicht") }}). Een document dat nog niet is geboekt kun je verwijderen.</p>
   <div class="modal__footer">
     <button type="button" class="btn btn-secondary" data-modal-close>Annuleren</button>
     <button type="submit" class="btn">{{ icon("upload") }}Toevoegen aan inbox</button>
@@ -31,6 +31,7 @@
 
 {% if results and not only_errors %}{% include "inbox/_results.html" %}{% endif %}
 
+{% if request.query_params.get("melding") == "verwijderd" %}{{ notice("Het document is verwijderd.", "success") }}{% endif %}
 {% if request.query_params.get("melding") == "klaar" %}{{ notice("Klaar met nakijken. De volgende stap is boeken.", "success") }}{% endif %}
 {% include "inbox/_extract_banner.html" %}
 {% if extract_results %}
@@ -90,6 +91,7 @@
         <a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}" data-drawer-open="#inbox-drawer" hx-get="/inbox/{{ d.id }}" hx-target="#inbox-drawer-body" hx-push-url="false" hx-boost="false" aria-label="Bekijken: {{ d.original_filename }}">Bekijken</a>
         {% if d.status == "nieuw" %}{% with document=d, compact=true, label="Lees uit" %}{% include "inbox/_extract_button.html" %}{% endwith %}
         {% elif d.status == "herkend" %}<a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}/nakijken">Nakijken</a>{% endif %}
+        {% if d.status in ("nieuw", "herkend") %}<a class="btn btn-secondary btn-small" href="/inbox/{{ d.id }}/verwijderen" aria-label="Verwijderen: {{ d.original_filename }}">Verwijderen</a>{% endif %}
       </td>
     </tr>
     {% endfor %}

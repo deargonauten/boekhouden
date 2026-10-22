@@ -277,7 +277,6 @@ def test_missing_file_on_disk_shows_integrity_message(client):
     "method,url",
     [
         ("delete", "/inbox/1"),
-        ("post", "/inbox/1/verwijderen"),
         ("post", "/inbox/1/delete"),
         ("delete", "/inbox/1/bestand"),
     ],

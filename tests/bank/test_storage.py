@@ -61,7 +61,8 @@ def test_path_for_refuses_traversal(storage):
 
 
 def test_no_delete_api():
-    assert not [n for n in dir(BankFileStorage) if n.startswith(("delete", "remove", "unlink"))]
+    # `remove` exists only because DocumentStorage has it; it is disabled (test_delete.py)
+    assert not [n for n in dir(BankFileStorage) if n.startswith(("delete", "unlink"))]
 
 
 def test_storage_ext():

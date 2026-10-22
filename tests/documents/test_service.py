@@ -221,5 +221,6 @@ def test_transitions_unknown_document(session):
 
 
 def test_no_delete_api():
-    for name in ("delete_document", "remove_document", "delete", "remove"):
+    # deletion exists only as delete_document (unbooked documents, see test_delete.py)
+    for name in ("remove_document", "remove"):
         assert not hasattr(service, name)

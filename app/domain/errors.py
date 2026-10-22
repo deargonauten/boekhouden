@@ -151,6 +151,7 @@ NO_FILE_SELECTED = "NO_FILE_SELECTED"
 DOCUMENT_NOT_FOUND = "DOCUMENT_NOT_FOUND"
 INVALID_STATUS_TRANSITION = "INVALID_STATUS_TRANSITION"
 DOCUMENT_STORAGE_FAILED = "DOCUMENT_STORAGE_FAILED"
+DOCUMENT_DELETE_NOT_ALLOWED = "DOCUMENT_DELETE_NOT_ALLOWED"
 
 
 class DocumentError(LedgerError):
@@ -172,6 +173,9 @@ InvalidStatusTransitionError = _document_error(
     "InvalidStatusTransitionError", INVALID_STATUS_TRANSITION
 )
 DocumentStorageFailedError = _document_error("DocumentStorageFailedError", DOCUMENT_STORAGE_FAILED)
+DocumentDeleteNotAllowedError = _document_error(
+    "DocumentDeleteNotAllowedError", DOCUMENT_DELETE_NOT_ALLOWED
+)
 
 
 # --- AI-factuurherkenning (uitlezen) ----------------------------------------

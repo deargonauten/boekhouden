@@ -6,13 +6,13 @@ Local, single-user Dutch bookkeeping software for an eenmanszaak/VOF. Inspired b
 - Stack: Python 3.12, FastAPI, SQLite (single file, `data/boekhouden.db`), Jinja2 + HTMX UI on localhost. No Docker.
 - Migrations: Alembic. Tests: pytest.
 - Invoice extraction: Claude API (PDF/image → structured JSON). API key via `.env` (`ANTHROPIC_API_KEY`), never committed.
-- Email intake: IMAP polling of a dedicated mailbox; attachments stored under `data/documents/` (content-addressed, never deleted).
+- Email intake: IMAP polling of a dedicated mailbox; attachments stored under `data/documents/` (content-addressed). Never deleted once linked to a booking; the only exception is an unbooked inbox document (status nieuw/herkend) that the user explicitly deletes, which removes the document, its extraction data and its file. Bank import files are never deleted.
 - Entity: eenmanszaak/VOF (IB, urencriterium, KOR optional). No BV features.
 
 ## Domain rules (Dutch compliance)
 - Money is stored as integer cents, never floats. VAT rates: 21%, 9%, 0%, verlegd, EU/export.
 - Double-entry bookkeeping on a RGS-based grootboekschema (referentiegrootboekschema). Every journal entry must balance.
-- Bookings are append-only: corrections via storno/correctieboeking, closed periods locked (Awr bewaarplicht 7 jaar; documents kept with the booking).
+- Bookings are append-only: corrections via storno/correctieboeking, closed periods locked (Awr bewaarplicht 7 jaar; documents of booked entries are kept with the booking).
 - Sequential, gapless sales invoice numbers; invoices must contain all required fields (art. 35a Wet OB).
 - BTW-aangifte rubrieken (1a, 1b, 2a, 3b, 4a, 4b, 5b, ...) derived from VAT codes on lines.
 

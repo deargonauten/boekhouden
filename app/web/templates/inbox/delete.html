@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, error_box with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
+{% block content %}
+{% call page_header("Document verwijderen?", breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Verwijderen", None)], icon_name="file") %}{% endcall %}
+
+<div class="stack">
+  {% if error_message %}{{ error_box(error_message) }}{% endif %}
+  <section class="card" aria-labelledby="delete-title">
+    <div class="card__header"><h2 id="delete-title">{{ document.original_filename }} {{ info("verwijderen_document") }}</h2></div>
+    <div class="card__body stack">
+      {% if can_delete %}
+      <p>Je staat op het punt <strong>{{ document.original_filename }}</strong> te verwijderen. Het bestand en de uitgelezen gegevens worden definitief gewist. Dit kun je niet ongedaan maken. Upload het bestand later opnieuw als je je bedenkt.</p>
+      {% if document.status == "herkend" %}<p>De uitgelezen gegevens (leverancier, bedragen, regels) gaan ook verloren.</p>{% endif %}
+      <form method="post" action="/inbox/{{ document.id }}/verwijderen" class="cluster" hx-boost="false">
+        <button type="submit" class="btn btn-danger">Ja, verwijderen</button>
+        <a class="btn btn-secondary" href="/inbox/{{ document.id }}">Annuleren</a>
+      </form>
+      {% else %}
+      {% if not error_message %}{{ error_box(not_allowed_message) }}{% endif %}
+      <p class="hint">Waarom kan dit niet? Dat is de bewaarplicht {{ info("bewaarplicht") }}.</p>
+      <p class="cluster"><a class="btn btn-secondary" href="/inbox/{{ document.id }}">Terug naar het document</a></p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
