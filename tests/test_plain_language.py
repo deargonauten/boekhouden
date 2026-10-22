@@ -27,7 +27,12 @@ YEAR = TODAY.year
 TEMPLATES = Path(__file__).parent.parent / "app" / "web" / "templates"
 
 # Glossary keys that no template/nav item/label table uses (max 5, each justified).
-UNUSED_OK: set[str] = set()
+# STAGED (grootboek-verfijning part 7): these keys are used by the Part 4/5 templates.
+# After merging Parts 4 and 5 the integrator MUST empty this set (spec: UNUSED_OK stays empty).
+UNUSED_OK: set[str] = {"rubriek", "standaard_btw", "selecteerbaar_bij", "voorbelasting", "kor"}
+
+# STAGED: flip to True once Part 4 (/instellingen/btw-codes) is merged.
+BTW_CODES_PAGE_MERGED = False
 
 
 def scalar(client, sql, **params):
@@ -108,7 +113,7 @@ def pages(c):
         ("/inbox?status=geboekt", set()),
         ("/inbox/1", set()),
         ("/inbox/1/nakijken", set()),  # not yet read out; the ok/failed states: tests/test_extraction_web.py
-    ]
+    ] + ([("/instellingen/btw-codes", set())] if BTW_CODES_PAGE_MERGED else [])
 
 
 COMPANY = {

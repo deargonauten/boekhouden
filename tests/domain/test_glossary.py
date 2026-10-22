@@ -9,7 +9,8 @@ kasdagboek boeking boekstuk debet credit storno boekjaar periode vergrendelen af
 btw_code rgs activa passiva eigen_vermogen opbrengsten kosten systeemrekening debiteuren
 crediteuren balans_evenwicht referentie inbox relaties rapportages bank kas
 kvk btw_nummer iban klant leverancier archiveren
-status_nieuw status_herkend status_geboekt bewaarplicht vingerafdruk""".split()
+status_nieuw status_herkend status_geboekt bewaarplicht vingerafdruk
+rubriek standaard_btw selecteerbaar_bij voorbelasting kor""".split()
 
 GUARDED = {"debet", "credit", "grootrekening", "dagboek", "storno", "periode"}
 
@@ -72,3 +73,14 @@ def test_relation_term_patterns():
     assert re.search(get_term("kvk").patterns()[0], "KvK-nummer", re.I)
     assert re.search(get_term("kvk").patterns()[0], "KvK", re.I)
     assert re.search(get_term("iban").patterns()[0], "IBAN", re.I)
+
+
+def test_grootboek_verfijning_terms():
+    assert "icp" not in GLOSSARY
+    assert get_term("rubriek").term == "Rubriek"
+    assert get_term("kor").plain == "Kleineondernemersregeling"
+    (rx,) = get_term("rubriek").patterns()
+    assert re.search(rx, "Rubriek", re.I) and re.search(rx, "rubrieken", re.I)
+    assert not re.search(rx, "rubrieksnaam", re.I)
+    (rx,) = get_term("voorbelasting").patterns()
+    assert re.search(rx, "Voorbelasting", re.I)
