@@ -70,7 +70,18 @@ Show the user a short summary of the spec (not the whole file) and the path. Pro
 
 ## Step 3 — Review (max 2 review rounds)
 
-Spawn reviewers **in parallel**, read-only, each on the integrated branch (`roles/reviewer.md`). Default to **three** reviewers: `security`, `code`, and one combined `ux-ui` reviewer (covers both lenses; writes `ux-ui.md`). Skip lenses that do not apply (write PASS (n/a) yourself, no agent needed): no UI → no `ux-ui`; no input handling, auth, data exposure or new routes → fold `security` into `code`. For a small diff (roughly under 300 changed lines) use a single reviewer covering all applicable lenses. Each writes `reviews/round-N/<lens>.md` with a first line `VERDICT: PASS` or `VERDICT: REWORK`, followed by findings. Tell them the test result from `state.md` and not to rerun the full suite.
+**Reviews are done by Codex, not by Claude subagents.** For each lens, run from the repo root (on the integrated branch):
+
+```
+mkdir -p factory/<slug>/reviews/round-N
+codex exec -s read-only --ephemeral -C "$PWD" -o factory/<slug>/reviews/round-N/<lens>.md - <<'PROMPT'
+<contents of roles/reviewer.md> + lens + base branch + test result from state.md + review calibration + (round 2) prior REWORK findings
+PROMPT
+```
+
+`-o` writes Codex's final message to the review file (the sandbox stays read-only). With several lenses, run them in parallel via `run_in_background` and give each a generous `timeout`. Check that the first line of each file is `VERDICT: PASS` or `VERDICT: REWORK`; if it is not, or `codex` is missing or fails, re-run once, then fall back to a `model: "sonnet"` reviewer subagent and tell the user. Codex receives the repo diff, so this sends code to an external service; the user asked for this. Everything below (lenses, calibration, rounds) is unchanged.
+
+Lens setup: reviewers run in parallel, read-only, each on the integrated branch (`roles/reviewer.md`). Default to **three** reviewers: `security`, `code`, and one combined `ux-ui` reviewer (covers both lenses; writes `ux-ui.md`). Skip lenses that do not apply (write PASS (n/a) yourself, no agent needed): no UI → no `ux-ui`; no input handling, auth, data exposure or new routes → fold `security` into `code`. For a small diff (roughly under 300 changed lines) use a single reviewer covering all applicable lenses. Each writes `reviews/round-N/<lens>.md` with a first line `VERDICT: PASS` or `VERDICT: REWORK`, followed by findings. Tell them the test result from `state.md` and not to rerun the full suite.
 
 Review calibration (state this in every reviewer prompt): be realistic. Only REWORK for issues that would genuinely hurt: broken acceptance criteria, real vulnerabilities, clear usability failures, bugs, maintainability traps. Style nits and speculative concerns go in a `Nice-to-have` section and do **not** justify REWORK. "Nothing to report" with PASS is a perfectly good review. Skip a lens that does not apply (e.g. `ui`/`ux` for a pure backend feature) by writing PASS (n/a).
 
