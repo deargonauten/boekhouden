@@ -52,7 +52,7 @@ def insert_item(db, id_=1, side="debiteur", amount=10000, paid=None):
 
 def test_table_and_head(db):
     assert "opening_item" in tables(db)
-    assert one(db, "SELECT version_num FROM alembic_version") == "0012_sales_invoices"
+    assert one(db, "SELECT version_num FROM alembic_version") == "0013_bank_match_sales"
 
 
 def test_constraints(db):

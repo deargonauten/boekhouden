@@ -4,6 +4,9 @@ Transaction af:  debit 3000 per invoice allocation (credit 3000 per creditnota),
                  chosen accounts (+ 1400 voorbelasting), credit the bank account.
 Transaction bij: debit the bank account, credit 3000 per creditnota allocation (debit per
                  invoice in a mix), credit the chosen accounts (without btw).
+Sales side (debiteuren): the mirror image on 1300. A bij pays verkoopfacturen (credit 1300 per
+                 invoice), an af refunds a verkoop-creditnota (debit 1300). One transaction
+                 touches one side only.
 Integer cents only; the btw of a direct line is computed once per line and rounded half up.
 """
 
@@ -22,20 +25,25 @@ from app.domain.reconcile.errors import (
     VAT_ON_INCOMING_MESSAGE,
     VAT_REQUIRED,
     WRONG_DIRECTION,
+    MIXED_SIDES,
+    MIXED_SIDES_MESSAGE,
     WRONG_DIRECTION_AF_MESSAGE,
     WRONG_DIRECTION_BIJ_MESSAGE,
+    WRONG_DIRECTION_DEBTOR_AF_MESSAGE,
+    WRONG_DIRECTION_DEBTOR_BIJ_MESSAGE,
     ReconcileError,
     not_distributed,
     over_allocated,
     over_distributed,
 )
-from app.domain.reconcile.types import AllocationLine, DirectLine, TxnView
+from app.domain.reconcile.types import SIDE_DEBTOR, AllocationLine, DirectLine, TxnView, money_follows
 
 
 @dataclass(frozen=True)
 class SystemAccounts:
     creditors: int  # 3000 Crediteuren
     vat_receivable: int  # 1400 BTW voorbelasting
+    debtors: int | None = None  # 1300 Debiteuren (only needed for verkoop allocations)
 
 
 def split_vat(amount_incl_cents: int, rate_bp: int) -> tuple[int, int]:
@@ -52,11 +60,19 @@ def _check_allocations(txn: TxnView, allocations: Sequence[AllocationLine]) -> N
             raise ReconcileError(INVALID_AMOUNT, f"Vul bij factuur {a.number} een bedrag groter dan nul in.")
         if a.amount_cents > a.open_cents:
             raise over_allocated(a.open_cents)
-    if allocations:
-        if txn.direction == "af" and all(a.is_credit for a in allocations):
-            raise ReconcileError(WRONG_DIRECTION, WRONG_DIRECTION_AF_MESSAGE)
-        if txn.direction == "bij" and not any(a.is_credit for a in allocations):
-            raise ReconcileError(WRONG_DIRECTION, WRONG_DIRECTION_BIJ_MESSAGE)
+    if not allocations:
+        return
+    sides = {a.side for a in allocations}
+    if len(sides) > 1:
+        raise ReconcileError(MIXED_SIDES, MIXED_SIDES_MESSAGE)
+    debtor = sides == {SIDE_DEBTOR}
+    # At least one item must move money in the direction of the transaction; credit items only net off.
+    if not any(money_follows(txn.direction, a.side, a.is_credit) for a in allocations):
+        if debtor:
+            message = WRONG_DIRECTION_DEBTOR_BIJ_MESSAGE if txn.direction == "bij" else WRONG_DIRECTION_DEBTOR_AF_MESSAGE
+        else:
+            message = WRONG_DIRECTION_AF_MESSAGE if txn.direction == "af" else WRONG_DIRECTION_BIJ_MESSAGE
+        raise ReconcileError(WRONG_DIRECTION, message)
 
 
 def _check_direct(txn: TxnView, direct_lines: Sequence[DirectLine], vat_rates: Mapping[str, int]) -> None:
@@ -76,10 +92,9 @@ def _check_direct(txn: TxnView, direct_lines: Sequence[DirectLine], vat_rates: M
 
 def net_distributed(txn: TxnView, allocations: Sequence[AllocationLine], direct_lines: Sequence[DirectLine]) -> int:
     """How much of the transaction is accounted for (invoices count with the direction of the money)."""
-    sign_credit = -1 if txn.direction == "af" else 1
     total = sum(d.amount_cents for d in direct_lines)
     for a in allocations:
-        total += a.amount_cents * (sign_credit if a.is_credit else -sign_credit)
+        total += a.amount_cents if money_follows(txn.direction, a.side, a.is_credit) else -a.amount_cents
     return total
 
 
@@ -125,8 +140,14 @@ def build_payment_entry(
 
     lines: list[NewLine] = []
     for a in allocations:
-        # An invoice reduces what you owe (debit 3000), a creditnota increases it back (credit 3000).
-        lines.append(line(accounts.creditors, a.amount_cents, debit=not a.is_credit, desc=f"Betaling {a.number}"))
+        if a.side == SIDE_DEBTOR:
+            if accounts.debtors is None:
+                raise ReconcileError(ACCOUNT_REQUIRED, "Rekening 1300 Debiteuren ontbreekt in je grootboek.")
+            # A paid verkoopfactuur reduces what the klant owes (credit 1300), a refund of a creditnota debits it.
+            lines.append(line(accounts.debtors, a.amount_cents, debit=a.is_credit, desc=f"Betaling {a.number}"))
+        else:
+            # An invoice reduces what you owe (debit 3000), a creditnota increases it back (credit 3000).
+            lines.append(line(accounts.creditors, a.amount_cents, debit=not a.is_credit, desc=f"Betaling {a.number}"))
     vat_per_code: dict[str, int] = {}
     for d in direct_lines:
         excl, vat = split_vat(d.amount_cents, vat_rates[d.vat_code])

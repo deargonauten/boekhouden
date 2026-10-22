@@ -18,6 +18,7 @@ from app.domain.ledger import Page, post_entry, reverse_entry, suggest_vat_code
 from app.domain.opening.service import list_opening_items
 from app.domain.purchase.booking import CREDIT_NOTE, is_supported_vat
 from app.domain.purchase.service import open_amount
+from app.domain.sales import service as sales_service
 from app.domain.reconcile import rules as rules_mod
 from app.domain.reconcile.entries import SystemAccounts, build_payment_entry
 from app.domain.reconcile.errors import (
@@ -38,8 +39,11 @@ from app.domain.reconcile.errors import (
 )
 from app.domain.reconcile.matching import suggest
 from app.domain.reconcile.types import (
+    SIDE_CREDITOR,
+    SIDE_DEBTOR,
     SOURCE_OPENING_ITEM,
     SOURCE_PURCHASE_INVOICE,
+    SOURCE_SALES_INVOICE,
     SOURCES,
     Allocation,
     AllocationLine,
@@ -60,10 +64,12 @@ from app.models import (
     OpeningItem,
     Period,
     PurchaseInvoice,
+    SalesInvoice,
     VatCode,
 )
 
 CREDITORS_CODE = "3000"
+DEBTORS_CODE = "1300"
 VAT_RECEIVABLE_CODE = "1400"
 STATUS_NEW, STATUS_BOOKED, STATUS_IGNORED = "nieuw", "geboekt", "genegeerd"
 STATUS_LABELS = {STATUS_NEW: "Te verwerken", STATUS_BOOKED: "Geboekt", STATUS_IGNORED: "Genegeerd"}
@@ -99,8 +105,44 @@ def _purchase_items(session: Session, side: str) -> list[OpenItem]:
     return items
 
 
+def _sales_items(session: Session, side: str) -> list[OpenItem]:
+    """Open verkoopfacturen and creditnota's with something left (not storno'd), using the sales
+    service's own definition of 'open' (paid, refunded and set-off amounts)."""
+    if side != SIDE_DEBTOR:
+        return []
+    storno = exists().where(JournalEntry.reverses_entry_id == SalesInvoice.journal_entry_id)
+    rows = session.execute(
+        select(SalesInvoice, Contact.name, Contact.iban)
+        .join(Contact, Contact.id == SalesInvoice.contact_id)
+        .where(
+            SalesInvoice.status == sales_service.DEFINITIEF,
+            ~storno,
+            SalesInvoice.total_incl_cents > SalesInvoice.paid_cents,
+        )
+        .order_by(SalesInvoice.invoice_date, SalesInvoice.id)
+    ).all()
+    if not rows:
+        return []
+    to_invoice, by_credit = sales_service._applied_maps(session)
+    items = []
+    for inv, name, iban in rows:
+        credit = inv.kind == sales_service.CREDIT_NOTE
+        applied = (by_credit if credit else to_invoice).get(inv.id, 0)
+        open_cents = sales_service.open_cents_of(inv.kind, inv.total_incl_cents, inv.paid_cents, applied)
+        if open_cents <= 0:
+            continue
+        items.append(
+            OpenItem(
+                source=SOURCE_SALES_INVOICE, source_id=inv.id, contact_id=inv.contact_id,
+                contact_name=name, iban=iban, number=inv.number, date=inv.invoice_date,
+                due_date=inv.due_date, open_cents=open_cents, is_credit=credit, side=SIDE_DEBTOR,
+            )
+        )
+    return items
+
+
 def _opening_items(session: Session, side: str) -> list[OpenItem]:
-    if side != "crediteur":
+    if side not in (SIDE_CREDITOR, SIDE_DEBTOR):
         return []
     rows = list_opening_items(session, side, open_only=True)
     ibans = {}
@@ -112,14 +154,13 @@ def _opening_items(session: Session, side: str) -> list[OpenItem]:
         OpenItem(
             source=SOURCE_OPENING_ITEM, source_id=r.id, contact_id=r.contact_id,
             contact_name=r.relation_name, iban=ibans.get(r.contact_id), number=r.invoice_number,
-            date=r.invoice_date, due_date=r.due_date, open_cents=r.open_cents, is_credit=False,
+            date=r.invoice_date, due_date=r.due_date, open_cents=r.open_cents, is_credit=False, side=side,
         )
         for r in rows
     ]
 
 
-# A sales provider (debiteuren) is appended here later without touching the UI or booking code.
-PROVIDERS: list[Callable[[Session, str], list[OpenItem]]] = [_purchase_items, _opening_items]
+PROVIDERS: list[Callable[[Session, str], list[OpenItem]]] = [_purchase_items, _opening_items, _sales_items]
 
 
 def list_open_items(
@@ -132,6 +173,16 @@ def list_open_items(
     needle = (q or "").strip().casefold()
     if needle:
         items = [i for i in items if needle in i.contact_name.casefold() or needle in i.number.casefold()]
+    return sorted(items, key=lambda i: (i.date, i.source, i.source_id))
+
+
+def list_all_open_items(
+    session: Session, contact_id: int | None = None, q: str | None = None
+) -> list[OpenItem]:
+    """Open items of both sides (crediteuren and debiteuren), oldest first."""
+    items = list_open_items(session, SIDE_CREDITOR, contact_id, q) + list_open_items(
+        session, SIDE_DEBTOR, contact_id, q
+    )
     return sorted(items, key=lambda i: (i.date, i.source, i.source_id))
 
 
@@ -158,20 +209,27 @@ def to_view(t: BankTransaction) -> TxnView:
     )
 
 
-def _system_accounts(session: Session) -> SystemAccounts:
+def _system_accounts(session: Session, need_debtors: bool = False) -> SystemAccounts:
     ids = dict(
         session.execute(
-            select(Account.code, Account.id).where(Account.code.in_((CREDITORS_CODE, VAT_RECEIVABLE_CODE)))
+            select(Account.code, Account.id).where(
+                Account.code.in_((CREDITORS_CODE, VAT_RECEIVABLE_CODE, DEBTORS_CODE))
+            )
         ).all()
     )
-    for code, name in ((CREDITORS_CODE, "Crediteuren"), (VAT_RECEIVABLE_CODE, "BTW voorbelasting")):
+    needed = [(CREDITORS_CODE, "Crediteuren"), (VAT_RECEIVABLE_CODE, "BTW voorbelasting")]
+    if need_debtors:
+        needed.append((DEBTORS_CODE, "Debiteuren"))
+    for code, name in needed:
         if code not in ids:
             raise ReconcileError(
                 SYSTEM_ACCOUNT_MISSING,
                 f"Rekening {code} {name} ontbreekt in je grootboek, dus deze mutatie kan niet "
                 "automatisch geboekt worden. Leg hem vast met een handmatige boeking.",
             )
-    return SystemAccounts(creditors=ids[CREDITORS_CODE], vat_receivable=ids[VAT_RECEIVABLE_CODE])
+    return SystemAccounts(
+        creditors=ids[CREDITORS_CODE], vat_receivable=ids[VAT_RECEIVABLE_CODE], debtors=ids.get(DEBTORS_CODE)
+    )
 
 
 def _supported_vat_rates(session: Session) -> dict[str, int]:
@@ -204,7 +262,7 @@ def suggestions_for(session: Session, txn_id: int) -> list[Suggestion]:
         return []
     return suggest(
         to_view(txn),
-        list_open_items(session, "crediteur"),
+        list_all_open_items(session),
         rules_mod.active_rule_views(session),
     )
 
@@ -273,7 +331,7 @@ def list_to_process(
         .offset((page - 1) * per_page)
     ).all()
 
-    items_cache = list_open_items(session, "crediteur") if status == STATUS_NEW and rows else []
+    items_cache = list_all_open_items(session) if status == STATUS_NEW and rows else []
     rule_views = rules_mod.active_rule_views(session) if status == STATUS_NEW and rows else []
     out = []
     for t, account_name in rows:
@@ -310,6 +368,7 @@ class MatchRow:
     contact_name: str
     is_credit: bool
     reversed_at: datetime | None
+    side: str = SIDE_CREDITOR
 
 
 @dataclass(frozen=True)
@@ -341,11 +400,27 @@ def _match_rows(session: Session, txn_id: int) -> list[MatchRow]:
         .order_by(BankMatch.id)
     ):
         number, name, is_credit = _item_info(session, m.source, m.source_id)
-        out.append(MatchRow(m.id, m.source, m.source_id, m.amount_cents, number, name, is_credit, m.reversed_at))
+        out.append(
+            MatchRow(
+                m.id, m.source, m.source_id, m.amount_cents, number, name, is_credit, m.reversed_at,
+                _match_side(session, m),
+            )
+        )
     return out
 
 
+def _match_side(session: Session, match: BankMatch) -> str:
+    if match.source == SOURCE_SALES_INVOICE:
+        return SIDE_DEBTOR
+    if match.source == SOURCE_OPENING_ITEM:
+        return session.get(OpeningItem, match.source_id).side
+    return SIDE_CREDITOR
+
+
 def _item_info(session: Session, source: str, source_id: int) -> tuple[str, str, bool]:
+    if source == SOURCE_SALES_INVOICE:
+        si = session.get(SalesInvoice, source_id)
+        return si.number, session.get(Contact, si.contact_id).name, si.kind == sales_service.CREDIT_NOTE
     if source == SOURCE_PURCHASE_INVOICE:
         pi = session.get(PurchaseInvoice, source_id)
         return pi.invoice_number, session.get(Contact, pi.contact_id).name, pi.kind == CREDIT_NOTE
@@ -401,8 +476,8 @@ def direct_defaults(session: Session, txn_id: int) -> DirectLine | None:
         .order_by(BankTransaction.id.desc())
         .limit(20)
     )
-    creditors = _system_accounts(session)
-    skip = {ba.account_id, creditors.creditors, creditors.vat_receivable}
+    system = _system_accounts(session, need_debtors=True)
+    skip = {ba.account_id, system.creditors, system.vat_receivable, system.debtors}
     for p in previous:
         has_match = session.scalar(
             select(BankMatch.id).where(BankMatch.bank_transaction_id == p.id, BankMatch.reversed_at.is_(None)).limit(1)
@@ -435,7 +510,7 @@ def _resolve_allocations(
     session: Session, allocations: Sequence[Allocation]
 ) -> list[AllocationLine]:
     seen: set[tuple[str, int]] = set()
-    open_items = {i.ref: i for i in list_open_items(session, "crediteur")} if allocations else {}
+    open_items = {i.ref: i for i in list_all_open_items(session)} if allocations else {}
     lines = []
     for a in allocations:
         if a.source not in SOURCES:
@@ -457,7 +532,9 @@ def _resolve_allocations(
         if a.amount_cents > item.open_cents:
             raise over_allocated(item.open_cents)
         lines.append(
-            AllocationLine(a.source, a.source_id, a.amount_cents, item.is_credit, item.number, item.open_cents)
+            AllocationLine(
+                a.source, a.source_id, a.amount_cents, item.is_credit, item.number, item.open_cents, item.side
+            )
         )
     return lines
 
@@ -490,6 +567,12 @@ def _add_paid(session: Session, source: str, source_id: int, amount: int) -> Non
             )
             .values(paid_cents=PurchaseInvoice.paid_cents + amount)
         )
+    elif source == SOURCE_SALES_INVOICE:
+        result = session.execute(
+            update(SalesInvoice)
+            .where(SalesInvoice.id == source_id, SalesInvoice.paid_cents + amount <= SalesInvoice.total_incl_cents)
+            .values(paid_cents=SalesInvoice.paid_cents + amount)
+        )
     else:
         result = session.execute(
             update(OpeningItem)
@@ -509,7 +592,7 @@ def _recompute_paid(session: Session, source: str, source_id: int) -> None:
             BankMatch.source == source, BankMatch.source_id == source_id, BankMatch.reversed_at.is_(None)
         )
     )
-    model = PurchaseInvoice if source == SOURCE_PURCHASE_INVOICE else OpeningItem
+    model = {SOURCE_PURCHASE_INVOICE: PurchaseInvoice, SOURCE_SALES_INVOICE: SalesInvoice}.get(source, OpeningItem)
     session.execute(update(model).where(model.id == source_id).values(paid_cents=paid))
 
 
@@ -534,6 +617,7 @@ def book(
     view = to_view(t)
     bank = session.get(BankAccount, t.bank_account_id)
     alloc_lines = _resolve_allocations(session, allocations)
+    needs_debtors = any(a.side == SIDE_DEBTOR for a in alloc_lines)
     directs = _fill_vat_defaults(session, direct_lines)
     names = sorted({_item_info(session, a.source, a.source_id)[1] for a in alloc_lines})
     new_entry = build_payment_entry(
@@ -542,7 +626,7 @@ def book(
         journal_id=bank.journal_id,
         allocations=alloc_lines,
         direct_lines=directs,
-        accounts=_system_accounts(session),
+        accounts=_system_accounts(session, need_debtors=needs_debtors),
         vat_rates=_supported_vat_rates(session),
         description=_entry_description(alloc_lines, names, view, bool(directs)),
     )
