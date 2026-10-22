@@ -39,7 +39,7 @@ Update `state.md` after every step so the run can be resumed.
 A run costs roughly the sum of every agent's cold start (CLAUDE.md + spec + code reads) plus repeated test runs. Keep it lean:
 
 - **Fewest agents that work.** Default to at most **3 builders**; merge small or dependent parts (schema + domain + glossary is one builder; each web area another). Only split further when parts are large and truly independent.
-- **Models:** pass `model: "sonnet"` for builders on well-specified parts and for reviewers; use `haiku` for the approver. Keep the spec writer on the default model (the spec is where quality matters most). Use a stronger model for a builder only when the part is subtle (money/VAT logic, migrations).
+- **Models (hard rule): never use opus.** Always pass `model` explicitly: `sonnet` for the spec writer, builders (including money/VAT and migrations) and reviewer fallbacks; `haiku` for the approver and for trivial builders. Never omit `model` (the default may be opus). Opus only in very specific cases, and only after the user has explicitly agreed for that case.
 - **Tests run once per stage, by the orchestrator.** Builders run only their own tests plus the full suite once before finishing. Reviewers and the approver do **not** rerun the full suite; they read the orchestrator's last result (put it in `state.md`: command, count, date) and run only targeted tests if they need to verify a specific claim.
 - **Narrow prompts.** Give each agent only the spec sections and files it needs (its part, acceptance criteria it covers, owned files), not "read everything". Tell reviewers to review `git diff <base>...HEAD` and open other files only to verify a finding.
 - **Wave by dependency, but don't over-wave.** Small schema parts that everything depends on belong in the same builder as the domain code that uses them.
@@ -93,7 +93,7 @@ Each REWORK finding must include: severity, location, what is wrong, and what do
 
 ## Step 4 — Approval
 
-Spawn one **approver** (`roles/approver.md`, `model: "haiku"` unless review findings were mixed). It reads spec, build reports, review verdicts and the test result in `state.md`, and walks the acceptance criteria as a checklist, spot-checking code only where a criterion is unclear. It does not rerun the full suite. It writes `approval.md` with `VERDICT: APPROVE` or `VERDICT: HUMAN_REVIEW` and its reasoning. Outstanding REWORK findings after round 2 should normally lead to HUMAN_REVIEW, unless it judges them acceptable.
+Spawn one **approver** (`roles/approver.md`, `model: "haiku"`; use `sonnet` if review findings were mixed). It reads spec, build reports, review verdicts and the test result in `state.md`, and walks the acceptance criteria as a checklist, spot-checking code only where a criterion is unclear. It does not rerun the full suite. It writes `approval.md` with `VERDICT: APPROVE` or `VERDICT: HUMAN_REVIEW` and its reasoning. Outstanding REWORK findings after round 2 should normally lead to HUMAN_REVIEW, unless it judges them acceptable.
 
 - **APPROVE** → finish (below).
 - **HUMAN_REVIEW** → present to the user: summary, what the approver is unsure about, branch name, how to run it, links to the review files. Ask: approve, or rework (with their feedback).
