@@ -41,7 +41,7 @@ from app.domain.sales import (
     suggest_revenue_account,
 )
 from app.domain.sales import pdf as sales_pdf
-from app.domain.sales.amounts import format_quantity, parse_price, parse_quantity
+from app.domain.sales.amounts import due_date as calc_due_date, format_quantity, parse_price, parse_quantity
 from app.domain.sales.errors import INVALID_INPUT, NOT_FOUND
 from app.domain.sales.service import STATUS_FILTERS, pdf_file_path
 from app.domain.sales.types import BUCKET_LABELS, CONCEPT, CREDIT_NOTE, DEFINITIEF
@@ -349,6 +349,31 @@ FORM_KEYS = ("contact_id", "invoice_date", "payment_term_days", "due_date", "due
              "reference", "note")
 
 
+@router.post("/verkoop/termijn", response_class=HTMLResponse)
+def live_term(
+    request: Request,
+    contact_id: str = Form(""),
+    invoice_date: str = Form(""),
+    payment_term_days: str = Form(""),
+    due_date: str = Form(""),
+    due_date_manual: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    """Suggested betaaltermijn and vervaldatum for the chosen klant and factuurdatum (htmx); saves nothing."""
+    try:
+        day = date.fromisoformat(invoice_date.strip())
+    except ValueError:
+        day = _today()
+    defaults = suggest_defaults(session, int(contact_id) if contact_id.strip().isdigit() else None, day)
+    term_text = payment_term_days.strip()
+    effective = int(term_text) if term_text.isdigit() and int(term_text) <= 365 else defaults.payment_term_days
+    manual = due_date_manual == "1"
+    values = Values(contact_id=contact_id, invoice_date=invoice_date, payment_term_days=payment_term_days,
+                    due_date=due_date if manual else calc_due_date(day, effective).isoformat(), due_date_manual=manual)
+    return _render(request, "sales/_term_fields.html", values=values, defaults=defaults, effective_term=effective,
+                   oob=True)
+
+
 @router.post("/verkoop/totalen", response_class=HTMLResponse)
 def live_totals(
     request: Request,
@@ -438,7 +463,26 @@ def _detail(request: Request, session: Session, invoice_id: int, *, melding: str
         request, "sales/detail.html", status, title=title, detail=detail, invoice=invoice, errors=list(errors),
         flash=NOTICES.get(melding), new_reminder=reminder_id,
         can_remind=detail.status == "te_laat" and invoice.kind != CREDIT_NOTE,
+        mail=_invoice_mail(session, invoice) if invoice.kind != CREDIT_NOTE else None,
     )
+
+
+def _mailto(email: str | None, subject: str, body: str) -> str | None:
+    return f"mailto:{email}?subject={quote(subject)}&body={quote(body)}" if email else None
+
+
+def _invoice_mail(session: Session, invoice) -> dict:
+    """Proposed e-mail for sending a definitive invoice; the PDF must be attached by hand."""
+    contact = session.get(Contact, invoice.contact_id)
+    body = (
+        f"Beste {invoice.buyer_name or contact.name},\n\n"
+        f"Hierbij ontvang je factuur {invoice.number} van {invoice.invoice_date:%d-%m-%Y} "
+        f"voor {_cents_text(invoice.total_incl_cents)} euro. "
+        f"Wil je het bedrag uiterlijk {invoice.due_date:%d-%m-%Y} overmaken"
+        f"{' naar ' + invoice.seller_iban if invoice.seller_iban else ''} onder vermelding van {invoice.number}?\n\n"
+        f"Met vriendelijke groet,\n{invoice.seller_name or ''}"
+    )
+    return {"body": body, "url": _mailto(contact.email if contact else None, f"Factuur {invoice.number}", body)}
 
 
 @router.post("/verkoop/{invoice_id:int}", response_class=HTMLResponse)
@@ -606,9 +650,7 @@ def _reminder_page(request: Request, session: Session, invoice_id: int, reminder
         status = 409 if status == 200 else status
         if status == 409 and exc.code == "INVALID_INPUT":
             status = 422
-    mailto = None
-    if draft and draft.contact_email:
-        mailto = f"mailto:{draft.contact_email}?subject={quote(draft.mailto_subject)}&body={quote(draft.body_text)}"
+    mailto = _mailto(draft.contact_email, draft.mailto_subject, draft.body_text) if draft else None
     return _render(request, "sales/reminder.html", status, title="Betalingsherinnering maken", invoice=invoice,
                    draft=draft, errors=errors, mailto=mailto)
 

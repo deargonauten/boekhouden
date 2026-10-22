@@ -10,6 +10,7 @@
 {% if flash %}{{ notice(flash, "success") }}{% endif %}
 {% if errors %}{{ error_box(errors) }}{% endif %}
 <form method="post" action="{% if invoice %}/verkoop/{{ invoice.id }}{% else %}/verkoop/nieuw{% endif %}" id="sales-form" class="stack entry-form" hx-boost="false">
+  {% if not credit %}<div hidden hx-post="/verkoop/termijn" hx-include="#sales-form" hx-swap="none" hx-trigger="change[['contact_id','invoice_date','payment_term_days','due_date_manual'].includes(event.target.name)] from:#sales-form, keyup[event.target.name=='payment_term_days'] delay:600ms from:#sales-form"></div>{% endif %}
   <section class="card">
     <div class="card__header"><h2>Voor wie is de factuur? {{ info("klant") }}</h2></div>
     <div class="card__body entry-fields">
@@ -31,16 +32,7 @@
         <span class="field__hint">Voorstel: vandaag.</span>
       </div>
       {% if not credit %}
-      <div class="field">
-        <label for="f-term">Betaaltermijn in dagen {{ info("betaaltermijn") }}</label>
-        <input id="f-term" name="payment_term_days" value="{{ values.payment_term_days }}" inputmode="numeric" maxlength="3" placeholder="{{ defaults.payment_term_days }}">
-        <span class="field__hint">Leeg laten betekent {{ defaults.payment_term_days }} dagen{% if defaults.term_source == "klant" %} (afspraak met deze klant){% else %} (standaard){% endif %}. 0 is direct betalen.</span>
-      </div>
-      <div class="field">
-        <label for="f-due">Vervaldatum {{ info("vervaldatum") }}</label>
-        <input type="date" id="f-due" name="due_date" value="{{ values.due_date }}">
-        <label class="check"><input type="checkbox" name="due_date_manual" value="1"{% if values.due_date_manual %} checked{% endif %}> <span>Zelf kiezen. Anders rekent het programma de vervaldatum uit.</span></label>
-      </div>
+      {% include "sales/_term_fields.html" %}
       <div class="field">
         <label for="f-service">Leverdatum {{ info("leverdatum") }} (alleen als die afwijkt)</label>
         <input type="date" id="f-service" name="service_date" value="{{ values.service_date }}">

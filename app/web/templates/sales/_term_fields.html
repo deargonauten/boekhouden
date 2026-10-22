@@ -1,0 +1,13 @@
+{# Betaaltermijn and vervaldatum fields. Re-rendered by /verkoop/termijn (oob swap) when klant, factuurdatum or termijn change. #}
+{% from "partials/_info.html" import info with context %}
+<div class="field" id="term-field"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <label for="f-term">Betaaltermijn in dagen {{ info("betaaltermijn") }}</label>
+  <input id="f-term" name="payment_term_days" value="{{ values.payment_term_days }}" inputmode="numeric" maxlength="3" placeholder="{{ defaults.payment_term_days }}">
+  <span class="field__hint">Leeg laten betekent {{ defaults.payment_term_days }} dagen{% if defaults.term_source == "klant" %} (afspraak met deze klant){% else %} (standaard){% endif %}. 0 is direct betalen.</span>
+</div>
+<div class="field" id="due-field"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <label for="f-due">Vervaldatum {{ info("vervaldatum") }}</label>
+  <input type="date" id="f-due" name="due_date" value="{{ values.due_date }}">
+  <span class="field__hint" id="due-hint">{% if values.due_date_manual %}Je hebt de vervaldatum zelf gekozen.{% elif effective_term is not none %}Uitgerekend: {{ effective_term }} {{ "dag" if effective_term == 1 else "dagen" }} na de factuurdatum.{% endif %}</span>
+  <label class="check"><input type="checkbox" name="due_date_manual" value="1"{% if values.due_date_manual %} checked{% endif %}> <span>Zelf kiezen. Anders rekent het programma de vervaldatum uit.</span></label>
+</div>

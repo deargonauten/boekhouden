@@ -199,6 +199,49 @@ def test_unknown_invoice_is_404(shop):
     assert shop.get("/verkoop/9999/pdf").status_code == 404
 
 
+# --- live term / due date ---------------------------------------------------------------------------
+def _term(c, **over):
+    data = {"contact_id": str(c.customer_id), "invoice_date": TODAY.isoformat(), "payment_term_days": "",
+            "due_date": "", "due_date_manual": ""}
+    data.update(over)
+    return c.post("/verkoop/termijn", data=data)
+
+
+def test_term_partial_follows_klant_term_and_date(shop):
+    shop.post(f"/relaties/{shop.customer_id}/bewerken", data={
+        "name": "Klant BV", "is_customer": "1", "payment_term_days": "14"})
+    day = date(YEAR, 3, 1)
+    r = _term(shop, invoice_date=day.isoformat())
+    assert r.status_code == 200
+    assert 'placeholder="14"' in r.text and "afspraak met deze klant" in r.text
+    assert f'name="due_date" value="{(day + timedelta(days=14)).isoformat()}"' in r.text
+    assert 'hx-swap-oob="true"' in r.text
+
+
+def test_term_partial_typed_term_and_no_klant(shop):
+    r = _term(shop, contact_id="", payment_term_days="10")
+    assert f'name="due_date" value="{(TODAY + timedelta(days=10)).isoformat()}"' in r.text
+    assert 'value="10"' in r.text
+    r = _term(shop, contact_id="")
+    assert 'placeholder="30"' in r.text and "(standaard)" in r.text
+
+
+def test_term_partial_keeps_manual_due_date(shop):
+    manual = (TODAY + timedelta(days=45)).isoformat()
+    r = _term(shop, payment_term_days="10", due_date=manual, due_date_manual="1")
+    assert f'name="due_date" value="{manual}"' in r.text
+    assert re.search(r'name="due_date_manual"[^>]*checked', r.text)
+
+
+def test_term_partial_bad_input_does_not_crash(shop):
+    assert _term(shop, invoice_date="kapot", payment_term_days="abc").status_code == 200
+
+
+def test_editor_has_live_term_trigger(shop):
+    html = shop.get(f"/verkoop/nieuw?klant={shop.customer_id}").text
+    assert 'hx-post="/verkoop/termijn"' in html and 'id="due-field"' in html
+
+
 # --- definitief maken ---------------------------------------------------------------------------------
 def test_confirmation_page_previews_the_booking(shop):
     invoice_id = make_concept(shop)
@@ -206,6 +249,21 @@ def test_confirmation_page_previews_the_booking(shop):
     assert "Zo wordt het geboekt" in html and "€ 100,00" in html and "€ 21,00" in html and "€ 121,00" in html
     assert "Klant moet nog betalen" in html
     assert "Dit kun je daarna niet meer wijzigen" in html
+
+
+def test_confirmation_shows_dates(shop):
+    invoice_id = make_concept(shop, payment_term_days="10")
+    html = shop.get(f"/verkoop/{invoice_id}/definitief").text
+    assert TODAY.strftime("%d-%m-%Y") in html
+    assert (TODAY + timedelta(days=10)).strftime("%d-%m-%Y") in html
+    assert "Vervaldatum" in html and "10 dagen" in html
+
+
+def test_final_invoice_offers_mail_to_customer(shop):
+    invoice_id = make_final(shop)
+    html = shop.get(f"/verkoop/{invoice_id}").text
+    assert "mailto:klant@example.nl" in html and "Mail aan klant" in html
+    assert "PDF" in html and "bijlage" in html
 
 
 def test_save_and_finalize_button_goes_to_confirmation(shop):

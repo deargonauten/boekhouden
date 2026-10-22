@@ -18,6 +18,8 @@
     <p>Je legt een factuur {{ info("verkoopfactuur") }} vast voor <strong>{{ contact.name }}</strong>. Het programma kiest het eerstvolgende vrije factuurnummer {{ info("factuurnummer") }}.</p>
     {% endif %}
     <dl class="facts">
+      <dt>Factuurdatum {{ info("factuurdatum") }}</dt><dd>{{ invoice.invoice_date.strftime("%d-%m-%Y") }}</dd>
+      {% if not credit %}<dt>Vervaldatum {{ info("vervaldatum") }}</dt><dd>{{ invoice.due_date.strftime("%d-%m-%Y") }} ({% if invoice.payment_term_days == 0 %}direct betalen{% else %}{{ invoice.payment_term_days }} dagen na de factuurdatum{% endif %}{% if invoice.due_date_manual %}, zelf gekozen{% endif %})</dd>{% endif %}
       <dt>{% if credit %}Omzet die je terugdraait{% else %}Omzet{% endif %} {{ info("omzet") }}</dt><dd class="money">{{ invoice.total_excl_cents|euro }}</dd>
       <dt>BTW {{ info("btw") }} {{ info("btw_af_te_dragen") }}</dt><dd class="money">{{ invoice.total_vat_cents|euro }}</dd>
       <dt>{% if credit %}Klant krijgt van je terug of hoeft minder te betalen{% else %}Klant moet nog betalen{% endif %}</dt><dd class="money"><strong>{{ invoice.total_incl_cents|euro }}</strong></dd>

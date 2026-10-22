@@ -15,6 +15,19 @@
 {% if new_reminder %}<div class="notice notice--success" role="status">{{ icon("download") }}<div><a href="/verkoop/herinneringen/{{ new_reminder }}/pdf" hx-boost="false">Download de herinnering als PDF</a></div></div>{% endif %}
 {% if errors %}{{ error_box(errors) }}{% endif %}
 {% if can_remind %}<p class="hint">Deze factuur is te laat betaald. Met een betalingsherinnering {{ info("herinnering") }} vraag je de klant vriendelijk om alsnog te betalen.</p>{% endif %}
+{% if mail %}
+<div class="card">
+  <div class="card__header"><h2>Factuur mailen</h2></div>
+  <div class="card__body stack">
+    <p class="hint">Download eerst de PDF en voeg die als bijlage toe aan je e-mail: het programma kan geen bijlage meesturen.</p>
+    <div class="field">
+      <label for="m-text">Voorgestelde tekst (kopieer hem voor je e-mail)</label>
+      <textarea id="m-text" rows="8" readonly>{{ mail.body }}</textarea>
+    </div>
+    <p>{% if mail.url %}<a class="btn btn-secondary" href="{{ mail.url }}" hx-boost="false">Mail aan klant</a>{% else %}<span class="hint">Bij deze klant staat geen e-mailadres. Voeg dat toe bij de klant om direct te kunnen mailen.</span>{% endif %}</p>
+  </div>
+</div>
+{% endif %}
 {% for w in detail.warnings %}{{ notice(w, "warning") }}{% endfor %}
 <div class="card">
   <div class="card__header"><h2>Gegevens</h2><span class="cluster">{{ status_pill(detail.status, detail.status_label) }}{% if detail.reminders %} {{ pill("Herinnering gemaakt", "info") }}{% endif %}</span></div>
