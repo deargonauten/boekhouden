@@ -26,7 +26,7 @@ SOORT_TO_ROLE = {"klant": "customer", "leverancier": "supplier"}
 PER_PAGE = 50
 FORM_FIELDS = (
     "name", "kvk", "btw_number", "iban", "address_line", "postal_code",
-    "city", "country", "email", "phone", "notes",
+    "city", "country", "email", "phone", "notes", "payment_term_days",
 )
 
 web.templates.env.filters["iban"] = lambda v: format_iban(v) if v else ""
@@ -73,7 +73,9 @@ def _blank_values(**over) -> dict:
 
 def _values_of(obj) -> dict:
     """Form values from a Contact or ContactInput (None becomes empty text)."""
-    values = {f: getattr(obj, f) or "" for f in FORM_FIELDS}
+    values = {f: getattr(obj, f) or "" for f in FORM_FIELDS if f != "payment_term_days"}
+    term = obj.payment_term_days
+    values["payment_term_days"] = "" if term is None else str(term)  # 0 ("direct betalen") is a value
     values.update(is_customer=bool(obj.is_customer), is_supplier=bool(obj.is_supplier))
     return values
 
@@ -143,7 +145,7 @@ def contact_new(request: Request, soort: str = "", naam: str = ""):
 
 def _contact_input(
     name, is_customer, is_supplier, kvk, btw_number, iban, address_line,
-    postal_code, city, country, email, phone, notes,
+    postal_code, city, country, email, phone, notes, payment_term_days="",
 ) -> ContactInput:
     return ContactInput(
         name=name,
@@ -159,6 +161,7 @@ def _contact_input(
         email=email,
         phone=phone,
         notes=notes,
+        payment_term_days=payment_term_days,
     )
 
 
@@ -178,11 +181,12 @@ def contact_create(
     email: str = Form(""),
     phone: str = Form(""),
     notes: str = Form(""),
+    payment_term_days: str = Form(""),
     session: Session = Depends(get_session),
 ):
     data = _contact_input(
         name, is_customer, is_supplier, kvk, btw_number, iban, address_line,
-        postal_code, city, country, email, phone, notes,
+        postal_code, city, country, email, phone, notes, payment_term_days,
     )
     try:
         contact = create_contact(session, data)
@@ -220,13 +224,14 @@ def contact_update(
     email: str = Form(""),
     phone: str = Form(""),
     notes: str = Form(""),
+    payment_term_days: str = Form(""),
     session: Session = Depends(get_session),
 ):
     if _load(session, contact_id) is None:
         return web.not_found_response(request)
     data = _contact_input(
         name, is_customer, is_supplier, kvk, btw_number, iban, address_line,
-        postal_code, city, country, email, phone, notes,
+        postal_code, city, country, email, phone, notes, payment_term_days,
     )
     try:
         update_contact(session, contact_id, data)
