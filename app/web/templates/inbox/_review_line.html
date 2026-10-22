@@ -1,5 +1,6 @@
 {# Needs: line (dict), flags (dict field -> flags), accounts, vat_codes, no_account_hint #}
 {% from "partials/_ui.html" import icon, pill with context %}
+{% from "partials/_info.html" import info with context %}
 {% set _active_vats = vat_codes|map(attribute="code")|list %}
 <tr class="line-row">
   <td>
@@ -12,6 +13,7 @@
       {% for a in accounts %}<option value="{{ a.code }}" data-vat="{{ a.default_vat_code if a.default_vat_code in _active_vats else '' }}"{% if line.account_code == a.code %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
     </select>
     {% if not line.account_code %}<span class="hint">{{ no_account_hint }}</span>{% endif %}
+    {% if learned and line.account_code and line.account_code != learned.account_code %}<span class="hint learned-hint">{{ learned.hint }} {{ info("leerfunctie") }}</span>{% endif %}
   </td>
   <td><input name="line_amount_excl" value="{{ line.amount_excl }}" inputmode="decimal" class="num" aria-label="Bedrag zonder BTW" placeholder="0,00"></td>
   <td>

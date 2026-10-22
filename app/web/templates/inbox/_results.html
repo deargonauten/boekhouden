@@ -3,6 +3,8 @@
 {% for r in results %}
   {% if r.kind == "created" %}
   <div class="notice notice--success result-created" role="status">{{ icon("check") }}<div>{{ r.name }} is toegevoegd aan je inbox.</div></div>
+  {% elif r.kind == "duplicate" and r.document.status == "geboekt" and r.document.journal_entry_id %}
+  <div class="notice notice--info result-duplicate" role="status">{{ icon("info") }}<div>{{ r.name }} is al geboekt en niet nog een keer opgeslagen. <a href="/boeken/{{ r.document.journal_entry_id }}">Bekijk de boeking</a> of <a href="/inbox/{{ r.document.id }}">het document</a></div></div>
   {% elif r.kind == "duplicate" %}
   <div class="notice notice--info result-duplicate" role="status">{{ icon("info") }}<div>{{ r.name }} staat al in je inbox (geupload op {{ r.document.received_at.strftime("%d-%m-%Y") }}, status {{ r.status_label }}). Het is niet nog een keer opgeslagen. <a href="/inbox/{{ r.document.id }}">Bekijk het bestaande document</a></div></div>
   {% else %}

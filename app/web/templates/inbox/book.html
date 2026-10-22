@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, pill, notice, error_box, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/inbox.css">{% endblock %}
+{% block content %}
+{{ page_header("Boeken", breadcrumb=[("Inbox", "/inbox"), ("Nakijken", "/inbox/" ~ preview.document_id ~ "/nakijken"), ("Boeken", None)], term="goedkeuren_boeken", icon_name="file",
+   lead="Controleer hoe deze factuur wordt vastgelegd in je administratie. Als het klopt, klik je op Goedkeuren en boeken.") }}
+
+<div class="stack booking">
+{% if preview.needs_review %}
+  <section class="card" aria-labelledby="review-first-title">
+    <div class="card__body stack">
+      <h2 id="review-first-title">Eerst nakijken {{ info("nakijken") }}</h2>
+      <p>{{ preview.error.message }}</p>
+      <div class="form-actions booking-actions">
+        <a class="btn" href="/inbox/{{ preview.document_id }}/nakijken">{{ icon("file") }}Naar nakijken</a>
+        <button type="button" class="btn" disabled>{{ icon("check") }}Goedkeuren en boeken</button>
+      </div>
+    </div>
+  </section>
+{% else %}
+  {% if error_message %}
+  <div class="alert" role="alert">
+    <p>{{ error_message }}</p>
+    {% if fix_link %}<p><a href="{{ fix_link }}">Verbeter dit bij het nakijken</a></p>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if preview.rows %}
+  <section class="card" aria-labelledby="book-facts-title">
+    <div class="card__header"><h2 id="book-facts-title">Over de factuur</h2></div>
+    <div class="card__body">
+      <dl class="facts">
+        <dt>Leverancier</dt><dd>{{ preview.supplier_name }}</dd>
+        <dt>Factuurnummer</dt><dd>{{ preview.invoice_number }}</dd>
+        <dt>Factuurdatum {{ info("factuurdatum") }}</dt><dd>{{ preview.invoice_date.strftime("%d-%m-%Y") }}</dd>
+        {% if preview.due_date %}<dt>Vervaldatum</dt><dd>{{ preview.due_date.strftime("%d-%m-%Y") }}</dd>{% endif %}
+        <dt>Soort</dt><dd>{% if preview.kind == "credit_note" %}Creditnota {{ info("creditnota") }}{% else %}Factuur van een leverancier {{ info("inkoopfactuur") }}{% endif %}</dd>
+        <dt>Wordt geboekt in {{ info("inkoopdagboek") }}</dt><dd>{{ preview.journal_code }} {{ preview.journal_name }}</dd>
+        <dt>Periode</dt><dd>{{ preview.period_label }}</dd>
+      </dl>
+    </div>
+  </section>
+
+  {% if preview.summary %}
+  <div class="notice notice--info booking-summary" role="status">{{ icon("info") }}<div><strong>{{ preview.summary }}</strong></div></div>
+  {% endif %}
+  {% for w in preview.warnings %}<div class="notice notice--warning" role="status">{{ icon("alert") }}<div>{{ w }}</div></div>{% endfor %}
+
+  <section class="card card--flush" aria-labelledby="book-rows-title">
+    <div class="card__header"><h2 id="book-rows-title">Zo wordt het geboekt</h2></div>
+    <div class="table-wrap">
+    <table class="data booking-rows">
+      <thead><tr>
+        <th>Wat</th>
+        <th>{{ term_label("grootrekening", "Op welke rekening?") }}</th>
+        <th>BTW-tarief {{ info("btw_tarief") }}</th>
+        <th class="num">Bedrag</th>
+      </tr></thead>
+      <tbody>
+      {% for row in preview.rows %}
+        <tr>
+          <td>{{ row.label }}{% if row.term %} {{ info(row.term) }}{% endif %}{% if row.description %}<span class="hint">{{ row.description }}</span>{% endif %}</td>
+          <td>{{ row.account_code }} {{ row.account_name }}</td>
+          <td>{{ row.vat_label or "" }}</td>
+          <td class="num">{{ row.amount_cents|euro }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <div class="card__footer"><p class="hint">Totaal van de factuur: <strong>{{ preview.total_incl_cents|euro }}</strong>. Na het boeken kun je dit alleen nog ongedaan maken met een stornoboeking. {{ info("storno") }}</p></div>
+  </section>
+  {% endif %}
+
+  <form method="post" action="/inbox/{{ preview.document_id }}/boeken" hx-boost="false" class="form-actions booking-actions">
+    <button type="submit" class="btn"{% if not preview.can_book %} disabled{% endif %}>{{ icon("check") }}Goedkeuren en boeken</button>
+    <a href="/inbox/{{ preview.document_id }}/nakijken">Terug naar nakijken</a>
+  </form>
+{% endif %}
+</div>
+{% endblock %}

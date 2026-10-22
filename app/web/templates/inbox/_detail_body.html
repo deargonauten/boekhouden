@@ -22,6 +22,8 @@
         </dd>
         {% if document.status == "geboekt" and document.journal_entry_id %}
         <dt>Boeking {{ info("boeking") }}</dt><dd><a href="/boeken/{{ document.journal_entry_id }}">Bekijk de boeking</a></dd>
+        {% set purchase = purchase_invoice_for_document(request, document.id) %}
+        {% if purchase %}<dt>Inkoopfactuur {{ info("inkoopfactuur") }}</dt><dd><a href="/inkoop">{{ purchase.invoice_number }} bij Inkoop</a></dd>{% endif %}
         {% endif %}
         <dt>Vingerafdruk van het bestand {{ info("vingerafdruk") }}</dt><dd><span class="fingerprint">{{ document.sha256 }}</span></dd>
       </dl>

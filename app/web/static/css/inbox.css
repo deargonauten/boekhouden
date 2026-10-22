@@ -54,3 +54,9 @@
 @media (max-width: 599px) {
   .form-grid, .form-grid--3 { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Booking preview */
+.booking-rows .hint { display: block; }
+.booking-summary { margin-bottom: 0; }
+.booking-actions { align-items: center; }
+.learned-hint { color: var(--color-text-muted, inherit); }
