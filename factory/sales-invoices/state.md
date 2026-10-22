@@ -17,3 +17,4 @@ Round-2 fixes D,E merged. Tests: .venv/bin/python -m pytest -q -> 2222 passed, 1
 Step 4: approver HUMAN_REVIEW (browser check of htmx due date, AC30 layout, visual check). Awaiting user.
 Human rework 1: F merged. Tests 2228 passed (2026-10-23). Review round 3 (ux-ui delta since 54cd87d).
 G merged. Tests 2229 passed (builder G full run). Awaiting user approval after human rework 1.
+Status: COMPLETED (approved by user 2026-10-23, merged to main)
