@@ -1,0 +1,30 @@
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import pager, empty_state with context %}
+{% if not transactions.items %}
+  {% if q or rekening or batch %}
+  {{ empty_state("Geen transacties gevonden", "Er is geen bij- of afschrijving die past bij je zoekopdracht. Pas je zoekopdracht aan.", "Toon alles", "/bank", "search") }}
+  {% else %}
+  {{ empty_state("Nog geen transacties", "Importeer een bankafschrift bij een van je bankrekeningen. Daarna staan hier al je bij- en afschrijvingen.", None, None, "bank") }}
+  {% endif %}
+{% else %}
+<div class="table-wrap">
+<table class="data bank-table">
+  <thead><tr>
+    <th>Datum</th><th>Naam</th><th>Omschrijving</th><th class="num">Bij / Af {{ info("bijschrijving_afschrijving") }}</th><th>Rekening</th><th class="num">Saldo na mutatie</th>
+  </tr></thead>
+  <tbody>
+  {% for t in transactions.items %}
+  <tr>
+    <td class="nowrap">{{ t.booking_date|bank_datum }}</td>
+    <td>{{ t.counterparty_name or "" }}{% if t.counterparty_iban %}<span class="bank-sub">{{ t.counterparty_iban|bank_iban }}</span>{% endif %}</td>
+    <td class="bank-desc">{{ t.description }}</td>
+    <td class="num nowrap {{ 'amount--in' if t.amount_cents > 0 else 'amount--out' }}">{{ "+" if t.amount_cents > 0 }}{{ t.amount_cents|euro }}</td>
+    <td>{{ account_names.get(t.bank_account_id, "") }}</td>
+    <td class="num nowrap">{% if t.balance_after_cents is not none %}{{ t.balance_after_cents|euro }}{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(transactions.page, transactions.per_page, transactions.total, "/bank", {"q": q, "rekening": rekening, "importeren": batch}, "transacties", sticky=true) }}
+{% endif %}

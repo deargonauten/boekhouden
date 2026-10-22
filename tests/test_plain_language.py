@@ -108,7 +108,10 @@ def pages(c):
         (f"/relaties/{c.contact_id}/bewerken", set()),
         ("/inkoop", set()),
         ("/inkoop?tab=all", set()),
-        ("/bank", {"bank"}),  # placeholder page: heading is the nav label
+        ("/bank", set()),
+        ("/bank?tab=geschiedenis", set()),
+        ("/bank/rekeningen/nieuw", set()),
+        ("/bank/importeren", set()),
         ("/inbox", set()),
         ("/inbox?status=nieuw", set()),
         ("/inbox?status=geboekt", set()),

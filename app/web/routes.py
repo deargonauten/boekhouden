@@ -10,6 +10,7 @@ from app.web.company_routes import router as company_router
 from app.web.vat_routes import router as vat_router
 from app.web.booking_routes import router as booking_router  # Builder B; resolves after integration
 from app.web.purchase_routes import router as purchase_router
+from app.web.bank_routes import router as bank_router
 from app.domain.glossary import terms_alphabetical
 from app.web.navigation import NAV_ITEMS, NavItem
 
@@ -23,7 +24,8 @@ router.include_router(inbox_router)
 router.include_router(extraction_router)
 router.include_router(booking_router)
 router.include_router(purchase_router)
-LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox", "inkoop"}
+router.include_router(bank_router)
+LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox", "inkoop", "bank"}
 
 
 @router.get("/", include_in_schema=False)

@@ -1,0 +1,25 @@
+/* Bank (bankafschriften importeren): only screen-specific layout; shared looks live in app.css. */
+.bank-accounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--space-5); margin-bottom: var(--space-5); }
+.bank-account { margin: 0; }
+.bank-account__name { margin: 0 0 var(--space-2); font-size: var(--text-lg); overflow-wrap: anywhere; }
+.bank-account__iban { margin: 0 0 var(--space-4); }
+.bank-account--inactive { opacity: 0.75; }
+
+.bank-table td.num, .bank-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.bank-table .bank-desc { min-width: 14rem; max-width: 34rem; overflow-wrap: anywhere; }
+.bank-sub { display: block; font-size: var(--text-sm); color: var(--muted); }
+.amount--in { color: var(--success); font-weight: 600; }
+.amount--out { color: var(--danger); font-weight: 600; }
+
+.bank-filter-note { margin: 0; padding: var(--space-3) var(--space-6); color: var(--muted); font-size: var(--text-sm); }
+.bank-found { margin: 0; font-size: var(--text-lg); }
+.bank-formats ul { margin: var(--space-2) 0; padding-left: var(--space-5); }
+.bank-formats__title { margin: 0; font-weight: 600; }
+.bank-existing { padding: 0; }
+.bank-existing summary { cursor: pointer; padding: var(--space-4) var(--space-6); font-weight: 600; }
+.bank-form .form-grid .field select, .bank-form .field select { width: 100%; }
+
+@media (max-width: 599px) {
+  .bank-filter-note { padding: var(--space-3) var(--space-4); }
+  .bank-accounts { grid-template-columns: minmax(0, 1fr); }
+}

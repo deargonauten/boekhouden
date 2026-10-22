@@ -1,0 +1,29 @@
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import pager, empty_state with context %}
+{% if not batches.items %}
+  {{ empty_state("Nog niets geïmporteerd", "Zodra je een bankafschrift hebt geïmporteerd, staat het hier met het originele bestand erbij.", None, None, "upload") }}
+{% else %}
+<div class="table-wrap">
+<table class="data bank-table">
+  <thead><tr>
+    <th>Geïmporteerd op</th><th>Rekening</th><th>Bestand</th><th>Soort bestand</th><th>Eerste en laatste datum</th><th class="num">Toegevoegd</th><th class="num">Overgeslagen {{ info("dubbele_transactie") }}</th><th>Bekijken</th>
+  </tr></thead>
+  <tbody>
+  {% for b in batches.items %}
+  <tr>
+    <td class="nowrap">{{ (b.confirmed_at or b.created_at)|bank_datum_tijd }}</td>
+    <td>{{ account_names.get(b.bank_account_id, "") }}</td>
+    <td class="bank-desc">{{ b.original_filename }}</td>
+    <td>{{ FORMAT_LABELS.get(b.detected_format, b.detected_format) }}{% if b.detected_bank %} van {{ BANK_LABELS.get(b.detected_bank, b.detected_bank) }}{% endif %}</td>
+    <td class="nowrap">{% if b.period_start %}{{ b.period_start|bank_datum }} t/m {{ b.period_end|bank_datum }}{% endif %}</td>
+    <td class="num">{{ b.new_count }}</td>
+    <td class="num">{{ b.skipped_count + b.maybe_duplicate_count }}</td>
+    <td class="nowrap"><a href="/bank?importeren={{ b.id }}">Transacties</a> &middot; <a href="/bank/importeren/{{ b.id }}/bestand">Origineel bestand downloaden</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(batches.page, batches.per_page, batches.total, "/bank", {"tab": "geschiedenis"}, "importen", sticky=true) }}
+<p class="bank-filter-note">Het originele bestand blijft altijd bewaard, want je moet je administratie 7 jaar bewaren {{ info("bewaarplicht") }}.</p>
+{% endif %}

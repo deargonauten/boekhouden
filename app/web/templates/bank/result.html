@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, notice, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% block content %}
+{{ page_header("Import klaar", breadcrumb=[("Bank", "/bank"), ("Import klaar", None)], term="bankafschrift", icon_name="check",
+   lead="Het bankafschrift is verwerkt. De transacties staan nu in je lijst en kun je niet meer wijzigen.") }}
+{% if already %}{{ notice(already_message, "warning") }}{% endif %}
+{% set skipped = batch.skipped_count %}
+{% set maybe = batch.maybe_duplicate_count %}
+{{ notice(
+  batch.new_count ~ (" transactie" if batch.new_count == 1 else " transacties") ~ " geïmporteerd"
+  ~ (", " ~ skipped ~ " overgeslagen (al eerder geïmporteerd)" if skipped else "")
+  ~ (", " ~ maybe ~ " mogelijk dubbel overgeslagen" if maybe else "")
+  ~ ".", "success") }}
+{% if skipped or maybe %}<p class="hint">Wat al in je administratie stond, is niet nog eens ingelezen {{ info("dubbele_transactie") }}.</p>{% endif %}
+<section class="card">
+  <div class="card__body stack">
+    <p class="muted">{{ batch.original_filename }}{% if account %} voor {{ account.name }}{% endif %}{% if batch.period_start %}, van {{ batch.period_start|bank_datum }} tot en met {{ batch.period_end|bank_datum }}{% endif %}.</p>
+    <div class="cluster">
+      <a class="btn" href="/bank?importeren={{ batch.id }}">Bekijk de transacties {{ info("transactie") }} van deze import</a>
+      <a class="btn btn-secondary" href="/bank/importeren/{{ batch.id }}/bestand">{{ icon("download") }}Origineel bestand downloaden</a>
+      <a class="btn btn-secondary" href="/bank/importeren?rekening={{ batch.bank_account_id }}">Nog een afschrift importeren</a>
+    </div>
+    <p class="hint">Het originele bestand blijft bewaard, omdat je je administratie 7 jaar moet bewaren {{ info("bewaarplicht") }}.</p>
+  </div>
+</section>
+{% endblock %}

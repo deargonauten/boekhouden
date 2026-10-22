@@ -21,7 +21,7 @@ def test_required_keys_present():
 
 @pytest.mark.parametrize("t", all_terms(), ids=lambda t: t.key)
 def test_entry_valid(t: Term):
-    assert re.fullmatch(r"[a-z_]+", t.key)
+    assert re.fullmatch(r"[a-z][a-z0-9_]*", t.key)
     assert GLOSSARY[t.key] is t
     assert t.term.strip() and t.plain.strip() and t.explanation.strip()
     assert len(t.explanation) <= 220

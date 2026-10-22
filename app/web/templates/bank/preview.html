@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, notice, error_box, icon with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/bank.css">{% endblock %}
+{% macro amount(cents) -%}
+<span class="{{ 'amount--in' if cents > 0 else 'amount--out' }}">{{ "+" if cents > 0 }}{{ cents|euro }}</span>
+{%- endmacro %}
+{% macro rows_table(rows, with_checkbox=False) -%}
+<div class="table-wrap">
+<table class="data bank-table">
+  <thead><tr>
+    {% if with_checkbox %}<th>Toch importeren</th>{% endif %}
+    <th>Datum</th><th>Naam</th><th>Omschrijving</th><th class="num">Bij / Af {{ info("bijschrijving_afschrijving") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+  {% set t = r.transaction %}
+  <tr>
+    {% if with_checkbox %}<td><label class="check"><input type="checkbox" name="include_maybe" value="{{ r.index }}" aria-label="Toch importeren: {{ t.booking_date|bank_datum }} {{ t.counterparty_name or '' }}"></label></td>{% endif %}
+    <td class="nowrap">{{ t.booking_date|bank_datum }}</td>
+    <td>{{ t.counterparty_name or "" }}{% if t.counterparty_iban %}<span class="bank-sub">{{ t.counterparty_iban|bank_iban }}</span>{% endif %}</td>
+    <td class="bank-desc">{{ t.description }}</td>
+    <td class="num nowrap">{{ amount(t.amount_cents) }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{%- endmacro %}
+{% block content %}
+{{ page_header("Controleer je bankafschrift", breadcrumb=[("Bank", "/bank"), ("Bankafschrift importeren", "/bank/importeren?rekening=" ~ batch.bank_account_id), ("Controleren", None)], term="bankafschrift", icon_name="upload",
+   lead="Er is nog niets opgeslagen. Kijk of dit klopt en bevestig daarna onderaan.") }}
+{% if error %}{{ error_box(error) }}{% endif %}
+
+<section class="card">
+  <div class="card__body stack">
+    <p class="bank-found">
+      Gevonden: <strong>{{ preview.total_count }} {{ "transactie" if preview.total_count == 1 else "transacties" }}</strong> {{ info("transactie") }},
+      <strong>{{ preview.new_count }} nieuw</strong>{% if preview.existing_count %}, {{ preview.existing_count }} al eerder geïmporteerd{% endif %}{% if preview.maybe_count %}, {{ preview.maybe_count }} mogelijk dubbel{% endif %}.
+      {% if preview.existing_count or preview.maybe_count %}{{ info("dubbele_transactie") }}{% endif %}
+    </p>
+    <p class="muted">
+      {% if format_term %}{{ preview.format_label }}{% if preview.bank_label %} van {{ preview.bank_label }}{% endif %} {{ info(format_term) }}.{% endif %}
+      Voor {{ account.name if account else "je bankrekening" }}{% if account %} ({{ account.iban|bank_iban }}){% endif %}.
+      {% if preview.period_start %}Van {{ preview.period_start|bank_datum }} tot en met {{ preview.period_end|bank_datum }}.{% endif %}
+    </p>
+  </div>
+</section>
+
+{% if preview.already_imported_on %}
+{{ notice("Dit bestand heb je al geïmporteerd op " ~ (preview.already_imported_on|bank_datum) ~ ". Er is niets nieuws.", "warning") }}
+{% endif %}
+{% for w in preview.warnings %}{{ notice(w, "warning") }}{% endfor %}
+
+<form method="post" action="/bank/importeren/{{ batch.id }}/bevestigen" class="stack bank-form" hx-boost="false">
+  {% if preview.new_rows %}
+  <section class="card card--flush">
+    <div class="card__header"><h2>Nieuw: {{ preview.new_count }}</h2><span class="muted">Deze worden geïmporteerd.</span></div>
+    {{ rows_table(preview.new_rows[:200]) }}
+    {% if preview.new_count > 200 %}<p class="bank-filter-note">En nog {{ preview.new_count - 200 }} andere. Je ziet ze na het importeren in de lijst.</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if preview.maybe_rows %}
+  <section class="card card--flush">
+    <div class="card__header"><h2>Mogelijk dubbel: {{ preview.maybe_count }} {{ info("dubbele_transactie") }}</h2></div>
+    <p class="bank-filter-note">Dezelfde datum, hetzelfde bedrag en dezelfde tegenpartij staan er al, maar de omschrijving is anders. Dit worden niet geïmporteerd, tenzij je het vakje aanvinkt.</p>
+    {{ rows_table(preview.maybe_rows, with_checkbox=True) }}
+  </section>
+  {% endif %}
+
+  {% if preview.existing_rows %}
+  <details class="card bank-existing">
+    <summary>Al eerder geïmporteerd: {{ preview.existing_count }} (worden overgeslagen)</summary>
+    {{ rows_table(preview.existing_rows[:200]) }}
+  </details>
+  {% endif %}
+
+  {% if not preview.new_rows and not preview.maybe_rows and not preview.already_imported_on %}
+  {{ notice("Er is niets nieuws om te importeren.", "info") }}
+  {% endif %}
+
+  <div class="form-actions">
+    <button type="submit" class="btn"{% if not preview.can_confirm %} disabled{% endif %}>{{ icon("check") }}Importeren</button>
+    <a class="btn btn-secondary" href="/bank">Annuleren</a>
+  </div>
+  <p class="hint">Na het importeren kun je de transacties niet meer wijzigen. Het originele bestand blijft bewaard {{ info("bewaarplicht") }}.</p>
+</form>
+{% endblock %}

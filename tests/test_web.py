@@ -5,9 +5,8 @@ import pytest
 from app import web
 from app.web.navigation import NAV_ITEMS, mark_active
 
-# /inbox (tests/test_inbox_web.py), /boeken, /instellingen and /relaties are real pages now (tests/test_ledger_web.py, tests/test_relations_web.py).
+# /bank (tests/test_bank_web.py), /inbox (tests/test_inbox_web.py), /boeken, /instellingen and /relaties are real pages now (tests/test_ledger_web.py, tests/test_relations_web.py).
 PAGES = [
-    ("/bank", "Bank"),
     ("/verkoop", "Verkoop"),
     ("/btw", "BTW"),
     ("/rapportages", "Rapportages"),
@@ -90,6 +89,6 @@ def test_help_page_is_not_in_the_sidebar(client):
 
 
 def test_placeholder_icon_and_help_link(client):
-    html = client.get("/bank").text
+    html = client.get("/verkoop").text
     assert 'class="page-header__icon"' in html
     assert 'href="/help"' in html and 'href="/inbox"' in html
