@@ -4,6 +4,7 @@ Local, single-user Dutch bookkeeping software for an eenmanszaak/VOF. Inspired b
 
 ## Decisions
 - Stack: Python 3.12, FastAPI, SQLite (single file, `data/boekhouden.db`), Jinja2 + HTMX UI on localhost. No Docker.
+- Styling: tokens in `app/web/static/app.css` plus Tailwind v4 + daisyUI (classes prefixed `d-`, retro light theme) built with the standalone CLI (`tools/build-css.sh`, no Node) into the committed `static/tailwind.css`. Screens migrate to Tailwind/daisyUI one by one.
 - Migrations: Alembic. Tests: pytest.
 - Invoice extraction: Claude API (PDF/image → structured JSON). API key via `.env` (`ANTHROPIC_API_KEY`), never committed.
 - Email intake: IMAP polling of a dedicated mailbox; attachments stored under `data/documents/` (content-addressed). Never deleted once linked to a booking; the only exception is an unbooked inbox document (status nieuw/herkend) that the user explicitly deletes, which removes the document, its extraction data and its file. Bank import files are never deleted.

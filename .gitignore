@@ -15,3 +15,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Tailwind standalone CLI (downloaded by tools/build-css.sh)
+tools/tailwindcss

@@ -1,0 +1,85 @@
+/* Tailwind v4 + daisyUI source. Build: ./tools/build-css.sh  ->  static/tailwind.css (committed, so running the app needs no build).
+ * No preflight: app.css owns the base styles. daisyUI classes are prefixed (d-btn, d-badge, ...) so they never clash with
+ * the existing .btn/.card/.pill classes while screens are migrated one by one. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@source "../../templates";
+@source "../js";
+
+@plugin "../../../../tools/daisyui.mjs" {
+  themes: false;
+  prefix: "d-";
+}
+
+/* Retro light theme (named "light" so data-theme=light picks it): cream paper, teal, mustard, tomato, olive. Same values as the tokens in app.css. */
+@plugin "../../../../tools/daisyui-theme.mjs" {
+  name: "light";
+  default: true;
+  color-scheme: light;
+  --color-base-100: #fffbf1;
+  --color-base-200: #faf1dc;
+  --color-base-300: #e6d8b6;
+  --color-base-content: #2a2730;
+  --color-primary: #1b6f73;
+  --color-primary-content: #ffffff;
+  --color-secondary: #e0a526;
+  --color-secondary-content: #2a2730;
+  --color-accent: #d9552b;
+  --color-accent-content: #ffffff;
+  --color-neutral: #2a2730;
+  --color-neutral-content: #fbf3df;
+  --color-info: #1b6f73;
+  --color-info-content: #ffffff;
+  --color-success: #2f6b2f;
+  --color-success-content: #ffffff;
+  --color-warning: #e0a526;
+  --color-warning-content: #2a2730;
+  --color-error: #a6322a;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --border: 1px;
+  --depth: 0;
+}
+
+/* Retro dark theme: warm charcoal, same accents as app.css dark tokens. Used by data-theme=dark and when the system is dark. */
+@plugin "../../../../tools/daisyui-theme.mjs" {
+  name: "dark";
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #26232a;
+  --color-base-200: #1c1a1f;
+  --color-base-300: #3d3844;
+  --color-base-content: #f3ebdc;
+  --color-primary: #5fc4bf;
+  --color-primary-content: #0f1b1c;
+  --color-secondary: #f2c04e;
+  --color-secondary-content: #1c1a1f;
+  --color-accent: #ff9a86;
+  --color-accent-content: #1c1a1f;
+  --color-neutral: #f3ebdc;
+  --color-neutral-content: #26232a;
+  --color-info: #5fc4bf;
+  --color-info-content: #0f1b1c;
+  --color-success: #a3d27a;
+  --color-success-content: #1c1a1f;
+  --color-warning: #f2c04e;
+  --color-warning-content: #1c1a1f;
+  --color-error: #ff9a86;
+  --color-error-content: #1c1a1f;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --border: 1px;
+  --depth: 0;
+}
+
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-cream: #faf1dc;
+  --color-teal: #1b6f73;
+  --color-mustard: #e0a526;
+  --color-tomato: #d9552b;
+  --color-olive: #2f6b2f;
+}
