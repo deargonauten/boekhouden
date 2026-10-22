@@ -1,0 +1,5 @@
+/* Beginbalans (/instellingen/beginbalans) */
+.opening-amounts input { text-align: right; max-width: 14rem; }
+.opening-items input, .opening-items select { width: 100%; min-width: 0; }
+.opening-summary { margin: 0; }
+.opening-readonly { opacity: 0.85; }

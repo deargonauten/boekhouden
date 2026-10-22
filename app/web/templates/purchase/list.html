@@ -50,8 +50,27 @@
       {% for r in overview.rows %}
       <tr>
         <td><a href="{{ page_url('/inkoop', {'tab': 'all', 'q': r.supplier_name}, 1) }}">{{ r.supplier_name }}</a>{% if r.overdue_count %} {{ pill("Te laat", "danger", r.overdue_count ~ " factuur voorbij de vervaldatum") }}{% endif %}</td>
-        <td class="num">{{ r.invoice_count }}</td>
+        <td class="num">{{ r.invoice_count }}{% if r.opening_count %} <span class="hint">(waarvan {{ r.opening_count }} uit beginbalans {{ info("beginbalans") }})</span>{% endif %}</td>
         <td class="num">{{ r.open_cents|euro }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+    {% if opening_items %}
+    <div class="card__header"><h2>Nog te betalen uit je beginbalans {{ info("beginbalans") }}</h2></div>
+    <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Leverancier {{ info("leverancier") }}</th><th>Factuurnummer</th><th>Datum van de factuur</th><th>Vervaldatum</th><th class="num">Nog te betalen {{ info("openstaand") }}</th></tr></thead>
+      <tbody>
+      {% for i in opening_items %}
+      <tr>
+        <td>{{ i.relation_name }}</td>
+        <td>{{ i.invoice_number }}</td>
+        <td class="nowrap">{{ i.invoice_date.strftime("%d-%m-%Y") }}</td>
+        <td class="nowrap">{% if i.due_date %}{{ i.due_date.strftime("%d-%m-%Y") }}{% endif %}{% if i.is_overdue %} {{ pill("Te laat", "danger") }}{% endif %}</td>
+        <td class="num">{{ i.open_cents|euro }}</td>
       </tr>
       {% endfor %}
       </tbody>

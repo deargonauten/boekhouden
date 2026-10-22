@@ -28,6 +28,7 @@
       <dt>Totaal</dt><dd class="money">{{ detail.total_cents|euro }}</dd>
       {% set purchase = purchase_invoice_for_entry(request, entry.id) %}
       {% if purchase %}<dt>Inkoopfactuur {{ info("inkoopfactuur") }}</dt><dd><a href="/inbox/{{ purchase.document_id }}" hx-boost="false">Bekijk de factuur van de leverancier</a></dd>{% endif %}
+      {% if entry.source_type == "beginbalans" %}<dt>Beginbalans {{ info("beginbalans") }}</dt><dd><a href="/instellingen/beginbalans" hx-boost="false">Bekijk beginbalans</a></dd>{% endif %}
       {% if detail.original %}<dt>Storno van {{ info("storno") }}</dt><dd><a href="/boeken/{{ detail.original.id }}" hx-boost="false">{{ detail.original.entry_number }}</a></dd>{% endif %}
       {% if detail.reversed_by %}<dt>Gestorneerd door {{ info("storno") }}</dt><dd><a href="/boeken/{{ detail.reversed_by.id }}" hx-boost="false">{{ detail.reversed_by.entry_number }}</a></dd>{% endif %}
     </dl>

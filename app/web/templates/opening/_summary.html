@@ -1,0 +1,9 @@
+{# Server-side totals for the beginbalans form (HTMX target #opening-summary). #}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import notice with context %}
+<dl class="facts opening-summary">
+  <dt>Totaal van wat je hebt (bezittingen) {{ info("activa") }}</dt><dd class="money">{{ summary.assets_cents|euro }}</dd>
+  <dt>Totaal van wat je nog moet betalen (schulden) {{ info("passiva") }}</dt><dd class="money">{{ summary.liabilities_cents|euro }}</dd>
+  <dt>{{ term_label("eigen_vermogen_berekend") }} {{ info("eigen_vermogen") }}</dt><dd class="money">{{ summary.equity_cents|euro }}</dd>
+</dl>
+{% for w in summary.warnings %}{{ notice(w, "warning") }}{% endfor %}

@@ -11,6 +11,7 @@ from app.web.vat_routes import router as vat_router
 from app.web.booking_routes import router as booking_router  # Builder B; resolves after integration
 from app.web.purchase_routes import router as purchase_router
 from app.web.bank_routes import router as bank_router
+from app.web.opening_routes import router as opening_router
 from app.domain.glossary import terms_alphabetical
 from app.web.navigation import NAV_ITEMS, NavItem
 
@@ -25,6 +26,7 @@ router.include_router(extraction_router)
 router.include_router(booking_router)
 router.include_router(purchase_router)
 router.include_router(bank_router)
+router.include_router(opening_router)
 LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox", "inkoop", "bank"}
 
 

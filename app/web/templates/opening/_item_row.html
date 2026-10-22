@@ -1,0 +1,18 @@
+{# One openstaande factuur row. Context: side ('debiteur'|'crediteur'), row (ItemRow), groups ([(label, [contact])]). #}
+<tr class="item-row">
+  <td>
+    <input type="hidden" name="item_side" value="{{ side }}">
+    <select name="item_contact" aria-label="{{ 'Klant' if side == 'debiteur' else 'Leverancier' }}">
+      <option value="">Kies een relatie</option>
+      {% for label, group in groups %}
+      <optgroup label="{{ label }}">
+        {% for c in group %}<option value="{{ c.id }}"{% if row.contact_id == c.id|string %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+  </td>
+  <td><input name="item_number" value="{{ row.number }}" maxlength="64" aria-label="Factuurnummer"></td>
+  <td><input type="date" name="item_date" value="{{ row.invoice_date }}" aria-label="Factuurdatum"></td>
+  <td><input type="date" name="item_due" value="{{ row.due_date }}" aria-label="Vervaldatum"></td>
+  <td><input name="item_amount" value="{{ row.amount }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag"></td>
+</tr>

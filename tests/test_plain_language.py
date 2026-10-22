@@ -108,6 +108,8 @@ def pages(c):
         (f"/relaties/{c.contact_id}/bewerken", set()),
         ("/inkoop", set()),
         ("/inkoop?tab=all", set()),
+        ("/instellingen/beginbalans", set()),
+        ("/instellingen/beginbalans?melding=geboekt", set()),
         ("/bank", set()),
         ("/bank?tab=geschiedenis", set()),
         ("/bank/rekeningen/nieuw", set()),

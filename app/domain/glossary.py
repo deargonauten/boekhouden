@@ -185,6 +185,18 @@ _TERMS: list[Term] = [
     Term("voorbelasting", "Voorbelasting", "Btw die je terugkrijgt",
          "De btw op je inkopen en kosten, die je mag aftrekken van de btw die je zelf afdraagt. Hij komt op rekening 1400 (BTW voorbelasting).",
          (r"\bvoorbelasting\b",)),
+    # Beginbalans (openingsbalans)
+    Term("beginbalans", "Beginbalans", "Waarmee je begint",
+         "Wat je bezit en wat je schuldig bent op de eerste dag van je administratie. Je vult het één keer in; het programma boekt het in het memoriaal en rekent je eigen vermogen uit.",
+         (r"\bbeginbalans\b(?!\s*/)",)),
+    Term("openstaande_post", "Openstaande post", "Factuur die nog niet betaald is",
+         "Een factuur van vóór je start die nog open staat. Je vult hem per factuur in, zodat een latere betaling erbij gevonden kan worden."),
+    Term("beginbalans_aanpassen", "Beginbalans aanpassen", "Je beginstanden verbeteren",
+         "Het programma maakt de oude boeking ongedaan en boekt de nieuwe. Dat kan alleen zolang de eerste maand van je administratie nog open staat.",
+         (_NEVER,)),
+    Term("eigen_vermogen_berekend", "Eigen vermogen (berekend)", "Wat er overblijft als je alles verkoopt en je schulden betaalt",
+         "Je bezittingen min je schulden. Het programma vult dit zelf in, zodat je beginbalans altijd klopt.",
+         (r"\beigen vermogen \(berekend\)",)),
     # Inkoop booking (inkoopfactuur boeken, crediteuren)
     Term("inkoopfactuur", "Inkoopfactuur", "Factuur van een leverancier",
          "Een factuur die je van een leverancier hebt gekregen en nog moet betalen. Na het boeken staat hij bij Inkoop, met een link naar de boeking en het bestand.",

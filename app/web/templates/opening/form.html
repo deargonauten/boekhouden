@@ -1,0 +1,125 @@
+{% extends "base_settings.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import notice, error_box, pill, icon with context %}
+{% from "ledger/_settings_nav.html" import settings_header with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/relations.css"><link rel="stylesheet" href="/static/css/opening.css">{% endblock %}
+{% block settings_header %}{{ settings_header("Beginbalans") }}{% endblock %}
+{% block settings_content %}
+{% if not fy %}
+{{ notice("Maak eerst je eerste boekjaar aan onder Instellingen > Boekjaren.", "warning") }}
+<p><a class="btn" href="/instellingen/boekjaren">Naar Boekjaren</a></p>
+{% else %}
+<p class="lead">Vul in wat je bedrijf bezit en wat je nog moet betalen op {{ fy.start_date.strftime("%d-%m-%Y") }}, de eerste dag van boekjaar {{ fy.year }}. {{ info("boekjaar") }} Je eigen vermogen rekenen we voor je uit; je hoeft niets te balanceren.</p>
+{% for n in notices %}{{ notice(n, "success") }}{% endfor %}
+{% if booked_entry_id %}<p><a href="/boeken/{{ booked_entry_id }}">Bekijk de boeking van je beginbalans</a></p>{% endif %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+{% if view %}
+<section class="card">
+  <div class="card__header"><h2>Je beginbalans is geboekt</h2></div>
+  <div class="card__body">
+    <p>Boeking <a href="/boeken/{{ view.entry_id }}">{{ view.entry_number }}</a> op {{ view.start_date.strftime("%d-%m-%Y") }}, in het memoriaal. {{ info("memoriaal") }}</p>
+    {% if view.items %}
+    <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Relatie</th><th>Factuurnummer</th><th>Vervaldatum</th><th class="num">Bedrag</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for i in view.items %}
+      <tr>
+        <td>{{ i.relation_name }} ({{ "klant" if i.side == "debiteur" else "leverancier" }})</td>
+        <td>{{ i.invoice_number }}</td>
+        <td class="nowrap">{% if i.due_date %}{{ i.due_date.strftime("%d-%m-%Y") }}{% endif %}</td>
+        <td class="num">{{ i.amount_cents|euro }}</td>
+        <td>{% if i.status == "betaald" %}{{ pill("Betaald", "success") }}{% elif i.status == "vervangen" %}{{ pill("Vervangen", "neutral") }}{% else %}{{ pill("Open", "warning") }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% if locked %}{{ notice("Je eerste periode is vergrendeld; de beginbalans kan niet meer worden aangepast.", "warning") }}{% endif %}
+<form method="post" action="/instellingen/beginbalans" class="stack{% if locked %} opening-readonly{% endif %}" hx-boost="false">
+ <fieldset{% if locked %} disabled{% endif %} class="stack" style="border:0;padding:0;margin:0;min-width:0">
+ <div hx-post="/instellingen/beginbalans/controle" hx-trigger="input delay:400ms, change" hx-target="#opening-summary" hx-swap="innerHTML" hx-include="closest form" class="stack">
+  <section class="card">
+    <div class="card__header"><h2>Wat heb je? (bezittingen / activa) {{ info("activa") }}</h2></div>
+    <div class="card__body stack">
+      <p class="hint">Saldo op {{ fy.start_date.strftime("%d-%m-%Y") }}, zoals op je bankafschrift {{ info("bankafschrift") }} of vorige jaarrekening. Een negatief bedrag mag, bijvoorbeeld als je rekening onder nul staat of bij afschrijvingen die je al hebt gedaan. Laat leeg wat je niet hebt.</p>
+      <div class="table-wrap">
+      <table class="data opening-amounts">
+        <thead><tr><th>Rekening</th><th class="num">Bedrag</th></tr></thead>
+        <tbody>
+        {% for a in assets %}
+        <tr>
+          <td>{{ a.code }} {{ a.name }}</td>
+          <td><input type="hidden" name="balance_account" value="{{ a.id }}"><input name="balance_amount" value="{{ state.balances.get(a.id, '') }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag voor {{ a.code }} {{ a.name }}"></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Wat moet je nog betalen? (schulden / passiva) {{ info("passiva") }}</h2></div>
+    <div class="card__body stack">
+      <p class="hint">Bijvoorbeeld een lening of de btw {{ info("btw") }} die je nog moet afdragen. Facturen van leveranciers vul je hieronder bij Openstaande facturen in.</p>
+      <div class="table-wrap">
+      <table class="data opening-amounts">
+        <thead><tr><th>Rekening</th><th class="num">Bedrag</th></tr></thead>
+        <tbody>
+        {% for a in liabilities %}
+        <tr>
+          <td>{{ a.code }} {{ a.name }}</td>
+          <td><input type="hidden" name="balance_account" value="{{ a.id }}"><input name="balance_amount" value="{{ state.balances.get(a.id, '') }}" inputmode="decimal" class="num" placeholder="0,00" aria-label="Bedrag voor {{ a.code }} {{ a.name }}"></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="card card--flush">
+    <div class="card__header"><h2>Openstaande facturen {{ info("openstaande_post") }}</h2></div>
+    <div class="card__body stack">
+      <p class="hint">Facturen van vóór de startdatum die nog niet betaald zijn: alleen hier invullen, niet in de Inbox {{ info("inbox") }} boeken. Een openstaande creditnota {{ info("creditnota") }} trek je af van een andere factuur van dezelfde relatie. Staat de relatie er nog niet bij? <a href="/relaties" target="_blank" rel="noopener">Nieuwe relatie</a> (opent in een nieuw tabblad).</p>
+      {% for side, title in sides %}
+      <h3>{{ title }}{% if side == "debiteur" %} (debiteuren) {{ info("debiteuren") }}{% else %} (crediteuren) {{ info("crediteuren") }}{% endif %}</h3>
+      <div class="table-wrap">
+      <table class="data opening-items">
+        <thead><tr><th>Relatie</th><th>Factuurnummer</th><th>Datum van de factuur</th><th>Vervaldatum</th><th class="num">Bedrag</th></tr></thead>
+        <tbody id="rows-{{ side }}">
+          {% for row in state.rows[side] %}{% with groups = contact_groups[side] %}{% include "opening/_item_row.html" %}{% endwith %}{% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <p><button type="button" class="btn btn-secondary btn-small" hx-get="/instellingen/beginbalans/regel?side={{ side }}" hx-target="#rows-{{ side }}" hx-swap="beforeend">{{ icon("plus", 16) }}Regel toevoegen</button></p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Controle</h2></div>
+    <div class="card__body" id="opening-summary" aria-live="polite">
+      {% include "opening/_summary.html" %}
+    </div>
+  </section>
+ </div>
+ </fieldset>
+ {% if not locked %}
+ <div class="form-actions stack">
+  {% if view %}
+  <p class="hint">Aanpassen {{ info("beginbalans_aanpassen") }}: we maken de oude boeking ongedaan (storno) en boeken de nieuwe. {{ info("storno") }}</p>
+  <button type="submit" class="btn">Beginbalans aanpassen en opnieuw boeken</button>
+  {% else %}
+  <button type="submit" class="btn">Beginbalans boeken</button>
+  {% endif %}
+ </div>
+ {% endif %}
+</form>
+{% endif %}
+{% endblock %}
