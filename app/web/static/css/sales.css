@@ -1,0 +1,81 @@
+/* Sales invoice editor (verkoop/nieuw). Tokens only; shared looks live in app.css. */
+
+/* ---- "Voor wie is de factuur?": two-column grid, labels/inputs/hints line up ---- */
+.entry-form .entry-fields { align-items: start; }
+.field__head { display: flex; align-items: center; gap: var(--space-2); min-height: 1.5rem; }
+.field__head { flex-wrap: wrap; }
+.entry-form .field .check { margin-top: var(--space-1); }
+.entry-form .field .check input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; padding: 0; flex: none; }
+.entry-form input[readonly]:not(.num) { background: var(--surface-2); color: var(--muted); cursor: default; }
+.entry-form .sales-lines input[readonly] { background: var(--surface-2); color: var(--muted); }
+.entry-form textarea { width: 100%; }
+#note-count { text-align: right; }
+
+/* ---- "Wat heb je verkocht?": one grid, headers align with the inputs ---- */
+.sales-card { container-type: inline-size; }
+table.sales-lines { table-layout: fixed; width: 100%; min-width: 69rem; }
+table.sales-lines th, table.sales-lines td { padding: var(--space-2); height: auto; vertical-align: middle; }
+table.sales-lines thead th { white-space: normal; vertical-align: bottom; line-height: 1.25; }
+table.sales-lines .sl-sub { display: block; font-weight: 400; }
+table.sales-lines input:not([type="hidden"]), table.sales-lines select { width: 100%; min-width: 0; }
+table.sales-lines input.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.sales-lines td.sl-total, table.sales-lines th.sl-total { text-align: right; }
+table.sales-lines .sl-amount { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.sales-lines .sl-static { display: block; padding: var(--space-2) var(--space-3); }
+table.sales-lines .sl-qty { width: 5rem; }
+table.sales-lines .sl-unit { width: 5.5rem; }
+table.sales-lines .sl-price { width: 7.5rem; }
+table.sales-lines .sl-vat { width: 14rem; }
+table.sales-lines .sl-account { width: 15.5rem; }
+table.sales-lines .sl-total { width: 7.5rem; }
+table.sales-lines .sl-remove { width: 3.5rem; text-align: center; }
+table.sales-lines td:first-child, table.sales-lines th:first-child { padding-left: var(--space-6); }
+table.sales-lines td:last-child, table.sales-lines th:last-child { padding-right: var(--space-4); }
+table.sales-lines td::before { display: none; }
+
+/* Totals line up with the Regeltotaal column (7.5rem + remove column 3.5rem). */
+.sales-totals { display: flex; justify-content: flex-end; padding-right: 3.5rem; }
+.sales-totals .facts { grid-template-columns: 1fr 7.5rem; gap: var(--space-2) var(--space-4); width: min(100%, 30rem); }
+.sales-totals .facts dd { text-align: right; padding-right: var(--space-2); white-space: nowrap; }
+.sales-totals .facts dt { display: flex; align-items: center; gap: var(--space-2); }
+
+/* ---- Narrow: every line becomes its own block with visible labels ---- */
+@container (max-width: 68.99rem) {
+  table.sales-lines { min-width: 0; display: block; }
+  table.sales-lines thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.sales-lines tbody { display: block; }
+  table.sales-lines tr {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-2) var(--space-3);
+    padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border);
+  }
+  .sales-card table.sales-lines td, .sales-card table.sales-lines td:first-child, .sales-card table.sales-lines td:last-child,
+  .sales-card table.sales-lines tbody tr:hover td {
+    display: block; width: auto; padding: 0; border: 0; text-align: left; min-width: 0; background: transparent; height: auto;
+  }
+  table.sales-lines tbody tr:hover { background: var(--surface-2); }
+  table.sales-lines td[data-label]::before {
+    display: block; content: attr(data-label); font-size: var(--text-sm); font-weight: 500; color: var(--muted); margin-bottom: var(--space-1);
+  }
+  table.sales-lines td.sl-account:empty { display: none; }
+  table.sales-lines .sl-desc { grid-column: 1 / -1; }
+  table.sales-lines .sl-qty { grid-column: span 3; }
+  table.sales-lines .sl-unit { grid-column: span 3; }
+  table.sales-lines .sl-price { grid-column: span 6; }
+  table.sales-lines .sl-vat { grid-column: span 6; }
+  table.sales-lines .sl-account { grid-column: span 6; }
+  table.sales-lines .sl-total { grid-column: span 9; text-align: right; }
+  .sales-card table.sales-lines td.sl-total { align-self: end; text-align: right; }
+  table.sales-lines .sl-remove { grid-column: span 3; text-align: right; align-self: end; }
+  .sales-totals { padding-right: var(--space-6); }
+}
+@container (max-width: 34rem) {
+  table.sales-lines tr { padding: var(--space-4); }
+  table.sales-lines .sl-qty, table.sales-lines .sl-unit { grid-column: span 6; }
+  table.sales-lines .sl-price, table.sales-lines .sl-vat, table.sales-lines .sl-account { grid-column: 1 / -1; }
+}
+@media (max-width: 899px) {
+  .sales-totals { padding-right: var(--space-4); }
+}
+
+/* The searchable dropdown wrapper must fill its cell, otherwise the select sizes itself to the cell it sits in. */
+table.sales-lines .cb { display: block; width: 100%; }

@@ -15,6 +15,7 @@ from app import web
 from app.db import get_session
 from app.domain.documents.storage import DocumentStorage
 from app.domain.errors import LedgerError
+from app.domain.money import format_euro
 from app.domain.relations import list_contacts
 from app.domain.sales import (
     ConceptInput,
@@ -220,6 +221,12 @@ def _concept_input(values: Values, *, credit: bool, contact_id: int | None = Non
 
 
 # --- editor helpers ---------------------------------------------------------------------------------
+def _effective_term(values: Values, defaults) -> int:
+    """The betaaltermijn in days the vervaldatum follows: the typed one, else the suggestion."""
+    text = values.payment_term_days.strip()
+    return int(text) if text.isdigit() and int(text) <= 365 else defaults.payment_term_days
+
+
 def _editor_context(session: Session, *, invoice=None, values: Values, errors=(), contact_id=None) -> dict:
     accounts = revenue_accounts(session)
     suggestions = {}
@@ -238,21 +245,37 @@ def _editor_context(session: Session, *, invoice=None, values: Values, errors=()
         "invoice": invoice, "values": values, "errors": list(errors), "accounts": accounts,
         "suggestions": suggestions, "vat_options": VAT_OPTIONS, "customers": customers, "defaults": defaults,
         "credit": credit, "original": get_invoice(session, invoice.credited_invoice_id) if credit else None,
-        "totals": _live_totals(session, values, credit), "contact": session.get(Contact, chosen) if chosen else None,
+        "totals": _live_totals(session, values, credit), "amounts": _line_amounts(session, values),
+        "effective_term": _effective_term(values, defaults), "contact": session.get(Contact, chosen) if chosen else None,
     }
 
 
-def _live_totals(session: Session, values: Values, credit: bool):
-    """Totals of the rows that can be read; unreadable rows count as zero until they are fixed."""
-    lines = []
+def _readable_lines(values: Values) -> list[tuple[int, LineInput]]:
+    """(row index, line) of the rows that can be read; unreadable rows are skipped until they are fixed."""
+    found = []
     for i, row in enumerate(values.rows):
         try:
             line = _parse_row(i, row, False)
         except SalesError:
             continue
         if line is not None and line.vat_code in dict(VAT_OPTIONS):
-            lines.append(line)
-    return compute_concept_totals(session, lines)
+            found.append((i, line))
+    return found
+
+
+def _live_totals(session: Session, values: Values, credit: bool):
+    """Totals of the rows that can be read; unreadable rows count as zero until they are fixed."""
+    return compute_concept_totals(session, [line for _i, line in _readable_lines(values)])
+
+
+def _line_amounts(session: Session, values: Values) -> list[str]:
+    """Regeltotaal (zonder BTW) per editor row, formatted; empty for rows that cannot be read yet."""
+    found = _readable_lines(values)
+    totals = compute_concept_totals(session, [line for _i, line in found])
+    amounts = [""] * len(values.rows)
+    for (i, _line), cents in zip(found, totals.line_excl_cents):
+        amounts[i] = format_euro(cents)
+    return amounts
 
 
 def _fix_link(error: SalesError, invoice) -> tuple[str, str] | None:
@@ -389,7 +412,8 @@ def live_totals(
     """Live totals while typing (htmx); never saves anything."""
     values = Values(rows=_rows_from_form(line_description, line_quantity, line_unit, line_price, line_vat,
                                          line_account, line_original))
-    return _render(request, "sales/_totals.html", totals=_live_totals(session, values, False))
+    return _render(request, "sales/_totals.html", totals=_live_totals(session, values, False),
+                   amounts=_line_amounts(session, values))
 
 
 def _form_values(

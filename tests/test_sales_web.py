@@ -492,3 +492,49 @@ def test_empty_sales_pages_are_plain_language(client):
     assert_plain_language(client, "/verkoop")
     assert_plain_language(client, "/verkoop/debiteuren")
     assert_plain_language(client, "/verkoop/nieuw")
+
+
+# --- editor form markup -----------------------------------------------------------------------------
+def test_editor_hint_names_the_number_of_days(shop):
+    html = shop.get(f"/verkoop/nieuw?klant={shop.customer_id}").text
+    assert "Uitgerekend: 30 dagen na de factuurdatum." in html
+
+
+def test_term_partial_hint_has_the_number_and_handles_zero_and_one(shop):
+    assert "Uitgerekend: 10 dagen na de factuurdatum." in _term(shop, payment_term_days="10").text
+    assert "Uitgerekend: 1 dag na de factuurdatum." in _term(shop, payment_term_days="1").text
+    assert "Uitgerekend: direct betalen, dus op de factuurdatum." in _term(shop, payment_term_days="0").text
+    assert "Je hebt de vervaldatum zelf gekozen." in _term(shop, due_date_manual="1", due_date=TODAY.isoformat()).text
+
+
+def test_due_date_is_read_only_until_zelf_kiezen(shop):
+    auto = _term(shop, payment_term_days="10").text
+    assert re.search(r'<input[^>]*id="f-due"[^>]*readonly', auto)
+    manual = _term(shop, due_date_manual="1", due_date=TODAY.isoformat()).text
+    assert not re.search(r'<input[^>]*id="f-due"[^>]*readonly', manual)
+
+
+def test_manual_checkbox_is_labelled_and_label_for_matches_every_control(shop):
+    html = shop.get(f"/verkoop/nieuw?klant={shop.customer_id}").text
+    assert re.search(r'<label class="check" for="f-due-manual"><input type="checkbox" id="f-due-manual" name="due_date_manual"', html)
+    assert "Zelf een vervaldatum kiezen" in html
+    for control_id in ("f-contact", "f-date", "f-term", "f-due", "f-service", "f-ref", "f-note"):
+        assert re.search(rf'<label [^>]*for="{control_id}"', html) and f'id="{control_id}"' in html
+    assert "Uw referentie" not in html and "Referentie van de klant" in html
+    assert re.search(r'<textarea id="f-note"[^>]*maxlength="500"', html) and 'id="note-count"' in html
+
+
+def test_lines_table_has_a_column_per_field_and_regeltotaal(shop):
+    invoice_id = make_concept(shop)
+    html = shop.get(f"/verkoop/{invoice_id}").text
+    for head in ("Omschrijving", "Aantal", "Eenheid", "BTW-tarief", "Omzetrekening", "Regeltotaal"):
+        assert re.search(rf'<th class="sl-[a-z]+[^"]*">{head}', html)
+    assert re.search(r'<td class="sl-unit"[^>]*><input name="line_unit"', html)
+    assert re.search(r"<output[^>]*data-line-total>€ 100,00</output>", html)
+
+
+def test_totals_partial_has_one_info_icon_and_line_amounts(shop):
+    r = shop.post("/verkoop/totalen", data=form(shop.customer_id, [line(price="abc"), line("ok", "2", "10,00")]))
+    first = r.text.split("<dd", 1)[0]
+    assert first.count('class="info"') == 1
+    assert 'data-amounts="[&#34;&#34;, &#34;\\u20ac 20,00&#34;]"' in r.text  # per row; "" for the unreadable one
