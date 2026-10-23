@@ -69,7 +69,8 @@ def test_rubrieken_csv_shape_and_amounts():
     assert rows[1] == ["1a", "Omschrijving 1a", "1234,00", "259,35"]  # whole euros, rounded down
     assert rows[2][0] == "4b" and rows[2][2:] == ["50,00", "10,50"]
     assert [r[0] for r in rows[3:]] == ["5a", "5b", "5c", "5g", "5g_afgerond"]
-    assert rows[-1][2:] == ["", "248,85"]
+    assert rows[-2][2:] == ["", "248,85"]
+    assert rows[-1][2:] == ["", "248,00"]
     assert b"1b" not in data  # rubrieken without values are left out
     assert data.endswith(b"\r\n")
 
