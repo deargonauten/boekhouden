@@ -21,9 +21,9 @@ Statuses: `[ ]` todo · `[~]` in progress · `[x]` completed
 - [x] Bank reconciliation: match transactions to open invoices (IBAN, amount, invoice number in description), manual match, split/partial payments, direct-book without invoice, matching rules (done 2026-10-22)
 - [x] Sales invoices: create/send PDF invoices compliant with Wet OB (gapless numbering, required fields), debiteuren, credit notes, payment terms, reminders (done 2026-10-23)
 - [x] BTW-aangifte: quarterly/monthly report by rubriek, ICP-opgaaf, verlegd/EU handling, KOR option, export for Belastingdienst, period locking after filing (done 2026-10-23)
-- [ ] Boekjaar-/periodekeuze bovenin die alle schermen volgt (feature 4)
-- [ ] Email intake: IMAP polling of dedicated mailbox, extract attachments (PDF/image, also nested/forwarded .eml), dedupe, feed into inbox
+- [~] Email intake: IMAP polling of dedicated mailbox, extract attachments (PDF/image, also nested/forwarded .eml), dedupe, feed into inbox
 - [ ] Controle voordat je aangifte doet ("Klopt dit?"): ongeboekte transacties, boekingen zonder document, onevenwichtige periodes (feature 48)
+- [ ] Boekjaar-/periodekeuze bovenin die alle schermen volgt (feature 4)
 - [ ] Reports: grootboekkaarten, proef- en saldibalans, winst-en-verliesrekening, balans, comparison vs previous year
 - [ ] Eenmanszaak year-end: privé-onttrekkingen/stortingen, winst uit onderneming overview, urenregistratie (urencriterium), IB-voorbereiding export
 - [ ] Backup & export: one-click backup of DB + documents, audit-file export (XAF) and CSV exports, 7-year retention safeguards
