@@ -320,6 +320,19 @@ _TERMS: list[Term] = [
     Term("matchingregel", "Matchingregel", "Onthouden keuze voor terugkerende mutaties",
          "Het programma onthoudt je keuze, bijvoorbeeld voor maandelijkse bankkosten, en stelt die de volgende keer voor. Je bevestigt altijd zelf.",
          (_NEVER,)),
+    # Controle voor aangifte
+    Term("controle_aangifte", "Controle voor aangifte", "Klopt dit?",
+         "Kijkt of er in dit kwartaal of deze maand nog losse eindjes zijn voordat je aangifte doet. Het waarschuwt alleen: je kunt altijd indienen. Het is een hulpmiddel, geen garantie.",
+         (r"\bcontrole voor aangifte\b",)),
+    Term("ongeboekte_transactie", "Ongeboekte transactie", "Bankmutatie die je nog niet hebt verwerkt",
+         "Een bij- of afschrijving van je bank waar nog geen boeking van is. Het bedrag staat dan nog niet in je btw-aangifte.",
+         (_NEVER,)),
+    Term("bon_bij_boeking", "Boekingsstuk", "Bon of factuur bij een boeking",
+         "De bon of factuur die bewijst waarom je iets hebt geboekt. Je moet hem 7 jaar bewaren (bewaarplicht).",
+         (_NEVER,)),
+    Term("onevenwichtige_boeking", "Onevenwichtige boeking", "Boeking die niet klopt",
+         "Bij een goede boeking zijn beide kanten even groot. Is dat niet zo, dan klopt er iets niet in de cijfers en moet de boeking worden hersteld.",
+         (_NEVER,)),
 ]
 
 GLOSSARY: dict[str, Term] = {t.key: t for t in _TERMS}

@@ -125,6 +125,7 @@ def pages(c):
         (f"/btw/{YEAR}/quarter/1/indienen", set()),
         (f"/btw/{YEAR}/quarter/1/rubriek/1a", set()),
         ("/instellingen/btw-aangifte", set()),
+        (f"/controle/{YEAR}/quarter/1", set()),
     ] + ([("/instellingen/btw-codes", set())] if BTW_CODES_PAGE_MERGED else [])
 
 
