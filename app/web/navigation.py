@@ -78,6 +78,10 @@ SETTINGS_NAV: list[SettingsGroup] = [
             SettingsItem("BTW-aangifte", "/instellingen/btw-aangifte", "btw_aangifte"),
         ),
     ),
+    SettingsGroup(
+        "Koppelingen",
+        (SettingsItem("E-mail", "/instellingen/email", "factuurmailbox"),),
+    ),
 ]
 
 
