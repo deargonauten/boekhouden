@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.models import Document
-from tests.vat.vat_helpers import set_company
+from tests.vat.vat_helpers import Book, set_company
 
 YEAR = date.today().year
 Q1 = f"/btw/{YEAR}/quarter/1"
@@ -17,6 +17,7 @@ NOW = datetime(YEAR, 1, 1, 12)
 @pytest.fixture(autouse=True)
 def company(client):
     with Session(client.app.state.engine) as s:
+        Book(s, YEAR)  # creates the fiscal year and its monthly periods
         set_company(s)
         s.commit()
 
