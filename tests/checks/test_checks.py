@@ -112,6 +112,10 @@ def test_manual_expense_without_document_is_reported(session, book, manual):
     assert (c.level, c.count) == ("let_op", 1)
     assert c.items[0].href == f"/boeken/{e.id}"
     assert "Pennen" in c.items[0].label and "€ 10,00" in c.items[0].label
+    # No supported way to attach a document to an existing booking: no fix button, no inbox advice.
+    assert c.fix_href == "" and c.fix_label == ""
+    assert "inbox" not in c.explanation.lower()
+    assert "niet nog een keer" in c.explanation
 
 
 def test_manual_revenue_without_document_is_reported(session, book, manual):

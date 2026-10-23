@@ -355,3 +355,32 @@ def test_confirm_dialogs_in_plain_dutch(seeded):
     assert f"Periode 1 van {YEAR} vergrendelen? Daarna kun je er niets meer in boeken" in html
     assert f"Boekjaar {YEAR} afsluiten? Alle 12 periodes worden vergrendeld" in html
     assert "Periode vergrendelen" in html
+
+
+def test_controle_page_with_unbalanced_booking_is_plain_language(client):
+    client.post("/instellingen/boekjaren", data={"year": YEAR})
+    day = f"{YEAR}-02-10"
+    with client.app.state.engine.begin() as conn:
+        jid = conn.execute(text("SELECT id FROM journal WHERE code = 'MEM'")).scalar()
+        pid = conn.execute(
+            text("SELECT id FROM period WHERE start_date <= :d AND end_date >= :d"), {"d": day}
+        ).scalar()
+        aid = conn.execute(text("SELECT id FROM account WHERE code = '4200'")).scalar()
+        eid = conn.execute(
+            text(
+                "INSERT INTO journal_entry (journal_id, period_id, entry_number, booking_date, description, kind,"
+                " created_at) VALUES (:j, :p, 'RAW-1', :d, 'Kapot', 'normal', CURRENT_TIMESTAMP)"
+            ),
+            {"j": jid, "p": pid, "d": day},
+        ).lastrowid
+        conn.execute(
+            text(
+                "INSERT INTO journal_line (entry_id, line_no, account_id, debit_cents, credit_cents)"
+                " VALUES (:e, 1, :a, 1210, 0)"
+            ),
+            {"e": eid, "a": aid},
+        )
+    html = assert_plain_language(client, f"/controle/{YEAR}/quarter/1")
+    assert "Debet en credit zijn niet gelijk" in html
+    for key in ("debet", "credit", "storno"):
+        assert f'data-term="{key}"' in html

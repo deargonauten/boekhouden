@@ -3,7 +3,7 @@
 {% from "partials/_ui.html" import page_header, pill, notice, icon with context %}
 {% macro check_info(key) -%}
 {% if key == "bank_ongeboekt" %}{{ info("ongeboekte_transactie") }} {{ info("bank") }}
-{%- elif key == "onevenwichtig" %}{{ info("onevenwichtige_boeking") }}
+{%- elif key == "onevenwichtig" %}{{ info("onevenwichtige_boeking") }} {{ info("debet") }} {{ info("credit") }} {{ info("storno") }}
 {%- elif key == "boeking_zonder_document" %}{{ info("bon_bij_boeking") }} {{ info("kosten") }} {{ info("opbrengsten") }}
 {%- elif key == "inbox_ongeboekt" %}{{ info("inbox") }}
 {%- elif key == "concept_facturen" %}{{ info("concept_factuur") }}{% endif %}
@@ -42,7 +42,7 @@
       {% if c.count > c.items|length %}<li>En nog {{ c.count - c.items|length }} meer.</li>{% endif %}
     </ul>
     {% endif %}
-    <p><a class="btn" href="{{ c.fix_href }}">{{ c.fix_label }}</a></p>
+    {% if c.fix_href %}<p><a class="btn" href="{{ c.fix_href }}">{{ c.fix_label }}</a></p>{% endif %}
   </div>
 </section>
 {% endif %}

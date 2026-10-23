@@ -218,10 +218,12 @@ def _boeking_zonder_document(session: Session, start: date, end: date) -> Check:
         items,
         "Bij je handmatige kosten en opbrengsten in deze periode hoort een bon of factuur.",
         f"{_plural(count, 'Bij 1 boeking', f'Bij {count} boekingen')} van kosten of opbrengsten zit geen bon of "
-        "factuur. Voeg het stuk toe via de inbox, want je moet het 7 jaar bewaren. "
+        "factuur gekoppeld. Dit is alleen een advies: je kunt gewoon indienen. Bewaar de bon of factuur zelf bij "
+        "je administratie, want je moet hem 7 jaar bewaren. Open de boeking via de lijst hieronder en kijk of "
+        "hij klopt. Boek de bon niet nog een keer, want dan staat dezelfde uitgave twee keer in je cijfers. "
         "Is er echt geen bon (bijvoorbeeld bankkosten), dan kun je dit laten staan.",
-        ENTRIES_URL,
-        "Boekingen bekijken",
+        "",
+        "",
     )
 
 
