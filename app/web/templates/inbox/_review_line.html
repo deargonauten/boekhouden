@@ -1,13 +1,16 @@
 {# Needs: line (dict), flags (dict field -> flags), accounts, vat_codes, no_account_hint #}
 {% from "partials/_ui.html" import icon, pill with context %}
-{% from "partials/_info.html" import info with context %}
+{% from "partials/_info.html" import info, term_label with context %}
 {% set _active_vats = vat_codes|map(attribute="code")|list %}
 <tr class="line-row">
-  <td>
-    <input name="line_description" value="{{ line.description }}" aria-label="Wat is er uitgegeven?" maxlength="255">
-    {% for items in flags.values() %}{% for f in items %}<div class="flag-item">{{ pill(level_labels[f.level] if level_labels and f.level in level_labels else "Let op", {"low": "danger", "medium": "warning"}.get(f.level, "neutral")) }} <span class="flag-reason">{{ f.reason }}</span></div>{% endfor %}{% endfor %}
+  <td class="cell-desc">
+    <span class="cell-label">Omschrijving</span>
+    <textarea name="line_description" rows="1" aria-label="Wat is er uitgegeven?" maxlength="255" class="desc-input" onkeydown="if(event.key==='Enter')event.preventDefault()">{{ line.description or "" }}</textarea>
+    {% set _seen = [] %}
+    {% for items in flags.values() %}{% for f in items %}{% if (f.level ~ f.reason) not in _seen %}{% set _ = _seen.append(f.level ~ f.reason) %}<div class="flag-item">{{ pill(level_labels[f.level] if level_labels and f.level in level_labels else "Let op", {"low": "danger", "medium": "warning"}.get(f.level, "neutral")) }} <span class="flag-reason">{{ f.reason }}</span></div>{% endif %}{% endfor %}{% endfor %}
   </td>
-  <td>
+  <td class="cell-account">
+    <span class="cell-label">{{ term_label("grootrekening", "Op welke rekening boeken?") }}</span>
     <select name="line_account_code" aria-label="Op welke rekening boeken?">
       <option value="">Kies een rekening</option>
       {% for a in accounts %}<option value="{{ a.code }}" data-vat="{{ a.default_vat_code if a.default_vat_code in _active_vats else '' }}"{% if line.account_code == a.code %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
@@ -15,13 +18,14 @@
     {% if not line.account_code %}<span class="hint">{{ no_account_hint }}</span>{% endif %}
     {% if learned and line.account_code and line.account_code != learned.account_code %}<span class="hint learned-hint">{{ learned.hint }} {{ info("leerfunctie") }}</span>{% endif %}
   </td>
-  <td><input name="line_amount_excl" value="{{ line.amount_excl }}" inputmode="decimal" class="num" aria-label="Bedrag zonder BTW" placeholder="0,00"></td>
-  <td>
+  <td class="cell-amount"><span class="cell-label">Bedrag excl. BTW</span><input name="line_amount_excl" value="{{ line.amount_excl }}" inputmode="decimal" class="num" aria-label="Bedrag zonder BTW" placeholder="0,00"></td>
+  <td class="cell-vat">
+    <span class="cell-label">BTW-tarief {{ info("btw_tarief") }}</span>
     <select name="line_vat_code" aria-label="BTW-tarief">
       <option value="">Geen BTW</option>
       {% for v in vat_codes %}<option value="{{ v.code }}"{% if line.vat_code == v.code %} selected{% endif %}>{{ v.name }} ({{ v.code }})</option>{% endfor %}
     </select>
   </td>
-  <td><input name="line_vat_amount" value="{{ line.vat_amount }}" inputmode="decimal" class="num" aria-label="Hoeveel BTW?" placeholder="0,00"></td>
-  <td><div class="row-actions"><button type="button" class="btn-icon is-danger" aria-label="Regel verwijderen" title="Regel verwijderen: haalt deze regel uit het formulier." onclick="this.closest('tr').remove()">{{ icon("x") }}</button></div></td>
+  <td class="cell-vatamount"><span class="cell-label">Hoeveel BTW? {{ info("btw") }}</span><input name="line_vat_amount" value="{{ line.vat_amount }}" inputmode="decimal" class="num" aria-label="Hoeveel BTW?" placeholder="0,00"></td>
+  <td class="cell-remove"><div class="row-actions"><button type="button" class="btn-icon is-danger" aria-label="Regel verwijderen" title="Regel verwijderen: haalt deze regel uit het formulier." onclick="this.closest('tr').remove()">{{ icon("x") }}</button></div></td>
 </tr>
