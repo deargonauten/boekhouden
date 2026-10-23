@@ -11,3 +11,4 @@ Integrated A+B+C. Tests: .venv/bin/python -m pytest -q -> 2476 passed, 1 deselec
 Review round 1: security PASS, code REWORK (3), ux-ui REWORK (2). Fix builders D (filing.py, report.py) and E (export.py, return.html) started.
 E merged (2483 passed on E branch). Waiting for D.
 D merged. Tests: .venv/bin/python -m pytest -q -> 2485 passed, 1 deselected (2026-10-23). Review round 2 started (delta since e16e3c8).
+Review round 2: PASS. Step 4 approver started.
