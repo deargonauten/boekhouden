@@ -59,6 +59,9 @@
     <tr><td>Voorbelasting (5b) {{ info("voorbelasting") }}</td><td></td><td class="num">{{ snapshot.totals["5b"]|euro }}</td><td></td></tr>
     <tr><td>Subtotaal (5c)</td><td></td><td class="num">{{ snapshot.totals["5c"]|euro }}</td><td></td></tr>
     <tr><td><strong>{{ direction_label }} (5g)</strong></td><td></td><td class="num"><strong>{{ snapshot.totals["5g"]|abs|euro }}</strong></td><td></td></tr>
+    {% if snapshot.totals["5g_afgerond"] or snapshot.totals["5g"] %}
+    <tr><td><strong>Af te ronden bedrag voor je aangifte</strong> {{ info("afronding_aangifte") }}<br><small class="muted">Dit vul je in bij de Belastingdienst, {{ direction_label|lower }} (exact: {{ snapshot.totals["5g"]|abs|euro }})</small></td><td></td><td class="num"><strong>{{ snapshot.totals["5g_afgerond"]|abs|euro }}</strong></td><td></td></tr>
+    {% endif %}
     </tbody>
   </table>
   </div>

@@ -34,6 +34,7 @@ from app.domain.vat.report import (
     VatWarning,
     build_vat_report,
     has_entries,
+    round_final_cents,
 )
 from app.domain.vat.settings import get_vat_settings, is_kor
 from app.models import CompanyProfile, FiscalYear, Period, VatReturn
@@ -71,6 +72,11 @@ class ReturnRow:
     direction: str | None  # 'pay' | 'refund' | 'zero' (see report.DIRECTION_LABELS)
     kor: str  # 'none' | 'partial' | 'full'
     filed_on: date | None = None
+
+    @property
+    def rounded_cents(self) -> int | None:
+        """Whole-euro amount to file (signed like total_cents), None when not started."""
+        return None if self.total_cents is None else round_final_cents(self.total_cents)
 
 
 @dataclass(frozen=True)
@@ -127,7 +133,7 @@ def snapshot_from_json(raw: str) -> ReturnSnapshot:
         company_name=d["company_name"],
         btw_id=d["btw_id"],
         lines=[RubriekLine(**l) for l in d["lines"]],
-        totals=dict(d["totals"]),
+        totals=_with_rounded(dict(d["totals"])),
         icp=[IcpRow(**{**r, "entry_ids": tuple(r["entry_ids"])}) for r in d["icp"]],
         icp_unassigned=[
             IcpUnassigned(**{**u, "booking_date": date.fromisoformat(u["booking_date"])})
@@ -138,6 +144,12 @@ def snapshot_from_json(raw: str) -> ReturnSnapshot:
         reference=d["reference"],
         is_concept=d["is_concept"],
     )
+
+
+def _with_rounded(totals: dict[str, int]) -> dict[str, int]:
+    """Snapshots filed before the whole-euro rule lack '5g_afgerond': derive it from the exact total."""
+    totals.setdefault("5g_afgerond", round_final_cents(totals["5g"]))
+    return totals
 
 
 def _live_snapshot(

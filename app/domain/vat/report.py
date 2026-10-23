@@ -39,6 +39,7 @@ TOTAL_LABELS: dict[str, str] = {
     "5b": PURCHASE_RUBRIEKEN["5b"],
     "5c": "Subtotaal (verschuldigd min voorbelasting)",
     "5g": "Totaal",
+    "5g_afgerond": "Af te ronden bedrag voor je aangifte",
 }
 DIRECTION_LABELS: dict[str, str] = {
     "pay": "Te betalen", "refund": "Terug te vragen", "zero": "Niets te betalen",
@@ -72,7 +73,7 @@ class VatReport:
     period_start: date
     period_end: date
     lines: list[RubriekLine]
-    totals: dict[str, int]  # '5a', '5b', '5c', '5g'
+    totals: dict[str, int]  # '5a', '5b', '5c', '5g' (exact cents), '5g_afgerond' (whole euros to file)
     warnings: list[VatWarning] = field(default_factory=list)
     direction: str = ZERO
 
@@ -128,12 +129,29 @@ class DrillLine:
 def round_whole_cents(cents: int) -> int:
     """Round toward zero to whole euros, never -0.
 
-    ASSUMPTION (verify against the current Belastingdienst form): the omzet fields of the
-    aangifte are whole euros, rounded down (toward zero); the btw fields keep their cents.
-    If the rule differs, change only this helper and the PDF/CSV tests.
+    Business rule: the omzet fields of the aangifte are whole euros, rounded down (toward
+    zero); the individual btw rubriek amounts keep their cents. The final amount (5g) has its
+    own rule, see `round_final_cents`.
     """
     whole = abs(cents) // 100 * 100
     return -whole if cents < 0 and whole else whole
+
+
+def round_final_cents(cents: int) -> int:
+    """Whole euros for the final amount of the aangifte (after 5a-5b), never -0.
+
+    Business rule: an amount to pay (positive) is rounded down, an amount to be refunded
+    (negative) is rounded up in absolute value, i.e. in the taxpayer's favour:
+    12,99 betalen -> 12,00; 0,96 terug -> 1,00 terug. The exact cents stay in totals['5g'].
+    """
+    if cents >= 0:
+        return cents // 100 * 100
+    return -((-cents + 99) // 100 * 100)
+
+
+def final_rounded(totals: dict[str, int]) -> int:
+    """The rounded final amount of a totals dict; derived for snapshots stored before it existed."""
+    return totals["5g_afgerond"] if "5g_afgerond" in totals else round_final_cents(totals["5g"])
 
 
 def _div_round(numerator: int, denominator: int) -> int:
@@ -231,7 +249,8 @@ def aggregate(
         for r, side in rubriek_catalogue
     ]
     a5 = sum(l.vat_cents for l in lines)
-    totals = {"5a": a5, "5b": voorbelasting, "5c": a5 - voorbelasting, "5g": a5 - voorbelasting}
+    totals = {"5a": a5, "5b": voorbelasting, "5c": a5 - voorbelasting, "5g": a5 - voorbelasting,
+              "5g_afgerond": round_final_cents(a5 - voorbelasting)}
     direction = PAY if totals["5g"] > 0 else REFUND if totals["5g"] < 0 else ZERO
     return VatReport(start, end, lines, totals, _warnings(facts), direction)
 
