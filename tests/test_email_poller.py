@@ -14,6 +14,7 @@ from app.background import (
 )
 from app.config import Settings
 from app.domain.email_intake import EmailIntakeError
+from app.domain.email_intake.errors import EmailLoginFailedError
 from app.main import create_app
 
 LOGGER = "app.email_intake"
@@ -45,10 +46,9 @@ class FakeRunner:
 
 
 def login_error() -> EmailIntakeError:
-    return EmailIntakeError(
-        "EMAIL_LOGIN_FAILED",
+    return EmailLoginFailedError(
         "Inloggen bij de mailbox is mislukt. Controleer gebruikersnaam en "
-        "wachtwoord in je .env-bestand.",
+        "wachtwoord in je .env-bestand."
     )
 
 
