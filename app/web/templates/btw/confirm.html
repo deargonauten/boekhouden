@@ -5,6 +5,7 @@
 {{ page_header("Aangifte " ~ period.label ~ " als ingediend markeren", breadcrumb=[("BTW", "/btw?jaar=" ~ period.year), (period.label, base), ("Indienen", None)], term="ingediend", icon_name="percent",
    lead="Controleer dit nog één keer. Daarna kun je er niets meer in wijzigen.") }}
 {% if error %}{{ error_box(error) }}{% endif %}
+{% if controle %}{% set banner_confirm = true %}{% include "controle/_banner.html" %}{% endif %}
 <section class="card">
   <div class="card__header"><h2>Wat gebeurt er?</h2></div>
   <div class="card__body">
