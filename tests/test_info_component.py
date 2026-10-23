@@ -54,6 +54,7 @@ def test_nav_term_keys():
     assert keys == {
         "Inbox": "inbox", "Boeken": "boeking", "Bank": "bank", "Verkoop": "debiteuren",
         "Inkoop": "crediteuren", "Relaties": "relaties", "BTW": "btw",
+        "Controle": "controle_aangifte",
         "Rapportages": "rapportages", "Activa": "activa", "Instellingen": None,
     }
     assert all(i.term_key == n.term_key for i, n in zip(NAV_ITEMS, mark_active("/")))

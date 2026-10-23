@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, pill, notice, icon with context %}
+{% macro check_info(key) -%}
+{% if key == "bank_ongeboekt" %}{{ info("ongeboekte_transactie") }} {{ info("bank") }}
+{%- elif key == "onevenwichtig" %}{{ info("onevenwichtige_boeking") }}
+{%- elif key == "boeking_zonder_document" %}{{ info("bon_bij_boeking") }} {{ info("kosten") }} {{ info("opbrengsten") }}
+{%- elif key == "inbox_ongeboekt" %}{{ info("inbox") }}
+{%- elif key == "concept_facturen" %}{{ info("concept_factuur") }}{% endif %}
+{%- endmacro %}
+{% block content %}
+{{ page_header("Controle " ~ period.label, breadcrumb=[("BTW", "/btw?jaar=" ~ period.year), (period.label, btw_href), ("Controle", None)], term="controle_aangifte", icon_name="check",
+   lead="Klopt dit? We kijken of er nog losse eindjes zijn voordat je aangifte doet. Je kunt altijd indienen: dit is een hulpmiddel, geen garantie.") }}
+
+<nav class="toolbar" aria-label="Andere periode">
+  {% if prev_href %}<a class="btn btn-secondary" href="{{ prev_href }}">{{ icon("chevron-left") }}{{ prev_label }}</a>{% endif %}
+  <strong>{{ period.label }}</strong>
+  {% if next_href %}<a class="btn btn-secondary" href="{{ next_href }}">{{ next_label }}{{ icon("chevron-right") }}</a>{% endif %}
+  <a href="{{ btw_href }}">Terug naar de btw-aangifte</a> {{ info("btw") }}
+</nav>
+
+{{ notice(report.headline, "success" if report.verdict == "ok" else "warning") }}
+
+{% for c in checks %}
+{% if c.level == "ok" %}
+<section class="card">
+  <div class="card__body">
+    {{ pill(level_labels[c.level], level_tones[c.level]) }}
+    {{ c.title }} {{ check_info(c.key) }}
+  </div>
+</section>
+{% else %}
+<section class="card">
+  <div class="card__header">
+    <h2>{{ pill(level_labels[c.level], level_tones[c.level]) }} {{ c.title }} {{ check_info(c.key) }}</h2>
+  </div>
+  <div class="card__body">
+    <p><strong>{{ c.count }}</strong> gevonden. {{ c.explanation }}</p>
+    {% if c.items %}
+    <ul>
+      {% for item in c.items %}<li><a href="{{ item.href }}">{{ item.label }}</a></li>{% endfor %}
+      {% if c.count > c.items|length %}<li>En nog {{ c.count - c.items|length }} meer.</li>{% endif %}
+    </ul>
+    {% endif %}
+    <p><a class="btn" href="{{ c.fix_href }}">{{ c.fix_label }}</a></p>
+  </div>
+</section>
+{% endif %}
+{% endfor %}
+
+<p class="hint">Waarschuwingen over de btw zelf staan op <a href="{{ btw_href }}">de btw-aangifte</a>, onder "Controleer dit".</p>
+{% endblock %}

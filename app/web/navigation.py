@@ -31,6 +31,7 @@ NAV_ITEMS: list[NavItem] = [
     NavItem("Inkoop", "/inkoop", "inkoop", 1, "crediteuren", "file"),
     NavItem("Relaties", "/relaties", "relaties", 1, "relaties", "users"),
     NavItem("BTW", "/btw", "btw", 2, "btw", "percent"),
+    NavItem("Controle", "/controle", "controle", 2, "controle_aangifte", "check"),
     NavItem("Rapportages", "/rapportages", "rapportages", 2, "rapportages", "chart"),
     NavItem("Activa", "/activa", "activa", 2, "activa", "box"),
     NavItem("Instellingen", "/instellingen", "instellingen", 3, None, "settings"),

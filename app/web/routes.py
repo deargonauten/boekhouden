@@ -17,6 +17,7 @@ from app.web.opening_routes import router as opening_router
 from app.web.sales_routes import router as sales_router
 from app.web.btw_routes import router as btw_router
 from app.web.btw_export_routes import router as btw_export_router
+from app.web.controle_routes import router as controle_router
 from app.domain.glossary import terms_alphabetical
 from app.web.navigation import NAV_ITEMS, NavItem
 
@@ -37,7 +38,8 @@ router.include_router(opening_router)
 router.include_router(sales_router)
 router.include_router(btw_router)
 router.include_router(btw_export_router)
-LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox", "inkoop", "bank", "verkoop", "btw"}
+router.include_router(controle_router)
+LEDGER_KEYS = {"boeken", "instellingen", "relaties", "inbox", "inkoop", "bank", "verkoop", "btw", "controle"}
 
 
 @router.get("/", include_in_schema=False)

@@ -11,7 +11,7 @@ PAGES = [
     ("/activa", "Activa"),
 ]
 LABELS = [
-    "Inbox", "Boeken", "Bank", "Verkoop", "Inkoop", "Relaties", "BTW",
+    "Inbox", "Boeken", "Bank", "Verkoop", "Inkoop", "Relaties", "BTW", "Controle",
     "Rapportages", "Activa", "Instellingen",
 ]
 
@@ -70,7 +70,7 @@ def test_unknown_path_404(client):
 def test_active_prefix_match():
     assert [i.key for i in mark_active("/boeken/12") if i.active] == ["boeken"]
     assert not any(i.active for i in mark_active("/boekenx"))
-    assert len(NAV_ITEMS) == 10
+    assert len(NAV_ITEMS) == 11
 
 
 def test_help_button_on_every_page_kind(client):
