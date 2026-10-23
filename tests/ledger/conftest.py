@@ -64,7 +64,7 @@ def make_entry(session, acc, jrn):
             description=kw.pop("description", "Test"),
             lines=[
                 NewLine(acc("1210"), debit_cents=cents),
-                NewLine(acc("8000"), credit_cents=cents),
+                NewLine(acc("8400"), credit_cents=cents),
             ],
             **kw,
         )

@@ -48,7 +48,7 @@ class Booker:
             )
             s.add(ex)
             s.flush()
-            account = s.scalar(select(Account.id).where(Account.code == "4200"))
+            account = s.scalar(select(Account.id).where(Account.code == "4625"))
             s.add(InvoiceExtractionLine(
                 extraction_id=ex.id, position=0, description="Papier", amount_excl_cents=excl,
                 vat_amount_cents=vat, vat_code="NL_21", account_id=account,

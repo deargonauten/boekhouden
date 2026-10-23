@@ -77,7 +77,7 @@ def test_invalid_amount_message():
 
 
 def test_period_messages(session, acc, jrn):
-    lines = [NewLine(acc("1210"), debit_cents=5), NewLine(acc("8000"), credit_cents=5)]
+    lines = [NewLine(acc("1210"), debit_cents=5), NewLine(acc("8400"), credit_cents=5)]
     new = NewEntry(jrn("MEM"), date(2025, 3, 10), "x", lines)
     assert err(post_entry, session, new).message == (
         "Er is geen boekjaar voor 10-03-2025. Maak eerst het boekjaar aan onder Instellingen > Boekjaren."
@@ -157,7 +157,7 @@ def test_not_postable_and_inactive_messages(session, acc, jrn, year2025):
 
 
 def test_vat_code_message(session, acc, jrn, year2025):
-    lines = [NewLine(acc("1210"), debit_cents=5), NewLine(acc("8000"), credit_cents=5, vat_code="NOPE")]
+    lines = [NewLine(acc("1210"), debit_cents=5), NewLine(acc("8400"), credit_cents=5, vat_code="NOPE")]
     assert err(post_entry, session, NewEntry(jrn("MEM"), date(2025, 3, 10), "x", lines)).message == (
         "Deze btw-code is onbekend of niet meer in gebruik. Kies een andere uit de lijst."
     )

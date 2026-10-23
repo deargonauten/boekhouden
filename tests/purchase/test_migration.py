@@ -76,7 +76,7 @@ def test_purchase_invoice_constraints(db):
 
 def test_supplier_default_unique_per_contact_account(db):
     setup_entry(db)
-    acc = one(db, "SELECT id FROM account WHERE code='4200'")
+    acc = one(db, "SELECT id FROM account WHERE code='4625'")
     db.execute(
         "INSERT INTO supplier_default(contact_id, account_id, vat_code, last_used_at) VALUES (1, ?, 'NL_21', '2025-01-01')",
         (acc,),

@@ -29,7 +29,7 @@ def booked(session, year2025, make_extraction, make_supplier):
     k1 = book_extraction(
         session,
         make_extraction(
-            contact=kantoor, number="K1", day=date(2025, 3, 5), lines=[("Stoel", 20000, 4200, "NL_21", "4200")]
+            contact=kantoor, number="K1", day=date(2025, 3, 5), lines=[("Stoel", 20000, 4200, "NL_21", "4625")]
         ).id,
     )
     k2 = book_extraction(

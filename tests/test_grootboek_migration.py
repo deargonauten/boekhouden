@@ -21,11 +21,11 @@ def db(test_settings):
 @pytest.mark.parametrize(
     "type_, is_system, code, expected",
     [
-        ("expense", False, "4210", (True, False, True)),
+        ("expense", False, "4635", (True, False, True)),
         ("expense", True, "4950", (False, False, False)),
         ("expense", True, "4999", (False, False, False)),
-        ("revenue", False, "8010", (False, True, True)),
-        ("revenue", True, "8000", (False, True, True)),
+        ("revenue", False, "8401", (False, True, True)),
+        ("revenue", True, "8400", (False, True, True)),
         ("asset", False, "0110", (True, False, True)),
         ("asset", False, "0100", (True, False, True)),
         ("asset", False, "0120", (True, False, True)),
@@ -53,10 +53,10 @@ def test_default_contexts(type_, is_system, code, expected):
     "code, flags",
     [
         ("4000", (1, 0, 1)),
-        ("4210", (1, 0, 1)),
-        ("4400", (1, 0, 1)),
-        ("8000", (0, 1, 1)),
-        ("8010", (0, 1, 1)),
+        ("4635", (1, 0, 1)),
+        ("4835", (1, 0, 1)),
+        ("8400", (0, 1, 1)),
+        ("8401", (0, 1, 1)),
         ("1210", (0, 0, 0)),
         ("1300", (0, 0, 0)),
         ("0110", (1, 0, 1)),
@@ -104,7 +104,7 @@ def test_default_vat_codes_unchanged(db):
             "SELECT default_vat_code FROM account WHERE code=?", (c,)
         ).fetchone()[0]
 
-    assert get("4210") == "NL_21" and get("4400") == "GEEN" and get("8050") == "EXPORT"
+    assert get("4635") == "NL_21" and get("4835") == "GEEN" and get("8408") == "EXPORT"
 
 
 def test_every_account_matches_default_contexts(db):

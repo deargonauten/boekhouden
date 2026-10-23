@@ -19,7 +19,7 @@ def api(client):
         set_company(s)
         book = Book(s)
         book.sale(100000, 21000, day=date(2026, 8, 15))
-        eu = book.post([("1210", 50000, 0), ("8000", 0, 50000, "EU_GOEDEREN")], day=date(2026, 8, 20), journal="VK")
+        eu = book.post([("1210", 50000, 0), ("8400", 0, 50000, "EU_GOEDEREN")], day=date(2026, 8, 20), journal="VK")
         link_invoice(s, eu, make_contact(s))
         s.commit()
     return client
@@ -87,7 +87,7 @@ def test_icp_csv_includes_sale_without_klant(api):
     with Session(api.app.state.engine) as s:
         book = Book.__new__(Book)
         book.s = s
-        book.post([("1210", 70_000, 0), ("8000", 0, 70_000, "EU_GOEDEREN")], day=date(2026, 8, 5), desc="Levering", journal="VK")
+        book.post([("1210", 70_000, 0), ("8400", 0, 70_000, "EU_GOEDEREN")], day=date(2026, 8, 5), desc="Levering", journal="VK")
         s.commit()
     r = api.get(f"{BASE}/icp.csv")
     assert "ONBEKEND;;700;0;0" in r.text

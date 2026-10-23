@@ -97,7 +97,7 @@ def test_remainder_must_be_zero(session, invoice, make_txn):
 def test_split_over_two_invoices_and_credit_note(session, invoice, make_txn, make_supplier):
     a, supplier = invoice("F-1")
     b, _ = invoice("F-2", contact=supplier)
-    c, _ = invoice("C-1", contact=supplier, kind="credit_note", lines=[("Retour", 1000, 210, "NL_21", "4200")])
+    c, _ = invoice("C-1", contact=supplier, kind="credit_note", lines=[("Retour", 1000, 210, "NL_21", "4625")])
     t = make_txn(-(12100 + 12100 - 1210))
     entry = book(
         session, t.id,
@@ -113,7 +113,7 @@ def test_split_over_two_invoices_and_credit_note(session, invoice, make_txn, mak
 
 
 def test_credit_note_refund(session, invoice, make_txn):
-    c, _ = invoice("C-9", kind="credit_note", lines=[("Retour", 5000, 1050, "NL_21", "4200")])
+    c, _ = invoice("C-9", kind="credit_note", lines=[("Retour", 5000, 1050, "NL_21", "4625")])
     t = make_txn(6050, "Terugbetaling C-9")
     entry = book(session, t.id, [Allocation("purchase_invoice", c.id, 6050)])
     session.commit()
@@ -124,7 +124,7 @@ def test_credit_note_refund(session, invoice, make_txn):
 
 
 def test_credit_note_with_money_going_out_refused(session, invoice, make_txn):
-    c, _ = invoice("C-9", kind="credit_note", lines=[("Retour", 5000, 1050, "NL_21", "4200")])
+    c, _ = invoice("C-9", kind="credit_note", lines=[("Retour", 5000, 1050, "NL_21", "4625")])
     with pytest.raises(ReconcileError) as exc:
         book(session, make_txn(-6050).id, [Allocation("purchase_invoice", c.id, 6050)])
     assert "alleen koppelen aan inkoopfacturen" in exc.value.message
@@ -160,10 +160,10 @@ def test_storno_d_invoice_not_offered(session, invoice):
 
 def test_direct_booking_with_vat(session, make_txn, acc, year2025):
     t = make_txn(-12100, "Papier", iban=None, name="Staples")
-    entry = book(session, t.id, [], [DirectLine(acc("4200"), 12100, "NL_21", "Papier")])
+    entry = book(session, t.id, [], [DirectLine(acc("4625"), 12100, "NL_21", "Papier")])
     session.commit()
     assert balance(session, "1400") == 2100
-    assert balance(session, "4200") == 10000
+    assert balance(session, "4625") == 10000
     assert balance(session, "1210") == -12100
     detail = get_transaction_detail(session, t.id)
     assert detail.is_direct_booked and detail.can_undo and detail.matches == []
@@ -173,40 +173,40 @@ def test_direct_booking_with_vat(session, make_txn, acc, year2025):
 def test_direct_booking_defaults_vat_from_account(session, make_txn, acc, year2025):
     from app.domain.ledger import set_account_vat_default
 
-    set_account_vat_default(session, acc("4200"), "NL_21")
+    set_account_vat_default(session, acc("4625"), "NL_21")
     session.commit()
     t = make_txn(-12100, iban=None)
-    book(session, t.id, [], [DirectLine(acc("4200"), 12100, None)])
+    book(session, t.id, [], [DirectLine(acc("4625"), 12100, None)])
     assert balance(session, "1400") == 2100
 
 
 def test_direct_booking_without_vat_code_or_default_refused(session, make_txn, acc, year2025):
     from app.domain.ledger import set_account_vat_default
 
-    set_account_vat_default(session, acc("4200"), None)
+    set_account_vat_default(session, acc("4625"), None)
     session.commit()
     t = make_txn(-100, iban=None)
     with pytest.raises(ReconcileError):
-        book(session, t.id, [], [DirectLine(acc("4200"), 100, None)])
+        book(session, t.id, [], [DirectLine(acc("4625"), 100, None)])
 
 
 def test_direct_booking_unsupported_vat(session, make_txn, acc, year2025):
     t = make_txn(-100, iban=None)
     with pytest.raises(ReconcileError):
-        book(session, t.id, [], [DirectLine(acc("4200"), 100, "EU_GOEDEREN")])
+        book(session, t.id, [], [DirectLine(acc("4625"), 100, "EU_GOEDEREN")])
 
 
 def test_direct_bij_without_vat(session, make_txn, acc, year2025):
     t = make_txn(250, "Rente", iban=None)
-    book(session, t.id, [], [DirectLine(acc("8000"), 250, "GEEN")])
+    book(session, t.id, [], [DirectLine(acc("8400"), 250, "GEEN")])
     session.commit()
-    assert balance(session, "1210") == 250 and balance(session, "8000") == -250
+    assert balance(session, "1210") == 250 and balance(session, "8400") == -250
 
 
 def test_combined_invoice_and_bank_costs(session, invoice, make_txn, acc):
     pi, _ = invoice()
     t = make_txn(-12100 - 250, "F-1 + kosten")
-    book(session, t.id, [inv(pi)], [DirectLine(acc("4200"), 250, "GEEN", "Bankkosten")])
+    book(session, t.id, [inv(pi)], [DirectLine(acc("4625"), 250, "GEEN", "Bankkosten")])
     session.commit()
     assert balance(session, "1210") == -12350
     assert session.get(PurchaseInvoice, pi.id).paid_cents == 12100
@@ -302,7 +302,7 @@ def test_undo_recomputes_paid_from_remaining_matches(session, invoice, make_txn)
 
 def test_undo_direct_booking(session, make_txn, acc, year2025):
     t = make_txn(-1000, iban=None)
-    book(session, t.id, [], [DirectLine(acc("4200"), 1000, "GEEN")])
+    book(session, t.id, [], [DirectLine(acc("4625"), 1000, "GEEN")])
     session.commit()
     undo(session, t.id)
     session.commit()
@@ -433,11 +433,11 @@ def test_list_to_process_shows_best_suggestion_and_filters(session, invoice, mak
 # --- rules -----------------------------------------------------------------------------------------------------
 def test_remember_rule_creates_rule_then_suggests_it(session, make_txn, acc, year2025):
     t = make_txn(-1500, "Abonnement mei", iban="NL20INGB0001234567", name="Telecom")
-    book(session, t.id, [], [DirectLine(acc("4200"), 1500, "NL_21", "Abonnement")],
+    book(session, t.id, [], [DirectLine(acc("4625"), 1500, "NL_21", "Abonnement")],
          remember_rule=RuleDraft(use_iban=True, description_contains="abonnement"))
     session.commit()
     rules = list_rules(session)
-    assert len(rules) == 1 and rules[0].use_count == 1 and rules[0].account_code == "4200"
+    assert len(rules) == 1 and rules[0].use_count == 1 and rules[0].account_code == "4625"
     assert rules[0].counterparty_iban == "NL20INGB0001234567" and rules[0].direction == "af"
 
     t2 = make_txn(-1650, "Abonnement juni", iban="NL20INGB0001234567", name="Telecom")
@@ -447,13 +447,13 @@ def test_remember_rule_creates_rule_then_suggests_it(session, make_txn, acc, yea
     accept(session, t2.id, s[0].key)
     session.commit()
     assert list_rules(session)[0].use_count == 2
-    assert balance(session, "4200") == 1240 + 1364
+    assert balance(session, "4625") == 1240 + 1364
 
 
 def test_remember_rule_requires_a_condition(session, make_txn, acc, year2025):
     t = make_txn(-1500, "x", iban=None)
     with pytest.raises(ReconcileError):
-        book(session, t.id, [], [DirectLine(acc("4200"), 1500, "GEEN")], remember_rule=RuleDraft())
+        book(session, t.id, [], [DirectLine(acc("4625"), 1500, "GEEN")], remember_rule=RuleDraft())
     assert session.get(BankTransaction, t.id).status == "nieuw"
 
 
@@ -466,7 +466,7 @@ def test_remember_rule_without_direct_line_refused(session, invoice, make_txn):
 def test_identical_rule_is_reused(session, make_txn, acc, year2025):
     for _ in range(2):
         t = make_txn(-1500, "Abonnement", iban="NL20INGB0001234567")
-        book(session, t.id, [], [DirectLine(acc("4200"), 1500, "GEEN")], remember_rule=RuleDraft())
+        book(session, t.id, [], [DirectLine(acc("4625"), 1500, "GEEN")], remember_rule=RuleDraft())
     assert len(list_rules(session)) == 1 and list_rules(session)[0].use_count == 2
 
 
@@ -474,10 +474,10 @@ def test_direct_defaults_from_rule_then_last_used(session, make_txn, acc, year20
     iban = "NL20INGB0001234567"
     assert direct_defaults(session, make_txn(-100, iban=iban).id) is None
     first = make_txn(-2000, "x", iban=iban)
-    book(session, first.id, [], [DirectLine(acc("4200"), 2000, "NL_9")])
+    book(session, first.id, [], [DirectLine(acc("4625"), 2000, "NL_9")])
     session.commit()
     d = direct_defaults(session, make_txn(-300, iban=iban).id)
-    assert (d.account_id, d.vat_code, d.amount_cents) == (acc("4200"), "NL_9", 300)
+    assert (d.account_id, d.vat_code, d.amount_cents) == (acc("4625"), "NL_9", 300)
 
 
 def test_detail_default_contact_from_iban(session, invoice, make_txn):

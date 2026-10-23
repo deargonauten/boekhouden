@@ -11,7 +11,7 @@ def make_request(filename="../../etc/passwd; rm -rf ~.pdf"):
         content=b"%PDF",
         content_type="application/pdf",
         filename=filename,
-        accounts=(AccountHint("4100", "Kantoorkosten"), AccountHint("4999", "Nog te verdelen")),
+        accounts=(AccountHint("4215", "Kantoorkosten"), AccountHint("4999", "Nog te verdelen")),
         vat_codes=("NL_21", "NL_9", "VERLEGD"),
     )
 
@@ -24,7 +24,7 @@ def test_prompt_contains_rules_and_lists():
     assert "null" in p
     assert "YYYY-MM-DD" in p
     assert "- NL_21" in p and "- VERLEGD" in p
-    assert "- 4100 - Kantoorkosten" in p
+    assert "- 4215 - Kantoorkosten" in p
     assert "document.pdf" in p
     assert "Read tool" in p
 

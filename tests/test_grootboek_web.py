@@ -18,7 +18,7 @@ def test_grootboek_has_new_columns_and_terms(client):
     html = client.get("/instellingen/grootboek").text
     assert 'data-term="standaard_btw"' in html
     assert 'data-term="selecteerbaar_bij"' in html
-    a = aid(client, "4210")
+    a = aid(client, "4635")
     assert f'action="/instellingen/grootboek/{a}/btw"' in html
     assert f'action="/instellingen/grootboek/{a}/selecteerbaar"' in html
     assert "Geen suggestie" in html
@@ -32,7 +32,7 @@ def test_grootboek_hidden_system_account_is_read_only(client):
 
 
 def test_set_btw_default_persists_and_clears(client):
-    a = aid(client, "4210")
+    a = aid(client, "4635")
     r = client.post(f"/instellingen/grootboek/{a}/btw", data={"vat_code": "NL_9"}, follow_redirects=False)
     assert r.status_code == 303
     assert scalar(client, "SELECT default_vat_code FROM account WHERE id=:i", i=a) == "NL_9"
@@ -41,7 +41,7 @@ def test_set_btw_default_persists_and_clears(client):
 
 
 def test_set_btw_default_unknown_code_shows_dutch_error(client):
-    a = aid(client, "4210")
+    a = aid(client, "4635")
     r = client.post(f"/instellingen/grootboek/{a}/btw", data={"vat_code": "NOPE"})
     assert r.status_code == 422
     assert 'role="alert"' in r.text
@@ -50,7 +50,7 @@ def test_set_btw_default_unknown_code_shows_dutch_error(client):
 
 
 def test_set_selecteerbaar_persists(client):
-    a = aid(client, "4210")
+    a = aid(client, "4635")
     r = client.post(f"/instellingen/grootboek/{a}/selecteerbaar", data={"sales": "1"}, follow_redirects=False)
     assert r.status_code == 303
 
@@ -93,7 +93,7 @@ def test_add_account_with_defaults_and_contexts(client):
 def test_entry_form_options_carry_data_vat(client):
     html = client.get("/boeken/nieuw").text
     assert '<script src="/static/js/vat-suggest.js"' in html
-    m = re.search(r'<option value="%d"[^>]*>' % aid(client, "4210"), html)
+    m = re.search(r'<option value="%d"[^>]*>' % aid(client, "4635"), html)
     assert m and 'data-vat="NL_21"' in m.group(0)
     m = re.search(r'<option value="%d"[^>]*>' % aid(client, "1210"), html)
     assert m and 'data-vat=""' in m.group(0)
@@ -102,7 +102,7 @@ def test_entry_form_options_carry_data_vat(client):
 
 
 def test_data_vat_omits_inactive_code(client):
-    a = aid(client, "4210")
+    a = aid(client, "4635")
     client.post(f"/instellingen/grootboek/{a}/btw", data={"vat_code": "NL_9"})
     with client.app.state.engine.begin() as conn:
         conn.execute(text("UPDATE vat_code SET is_active=0 WHERE code='NL_9'"))

@@ -34,8 +34,8 @@ def original(make_final, customer, acc):
     return make_final(
         customer,
         lines=[
-            LineInput("Website", 3000, 10000, "NL_21", acc("8000")),
-            LineInput("Boek", 1000, 5000, "NL_9", acc("8010")),
+            LineInput("Website", 3000, 10000, "NL_21", acc("8400")),
+            LineInput("Boek", 1000, 5000, "NL_9", acc("8401")),
         ],
     )
 
@@ -61,7 +61,7 @@ def test_credit_note_finalize_entry_numbering_and_settlement(session, original, 
     assert note.number == "2026-0002"  # shared series with invoices
     lines = {l.account_id: l for l in session.scalars(select(JournalLine).where(JournalLine.entry_id == note.journal_entry_id))}
     assert lines[acc("1300")].credit_cents == 12100 and lines[acc("1300")].debit_cents == 0
-    assert lines[acc("8000")].debit_cents == 10000 and lines[acc("3100")].debit_cents == 2100
+    assert lines[acc("8400")].debit_cents == 10000 and lines[acc("3100")].debit_cents == 2100
     app = session.scalars(select(SalesCreditApplication)).one()
     assert (app.credit_note_id, app.invoice_id, app.amount_cents) == (note.id, original.id, 12100)
     total = original.total_incl_cents
@@ -163,7 +163,7 @@ def test_trial_balance_after_credit(session, original, storage):
     tb = {r.code: r for r in trial_balance(session)}
     assert tb["1300"].debit_cents == tb["1300"].credit_cents
     assert tb["3100"].debit_cents == tb["3100"].credit_cents
-    assert tb["8000"].debit_cents == tb["8000"].credit_cents
+    assert tb["8400"].debit_cents == tb["8400"].credit_cents
 
 
 def _credit(session, storage, original, qty_milli):
@@ -177,7 +177,7 @@ def _credit(session, storage, original, qty_milli):
 
 @pytest.mark.parametrize("vat_code", ["NL_0", "NL_21"])
 def test_partial_credits_never_exceed_the_original_amounts(session, make_final, customer, acc, storage, vat_code):
-    original = make_final(customer, lines=[LineInput("Klus", 1000, 101, vat_code, acc("8000"))])
+    original = make_final(customer, lines=[LineInput("Klus", 1000, 101, vat_code, acc("8400"))])
     notes = [_credit(session, storage, original, 500), _credit(session, storage, original, 500)]
     assert sum(n.total_excl_cents for n in notes) == original.total_excl_cents == 101
     assert sum(n.total_vat_cents for n in notes) == original.total_vat_cents
@@ -189,7 +189,7 @@ def test_partial_credits_never_exceed_the_original_amounts(session, make_final, 
 
 
 def test_three_thirds_stay_within_original(session, make_final, customer, acc, storage):
-    original = make_final(customer, lines=[LineInput("Klus", 1000, 101, "NL_21", acc("8000"))])
+    original = make_final(customer, lines=[LineInput("Klus", 1000, 101, "NL_21", acc("8400"))])
     notes = [_credit(session, storage, original, 333) for _ in range(3)]
     assert sum(n.total_excl_cents for n in notes) <= original.total_excl_cents
     assert sum(n.total_vat_cents for n in notes) <= original.total_vat_cents

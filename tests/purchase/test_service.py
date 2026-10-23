@@ -71,7 +71,7 @@ def test_book_creates_entry_invoice_and_links_document(session, year2025, make_e
 
     detail = get_entry(session, entry.id)
     assert [(l.account_code, l.debit_cents, l.credit_cents, l.vat_code) for l in detail.lines] == [
-        ("4200", 10000, 0, "NL_21"),
+        ("4625", 10000, 0, "NL_21"),
         ("1400", 2100, 0, None),
         ("3000", 0, 12100, None),
     ]
@@ -92,7 +92,7 @@ def test_book_records_learned_default(session, year2025, make_extraction, acc):
     row = session.scalar(select(SupplierDefault))
     assert (row.contact_id, row.account_id, row.vat_code, row.use_count) == (
         invoice.contact_id,
-        acc("4200"),
+        acc("4625"),
         "NL_21",
         1,
     )
@@ -106,7 +106,7 @@ def test_credit_note(session, year2025, make_extraction):
     assert invoice.total_incl_cents == 12100
     assert balance(session, "3000") == 12100  # debit: you are owed money
     assert balance(session, "1400") == -2100
-    assert balance(session, "4200") == -10000
+    assert balance(session, "4625") == -10000
 
 
 def test_receipt_is_booked_as_invoice(session, year2025, make_extraction):
@@ -122,7 +122,7 @@ def test_trial_balance_matches_open_invoices(session, year2025, make_extraction,
         make_extraction(
             contact=other,
             number="B1",
-            lines=[("Stoel", 20000, 4200, "NL_21", "4200"), ("Boek", 5000, 450, "NL_9", "4210")],
+            lines=[("Stoel", 20000, 4200, "NL_21", "4625"), ("Boek", 5000, 450, "NL_9", "4635")],
         ).id,
     )
     cn = book_extraction(session, make_extraction(contact=other, number="B2", kind="credit_note").id)
@@ -216,7 +216,7 @@ def test_unknown_document(session, year2025):
 
 
 def test_unsupported_vat(session, year2025, make_extraction):
-    doc = make_extraction(lines=[("Dienst", 10000, 0, "VERLEGD", "4200")])
+    doc = make_extraction(lines=[("Dienst", 10000, 0, "VERLEGD", "4625")])
     with pytest.raises(BookingError) as exc:
         book_extraction(session, doc.id)
     assert exc.value.code == UNSUPPORTED_VAT
@@ -227,7 +227,7 @@ def test_inactive_account_uses_ledger_message(session, year2025, make_extraction
     from app.domain.ledger import set_account_active
 
     doc = make_extraction()
-    set_account_active(session, acc("4200"), False)
+    set_account_active(session, acc("4625"), False)
     session.commit()
     with pytest.raises(LedgerError) as exc:
         book_extraction(session, doc.id)
@@ -321,7 +321,7 @@ def test_prepare_booking_preview(session, year2025, make_extraction):
     assert preview.total_incl_cents == 12100
     assert preview.journal_code == "IK"
     assert preview.period_label == "maart 2025"
-    assert [r.account_code for r in preview.rows] == ["4200", "1400", "3000"]
+    assert [r.account_code for r in preview.rows] == ["4625", "1400", "3000"]
     assert preview.rows[0].account_name == "Kantoorbenodigdheden"
     assert preview.rows[0].vat_label == "21%"
     assert preview.summary == "Kosten € 100,00, BTW € 21,00, nog te betalen aan Bol B.V. € 121,00."

@@ -49,7 +49,7 @@ def entry_data(client, **over):
         "booking_date": TODAY.isoformat(),
         "description": "Testboeking",
         "reference": "",
-        "line_account": [str(account_id(client, "4200")), str(account_id(client, "1210"))],
+        "line_account": [str(account_id(client, "4625")), str(account_id(client, "1210"))],
         "line_debit": ["100,00", ""],
         "line_credit": ["", "100,00"],
         "line_vat": ["", ""],
@@ -365,7 +365,7 @@ def test_controle_page_with_unbalanced_booking_is_plain_language(client):
         pid = conn.execute(
             text("SELECT id FROM period WHERE start_date <= :d AND end_date >= :d"), {"d": day}
         ).scalar()
-        aid = conn.execute(text("SELECT id FROM account WHERE code = '4200'")).scalar()
+        aid = conn.execute(text("SELECT id FROM account WHERE code = '4625'")).scalar()
         eid = conn.execute(
             text(
                 "INSERT INTO journal_entry (journal_id, period_id, entry_number, booking_date, description, kind,"

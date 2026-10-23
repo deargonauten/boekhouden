@@ -13,7 +13,7 @@ from app.models import JournalLine
 
 
 def entry(jrn, acc, day=date(2025, 3, 10), journal="MEM", **kw):
-    default = [NewLine(acc("1210"), debit_cents=500), NewLine(acc("8000"), credit_cents=500)]
+    default = [NewLine(acc("1210"), debit_cents=500), NewLine(acc("8400"), credit_cents=500)]
     return NewEntry(
         journal_id=jrn(journal),
         booking_date=day,
@@ -51,7 +51,7 @@ def test_numbering_sequential_per_journal_and_year(session, jrn, acc):
 
 def test_rejected_post_consumes_no_number(session, year2025, jrn, acc):
     post_entry(session, entry(jrn, acc))
-    bad = entry(jrn, acc, lines=[NewLine(acc("1210"), debit_cents=500), NewLine(acc("8000"), credit_cents=499)])
+    bad = entry(jrn, acc, lines=[NewLine(acc("1210"), debit_cents=500), NewLine(acc("8400"), credit_cents=499)])
     with pytest.raises(LedgerError) as ei:
         post_entry(session, bad)
     assert ei.value.code == "UNBALANCED"
@@ -88,8 +88,8 @@ def test_too_few_lines(session, year2025, jrn, acc):
 
 
 def test_account_checks(session, year2025, jrn, acc):
-    set_account_active(session, acc("4200"), False)
-    lines = [NewLine(acc("4200"), debit_cents=5), NewLine(acc("1210"), credit_cents=5)]
+    set_account_active(session, acc("4625"), False)
+    lines = [NewLine(acc("4625"), debit_cents=5), NewLine(acc("1210"), credit_cents=5)]
     with pytest.raises(LedgerError) as ei:
         post_entry(session, entry(jrn, acc, lines=lines))
     assert ei.value.code == "ACCOUNT_INACTIVE"
@@ -100,24 +100,24 @@ def test_account_checks(session, year2025, jrn, acc):
 
 
 def test_non_postable_account_rejected(session, year2025, jrn, acc):
-    session.execute(text("UPDATE account SET is_postable=0 WHERE code='4200'"))
-    lines = [NewLine(acc("4200"), debit_cents=5), NewLine(acc("1210"), credit_cents=5)]
+    session.execute(text("UPDATE account SET is_postable=0 WHERE code='4625'"))
+    lines = [NewLine(acc("4625"), debit_cents=5), NewLine(acc("1210"), credit_cents=5)]
     with pytest.raises(LedgerError) as ei:
         post_entry(session, entry(jrn, acc, lines=lines))
     assert ei.value.code == "ACCOUNT_NOT_POSTABLE"
 
 
 def test_vat_code_validation(session, year2025, jrn, acc):
-    lines = [NewLine(acc("1210"), debit_cents=121), NewLine(acc("8000"), credit_cents=121, vat_code="NOPE")]
+    lines = [NewLine(acc("1210"), debit_cents=121), NewLine(acc("8400"), credit_cents=121, vat_code="NOPE")]
     with pytest.raises(LedgerError) as ei:
         post_entry(session, entry(jrn, acc, lines=lines))
     assert ei.value.code == "INVALID_VAT_CODE"
     session.execute(text("UPDATE vat_code SET is_active=0 WHERE code='NL_9'"))
-    lines = [NewLine(acc("1210"), debit_cents=121), NewLine(acc("8000"), credit_cents=121, vat_code="NL_9")]
+    lines = [NewLine(acc("1210"), debit_cents=121), NewLine(acc("8400"), credit_cents=121, vat_code="NL_9")]
     with pytest.raises(LedgerError) as ei:
         post_entry(session, entry(jrn, acc, lines=lines))
     assert ei.value.code == "INVALID_VAT_CODE"
-    lines = [NewLine(acc("1210"), debit_cents=121), NewLine(acc("8000"), credit_cents=121, vat_code="NL_21")]
+    lines = [NewLine(acc("1210"), debit_cents=121), NewLine(acc("8400"), credit_cents=121, vat_code="NL_21")]
     e = post_entry(session, entry(jrn, acc, lines=lines))
     assert get_entry(session, e.id).lines[1].vat_code == "NL_21"
 
@@ -153,7 +153,7 @@ def test_inactive_journal_rejected(session, year2025, jrn, acc):
 
 
 def test_unknown_journal_rejected(session, year2025, acc):
-    e = NewEntry(9999, date(2025, 3, 1), "x", [NewLine(acc("1210"), debit_cents=5), NewLine(acc("8000"), credit_cents=5)])
+    e = NewEntry(9999, date(2025, 3, 1), "x", [NewLine(acc("1210"), debit_cents=5), NewLine(acc("8400"), credit_cents=5)])
     with pytest.raises(LedgerError) as ei:
         post_entry(session, e)
     assert ei.value.code == "JOURNAL_NOT_FOUND"
@@ -176,7 +176,7 @@ def test_immutable_at_db_level(session, year2025, jrn, acc):
 
 def test_ledger_always_balanced(session, year2025, jrn, acc):
     rnd = random.Random(1)
-    accounts = [acc(c) for c in ("1210", "1300", "8000", "4200", "3100")]
+    accounts = [acc(c) for c in ("1210", "1300", "8400", "4625", "3100")]
     for _ in range(40):
         amount = rnd.randint(1, 100000)
         a, b = rnd.sample(accounts, 2)

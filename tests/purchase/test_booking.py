@@ -310,14 +310,14 @@ def test_messages_are_plain_dutch_without_codes():
 
 
 # --- preview_lines ----------------------------------------------------------------------
-NAMES = {COSTS: ("4200", "Kantoorkosten"), OTHER: ("4300", "Autokosten"), 140: ("1400", "BTW voorbelasting"), 300: ("3000", "Crediteuren")}
+NAMES = {COSTS: ("4625", "Kantoorkosten"), OTHER: ("4405", "Autokosten"), 140: ("1400", "BTW voorbelasting"), 300: ("3000", "Crediteuren")}
 VAT_LABELS = {"NL_21": "21%", "NL_9": "9%", "NL_0": "0%"}
 
 
 def test_preview_rows_and_summary():
     table = preview_lines(inp(line(10000, 2100)), ACC, NAMES, VAT_LABELS)
     assert [(r.account_code, r.amount_cents, r.side, r.term) for r in table.rows] == [
-        ("4200", 10000, "debet", None),
+        ("4625", 10000, "debet", None),
         ("1400", 2100, "debet", "voorbelasting"),
         ("3000", 12100, "credit", "crediteuren"),
     ]

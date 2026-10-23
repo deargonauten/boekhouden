@@ -17,7 +17,7 @@ def book(session):
 
 
 def eu_sale(book, cents, *, code="EU_GOEDEREN", day=DAY, desc="Verkoop EU"):
-    return book.sale(cents, 0, code=code, revenue="8040", day=day, desc=desc)
+    return book.sale(cents, 0, code=code, revenue="8404", day=day, desc=desc)
 
 
 def icp(session):
@@ -92,7 +92,7 @@ def test_unassigned_entry_listed_with_amounts(session, book):
 def test_klant_netting_to_zero_is_omitted(session, book):
     c = make_contact(session)
     link_invoice(session, eu_sale(book, 5000), c)
-    cn = book.credit_note(5000, 0, code="EU_GOEDEREN", revenue="8040")
+    cn = book.credit_note(5000, 0, code="EU_GOEDEREN", revenue="8404")
     link_invoice(session, cn, c)
     assert icp(session).rows == []
 

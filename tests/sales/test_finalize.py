@@ -70,7 +70,7 @@ def inv_lines(inv):
 
 def test_missing_account_is_suggested_from_vat_code(session, acc, make_concept, customer):
     inv = make_concept(customer, lines=[LineInput("Boek", 1000, 1000, "NL_9"), LineInput("Cadeau", 1000, 1000, "NL_0")])
-    assert [l.account_id for l in inv.lines] == [acc("8010"), acc("8020")]
+    assert [l.account_id for l in inv.lines] == [acc("8401"), acc("8403")]
 
 
 def test_save_concept_refuses_unsupported_vat_and_bad_numbers(session, make_concept, customer):
@@ -95,7 +95,7 @@ def test_finalize_assigns_consecutive_numbers_and_posts_entry(session, make_fina
     lines = session.scalars(select(JournalLine).where(JournalLine.entry_id == entry.id)).all()
     by_account = {l.account_id: l for l in lines}
     assert by_account[acc("1300")].debit_cents == 12100
-    assert by_account[acc("8000")].credit_cents == 10000 and by_account[acc("8000")].vat_code == "NL_21"
+    assert by_account[acc("8400")].credit_cents == 10000 and by_account[acc("8400")].vat_code == "NL_21"
     assert by_account[acc("3100")].credit_cents == 2100 and by_account[acc("3100")].vat_code is None
     vat = session.scalars(select(SalesInvoiceVat).where(SalesInvoiceVat.invoice_id == a.id)).all()
     assert [(v.vat_code, v.rate_bp, v.base_cents, v.vat_cents) for v in vat] == [("NL_21", 2100, 10000, 2100)]
@@ -163,7 +163,7 @@ def test_requirements_are_checked_with_plain_messages(session, make_concept, mak
 
 def test_finalize_needs_company_data(session, year2026, make_customer, storage, acc):
     customer = make_customer()
-    inv = create_concept(session, ConceptInput(customer.id, DAY, [LineInput("x", 1000, 100, "NL_21", acc("8000"))]))
+    inv = create_concept(session, ConceptInput(customer.id, DAY, [LineInput("x", 1000, 100, "NL_21", acc("8400"))]))
     session.commit()
     with pytest.raises(SalesError) as exc:
         finalize(session, inv.id, storage=storage)
@@ -277,7 +277,7 @@ def test_trial_balance_matches_documents(session, make_final, customer, acc):
     assert tb["1300"].debit_cents == 12100 + 2180
     assert tb["3100"].credit_cents == 2100
     assert tb["3110"].credit_cents == 180
-    assert tb["8000"].credit_cents == 10000 and tb["8010"].credit_cents == 2000
+    assert tb["8400"].credit_cents == 10000 and tb["8401"].credit_cents == 2000
 
 
 def test_mixed_lines_vat_per_group(session, make_final, customer):

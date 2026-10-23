@@ -36,7 +36,7 @@ def invoice(**kw) -> ExtractedInvoice:
         total_excl_cents=10000,
         total_vat_cents=2100,
         total_incl_cents=12100,
-        lines=(ExtractedLine("Papier", 10000, "NL_21", 2100, "4200"),),
+        lines=(ExtractedLine("Papier", 10000, "NL_21", 2100, "4625"),),
         raw='{"raw": true}',
     )
     base.update(kw)
@@ -56,7 +56,7 @@ def form(**kw) -> ReviewInput:
         total_excl="100,00",
         total_vat="21,00",
         total_incl="121,00",
-        lines=[ReviewLineInput("Papier", "100,00", "NL_21", "21,00", "4200")],
+        lines=[ReviewLineInput("Papier", "100,00", "NL_21", "21,00", "4625")],
     )
     base.update(kw)
     return ReviewInput(**base)
@@ -71,18 +71,18 @@ def test_build_request(session, storage, make_doc):
     assert req.content.startswith(b"%PDF")
     assert req.content_type == "application/pdf" and req.filename == "scan.pdf"
     codes = {a.code for a in req.accounts}
-    assert {"4200", "4999"} <= codes
-    assert "8000" not in codes and "1210" not in codes  # expense accounts only
+    assert {"4625", "4999"} <= codes
+    assert "8400" not in codes and "1210" not in codes  # expense accounts only
     assert "4000" not in codes  # not postable
     assert {"NL_21", "NL_9", "NL_0", "VERLEGD"} <= set(req.vat_codes)
     assert all(a.name for a in req.accounts)
 
 
 def test_build_request_skips_inactive_accounts_and_codes(session, storage, make_doc):
-    session.execute(Account.__table__.update().where(Account.code == "4200").values(is_active=False))
+    session.execute(Account.__table__.update().where(Account.code == "4625").values(is_active=False))
     session.commit()
     req = service.build_request(session, storage, make_doc().id)
-    assert "4200" not in {a.code for a in req.accounts}
+    assert "4625" not in {a.code for a in req.accounts}
 
 
 def test_build_request_refuses_booked_document(session, storage, make_doc, year2025, make_entry):
@@ -106,7 +106,7 @@ def test_store_result_persists_and_marks_recognized(session, make_doc):
     assert ex.raw_json == '{"raw": true}' and ex.reviewed_at is None
     (line,) = ex.lines
     assert line.position == 0 and line.amount_excl_cents == 10000 and line.vat_code == "NL_21"
-    assert line.account_id == session.scalar(select(Account.id).where(Account.code == "4200"))
+    assert line.account_id == session.scalar(select(Account.id).where(Account.code == "4625"))
     assert get_document(session, doc.id).status == "herkend"
 
 
@@ -129,7 +129,7 @@ def test_store_result_does_not_create_unknown_supplier(session, make_doc):
 
 def test_store_result_flags_and_clears_unusable_suggestions(session, make_doc):
     inv = invoice(
-        lines=(ExtractedLine("x", 10000, "BTW21", 2100, "8000"),),
+        lines=(ExtractedLine("x", 10000, "BTW21", 2100, "8400"),),
         supplier=ExtractedContact(name="Bol", kvk="123"),
     )
     ex = service.store_result(session, make_doc().id, "fake", None, inv)
@@ -189,7 +189,7 @@ def test_reextraction_replaces_and_clears_review(session, make_doc):
         None,
         invoice(
             invoice_number="F-2",
-            lines=(ExtractedLine("a", 4000, "NL_21", 840, "4200"), ExtractedLine("b", 6000, "NL_21", 1260, "4200")),
+            lines=(ExtractedLine("a", 4000, "NL_21", 840, "4625"), ExtractedLine("b", 6000, "NL_21", 1260, "4625")),
         ),
     )
     session.commit()
@@ -302,7 +302,7 @@ def test_save_review_updates_fields_and_lines(session, extracted):
         invoice_number="F-9",
         due_date="2026-12-01",
         lines=[
-            ReviewLineInput("a", "40,00", "NL_21", "8,40", "4200"),
+            ReviewLineInput("a", "40,00", "NL_21", "8,40", "4625"),
             ReviewLineInput("b", "60,00", "NL_9", "5,40", "4999"),
         ],
         total_excl="100,00",

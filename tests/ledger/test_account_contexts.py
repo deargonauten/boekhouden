@@ -15,10 +15,10 @@ def codes(session, ctx):
 
 def test_list_accounts_for_per_context(session):
     purchase = codes(session, "purchase")
-    assert "4210" in purchase and "0110" in purchase
-    assert "8000" not in purchase and "1210" not in purchase and "1300" not in purchase
+    assert "4635" in purchase and "0110" in purchase
+    assert "8400" not in purchase and "1210" not in purchase and "1300" not in purchase
     assert purchase == sorted(purchase)
-    assert "8000" in codes(session, "sales") and "4210" not in codes(session, "sales")
+    assert "8400" in codes(session, "sales") and "4635" not in codes(session, "sales")
     assert "2010" in codes(session, "bank") and "1210" not in codes(session, "bank")
 
 
@@ -54,31 +54,31 @@ def test_add_account_explicit_flags(session):
 
 
 def test_suggest_vat_code(session, acc):
-    assert suggest_vat_code(session, acc("4210")) == "NL_21"
-    assert suggest_vat_code(session, acc("4400")) == "GEEN"
+    assert suggest_vat_code(session, acc("4635")) == "NL_21"
+    assert suggest_vat_code(session, acc("4835")) == "GEEN"
     assert suggest_vat_code(session, 999999) is None
     session.get(VatCode, "NL_21").is_active = False
     session.flush()
-    assert suggest_vat_code(session, acc("4210")) is None
+    assert suggest_vat_code(session, acc("4635")) is None
 
 
 def test_set_account_vat_default(session, acc):
-    set_account_vat_default(session, acc("4210"), "NL_9")
-    assert session.get(Account, acc("4210")).default_vat_code == "NL_9"
-    set_account_vat_default(session, acc("4210"), None)
-    assert session.get(Account, acc("4210")).default_vat_code is None
+    set_account_vat_default(session, acc("4635"), "NL_9")
+    assert session.get(Account, acc("4635")).default_vat_code == "NL_9"
+    set_account_vat_default(session, acc("4635"), None)
+    assert session.get(Account, acc("4635")).default_vat_code is None
     # system account allowed
-    set_account_vat_default(session, acc("8000"), "NL_21")
+    set_account_vat_default(session, acc("8400"), "NL_21")
 
 
 def test_set_account_vat_default_errors(session, acc):
     with pytest.raises(LedgerError) as e:
-        set_account_vat_default(session, acc("4210"), "NOPE")
+        set_account_vat_default(session, acc("4635"), "NOPE")
     assert e.value.code == "INVALID_VAT_CODE"
     session.get(VatCode, "NL_9").is_active = False
     session.flush()
     with pytest.raises(LedgerError) as e:
-        set_account_vat_default(session, acc("4210"), "NL_9")
+        set_account_vat_default(session, acc("4635"), "NL_9")
     assert e.value.code == "INVALID_VAT_CODE"
     h = add_account(session, code="4974", name="Kop", type="expense", is_postable=False)
     with pytest.raises(LedgerError) as e:
@@ -87,11 +87,11 @@ def test_set_account_vat_default_errors(session, acc):
 
 
 def test_set_account_contexts(session, acc):
-    a = set_account_contexts(session, acc("4210"), purchase=False, sales=True, bank=False)
+    a = set_account_contexts(session, acc("4635"), purchase=False, sales=True, bank=False)
     assert (a.selectable_purchase, a.selectable_sales, a.selectable_bank) == (False, True, False)
-    assert "4210" in codes(session, "sales") and "4210" not in codes(session, "purchase")
+    assert "4635" in codes(session, "sales") and "4635" not in codes(session, "purchase")
     # 8000 is system but allowed
-    set_account_contexts(session, acc("8000"), purchase=True, sales=True, bank=True)
+    set_account_contexts(session, acc("8400"), purchase=True, sales=True, bank=True)
 
 
 @pytest.mark.parametrize("code", ["1210", "1300", "4950", "2000"])

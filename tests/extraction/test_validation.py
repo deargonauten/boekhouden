@@ -18,10 +18,10 @@ from app.domain.relations import ExtractedContact
 TODAY = date(2026, 10, 21)
 VAT = {"GEEN": 0, "NL_21": 2100, "NL_9": 900, "NL_0": 0, "VERLEGD": 0}
 ACCOUNTS = [
-    AccountRef("4200", "expense"),
+    AccountRef("4625", "expense"),
     AccountRef("4999", "expense"),
-    AccountRef("4300", "expense", is_active=False),
-    AccountRef("4400", "expense", is_postable=False),
+    AccountRef("4405", "expense", is_active=False),
+    AccountRef("4835", "expense", is_postable=False),
     AccountRef("1210", "asset"),
 ]
 SUPPLIER = ExtractedContact(
@@ -43,7 +43,7 @@ def good(**kw) -> ExtractedInvoice:
                 amount_excl_cents=10000,
                 vat_code="NL_21",
                 vat_amount_cents=2100,
-                suggested_account_code="4200",
+                suggested_account_code="4625",
             ),
         ),
     )
@@ -96,14 +96,14 @@ def test_line_sum_differs_from_total():
 
 def test_line_sum_ok_with_several_lines():
     lines = (
-        ExtractedLine("a", 4000, "NL_21", 840, "4200"),
-        ExtractedLine("b", 6000, "NL_21", 1260, "4200"),
+        ExtractedLine("a", 4000, "NL_21", 840, "4625"),
+        ExtractedLine("b", 6000, "NL_21", 1260, "4625"),
     )
     assert run(good(lines=lines)) == []
 
 
 def test_line_sum_skipped_when_a_line_amount_is_missing():
-    lines = (ExtractedLine("a", None, "NL_21", None, "4200"),)
+    lines = (ExtractedLine("a", None, "NL_21", None, "4625"),)
     assert by_field(run(good(lines=lines)), "total_excl") == []
 
 
@@ -112,7 +112,7 @@ def test_vat_within_tolerance_is_fine():
     inv = good(
         total_vat_cents=2102,
         total_incl_cents=12102,
-        lines=(ExtractedLine("a", 10000, "NL_21", 2102, "4200"),),
+        lines=(ExtractedLine("a", 10000, "NL_21", 2102, "4625"),),
     )
     assert by_field(run(inv), "line.0.vat_amount") == []
 
@@ -121,7 +121,7 @@ def test_vat_beyond_tolerance_flags_the_line():
     inv = good(
         total_vat_cents=2103,
         total_incl_cents=12103,
-        lines=(ExtractedLine("a", 10000, "NL_21", 2103, "4200"),),
+        lines=(ExtractedLine("a", 10000, "NL_21", 2103, "4625"),),
     )
     f = by_field(run(inv), "line.0.vat_amount")
     assert len(f) == 1
@@ -135,7 +135,7 @@ def test_vat_rounding_boundary_uses_half_up():
             total_excl_cents=1050,
             total_vat_cents=vat,
             total_incl_cents=1050 + vat,
-            lines=(ExtractedLine("a", 1050, "NL_21", vat, "4200"),),
+            lines=(ExtractedLine("a", 1050, "NL_21", vat, "4625"),),
         )
 
     assert by_field(run(inv(219)), "line.0.vat_amount") == []
@@ -144,9 +144,9 @@ def test_vat_rounding_boundary_uses_half_up():
 
 def test_vat_is_checked_per_code_group_not_per_line():
     lines = (
-        ExtractedLine("a", 333, "NL_21", 70, "4200"),
-        ExtractedLine("b", 333, "NL_21", 70, "4200"),
-        ExtractedLine("c", 334, "NL_21", 70, "4200"),
+        ExtractedLine("a", 333, "NL_21", 70, "4625"),
+        ExtractedLine("b", 333, "NL_21", 70, "4625"),
+        ExtractedLine("c", 334, "NL_21", 70, "4625"),
     )  # sum 1000 -> 210 expected, 210 given
     inv = good(total_excl_cents=1000, total_vat_cents=210, total_incl_cents=1210, lines=lines)
     assert run(inv) == []
@@ -156,13 +156,13 @@ def test_zero_rate_codes_expect_zero_vat():
     inv = good(
         total_vat_cents=500,
         total_incl_cents=10500,
-        lines=(ExtractedLine("a", 10000, "VERLEGD", 500, "4200"),),
+        lines=(ExtractedLine("a", 10000, "VERLEGD", 500, "4625"),),
     )
     assert len(by_field(run(inv), "line.0.vat_amount")) == 1
 
 
 def test_vat_check_skipped_when_vat_amount_unknown():
-    inv = good(lines=(ExtractedLine("a", 10000, "NL_21", None, "4200"),))
+    inv = good(lines=(ExtractedLine("a", 10000, "NL_21", None, "4625"),))
     assert by_field(run(inv), "line.0.vat_amount") == []
 
 
@@ -233,7 +233,7 @@ def test_formatted_identifiers_are_accepted():
 
 
 # --- g. accounts -------------------------------------------------------------------
-@pytest.mark.parametrize("code", ["9999", "4300", "4400", "1210"])
+@pytest.mark.parametrize("code", ["9999", "4405", "4835", "1210"])
 def test_unusable_account_is_flagged(code):
     inv = good(lines=(ExtractedLine("a", 10000, "NL_21", 2100, code),))
     f = by_field(run(inv), "line.0.account")
@@ -247,7 +247,7 @@ def test_missing_account_is_flagged_too():
 
 
 def test_valid_account_resolves():
-    assert resolve_account_code("4200", ACCOUNTS) == "4200"
+    assert resolve_account_code("4625", ACCOUNTS) == "4625"
     assert resolve_account_code(None, ACCOUNTS) is None
 
 
@@ -274,7 +274,7 @@ def test_infer_vat_code_unknown():
 
 
 def test_unknown_vat_code_is_inferred_with_medium_flag():
-    inv = good(lines=(ExtractedLine("a", 10000, "BTW21", 2100, "4200"),))
+    inv = good(lines=(ExtractedLine("a", 10000, "BTW21", 2100, "4625"),))
     f = by_field(run(inv), "line.0.vat_code")
     assert len(f) == 1
     assert f[0].level == "medium" and "Tarief afgeleid uit het bedrag" in f[0].reason
@@ -284,20 +284,20 @@ def test_unknown_vat_code_not_inferable_is_flagged_low():
     inv = good(
         total_vat_cents=1234,
         total_incl_cents=11234,
-        lines=(ExtractedLine("a", 10000, "BTW21", 1234, "4200"),),
+        lines=(ExtractedLine("a", 10000, "BTW21", 1234, "4625"),),
     )
     f = by_field(run(inv), "line.0.vat_code")
     assert len(f) == 1 and f[0].level == "low"
 
 
 def test_missing_vat_code_is_flagged():
-    inv = good(lines=(ExtractedLine("a", 10000, None, None, "4200"),))
+    inv = good(lines=(ExtractedLine("a", 10000, None, None, "4625"),))
     assert len(by_field(run(inv), "line.0.vat_code")) == 1
 
 
 def test_inferred_code_is_used_for_group_arithmetic():
     # unknown code, but the amounts say 21% -> inferred NL_21 -> arithmetic is consistent
-    inv = good(lines=(ExtractedLine("a", 10000, "BTW21", 2100, "4200"),))
+    inv = good(lines=(ExtractedLine("a", 10000, "BTW21", 2100, "4625"),))
     assert by_field(run(inv), "line.0.vat_amount") == []
 
 
@@ -320,7 +320,7 @@ def test_model_confidence_becomes_flags():
         confidence={"invoice_number": "medium", "invoice_date": "high", "total_excl_cents": "low"},
         lines=(
             ExtractedLine(
-                "a", 10000, "NL_21", 2100, "4200", confidence={"amount_excl_cents": "low"}
+                "a", 10000, "NL_21", 2100, "4625", confidence={"amount_excl_cents": "low"}
             ),
         ),
     )

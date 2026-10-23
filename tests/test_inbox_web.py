@@ -212,7 +212,7 @@ def test_detail_booked_links_to_entry(client):
     upload(client, ("a.pdf", PDF))
     client.post("/instellingen/boekjaren", data={"year": datetime.now().year})
     journal = rows(client, "SELECT id FROM journal WHERE code = 'MEM'")[0].id
-    acc = [r.id for r in rows(client, "SELECT id FROM account WHERE code IN ('4200','1210') ORDER BY code")]
+    acc = [r.id for r in rows(client, "SELECT id FROM account WHERE code IN ('4625','1210') ORDER BY code")]
     r = client.post(
         "/boeken/nieuw",
         data={
@@ -357,7 +357,7 @@ def test_stat_cards_match_tab_counts_and_done_rows(client):
     set_status(client, 2, "herkend")
     client.post("/instellingen/boekjaren", data={"year": datetime.now().year})
     journal = rows(client, "SELECT id FROM journal WHERE code = 'MEM'")[0].id
-    acc = [r.id for r in rows(client, "SELECT id FROM account WHERE code IN ('4200','1210') ORDER BY code")]
+    acc = [r.id for r in rows(client, "SELECT id FROM account WHERE code IN ('4625','1210') ORDER BY code")]
     r = client.post(
         "/boeken/nieuw",
         data={

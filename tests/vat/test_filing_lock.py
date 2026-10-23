@@ -115,7 +115,7 @@ def test_future_filed_on_refused(session, book):
 def test_kor_period_cannot_be_filed_but_icp_still_works(session, book):
     save_vat_settings(session, "quarter", date(2026, 7, 1), None, today=TODAY)
     c = make_contact(session)
-    e = book.sale(5000, 0, code="EU_GOEDEREN", revenue="8040", day=date(2026, 8, 3))
+    e = book.sale(5000, 0, code="EU_GOEDEREN", revenue="8404", day=date(2026, 8, 3))
     link_invoice(session, e, c)
     msg = fails("VAT_KOR_NO_RETURN", file, session, Q3)
     assert msg == "Je gebruikt de KOR in deze periode, dus je hoeft geen btw-aangifte te doen."
@@ -167,7 +167,7 @@ def test_concept_snapshot_is_live(session, book):
 
 def test_snapshot_json_has_only_ints_and_strings(session, book):
     c = make_contact(session)
-    link_invoice(session, book.sale(5000, 0, code="EU_DIENSTEN", revenue="8040", day=date(2026, 8, 3)), c)
+    link_invoice(session, book.sale(5000, 0, code="EU_DIENSTEN", revenue="8404", day=date(2026, 8, 3)), c)
     book.sale(10000, 2100, day=date(2026, 8, 3))
     file(session, Q3)
     data = json.loads(session.scalar(select(VatReturn.snapshot_json)))

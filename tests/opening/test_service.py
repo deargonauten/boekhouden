@@ -84,7 +84,7 @@ def test_allowed_accounts(session, acc):
     refs = allowed_accounts(session)
     codes = [r.code for r in refs]
     assert {"1210", "0120", "0190", "1400", "3150", "3600"} <= set(codes)
-    assert not {"1300", "3000", "2000", "2900", "1220", "8000", "4200"} & set(codes)
+    assert not {"1300", "3000", "2000", "2900", "1220", "8400", "4625"} & set(codes)
     assert refs == sorted(refs, key=lambda r: (r.type, r.code))  # assets first, then by code
 
 

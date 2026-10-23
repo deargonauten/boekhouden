@@ -100,7 +100,7 @@ def test_update_invalid_rubriek_is_400(client):
 def test_update_rubriek_in_locked_period_is_409(client):
     assert client.post("/instellingen/boekjaren", data={"year": YEAR}, follow_redirects=False).status_code == 303
     jid = scalar(client, "SELECT id FROM journal WHERE code='MEM'")
-    a4200 = scalar(client, "SELECT id FROM account WHERE code='4200'")
+    a4200 = scalar(client, "SELECT id FROM account WHERE code='4625'")
     a1210 = scalar(client, "SELECT id FROM account WHERE code='1210'")
     r = client.post(
         "/boeken/nieuw",

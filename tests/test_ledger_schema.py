@@ -74,7 +74,7 @@ def posted_entry(db):
     fy = make_year(db)
     e = add_entry(db, fy)
     add_line(db, e, 1, 100, 0)
-    add_line(db, e, 2, 0, 100, "8000")
+    add_line(db, e, 2, 0, 100, "8400")
     db.commit()
     return fy, e
 
@@ -89,7 +89,7 @@ def test_seed_accounts_unique_and_valid(db):
 
 def test_seed_required_system_codes(db):
     for code in ["1300", "3000", "3100", "3110", "3120", "3130", "1400", "1410",
-                 "3150", "2000", "2010", "2020", "8000"]:
+                 "3150", "2000", "2010", "2020", "8400"]:
         assert one(db, "SELECT is_system FROM account WHERE code=?", code) == 1
 
 
@@ -99,10 +99,10 @@ def test_seed_rgs_code_format(db):
 
 
 def test_seed_default_vat_codes(db):
-    assert one(db, "SELECT default_vat_code FROM account WHERE code='8000'") == "NL_21"
-    assert one(db, "SELECT default_vat_code FROM account WHERE code='8050'") == "EXPORT"
-    assert one(db, "SELECT default_vat_code FROM account WHERE code='4400'") == "GEEN"
-    assert one(db, "SELECT default_vat_code FROM account WHERE code='4200'") == "NL_21"
+    assert one(db, "SELECT default_vat_code FROM account WHERE code='8400'") == "NL_21"
+    assert one(db, "SELECT default_vat_code FROM account WHERE code='8408'") == "EXPORT"
+    assert one(db, "SELECT default_vat_code FROM account WHERE code='4835'") == "GEEN"
+    assert one(db, "SELECT default_vat_code FROM account WHERE code='4625'") == "NL_21"
 
 
 def test_seed_vat_codes(db):

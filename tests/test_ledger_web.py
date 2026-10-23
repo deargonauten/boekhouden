@@ -36,7 +36,7 @@ def entry_form(client, **over):
         "booking_date": TODAY.isoformat(),
         "description": "Testboeking",
         "reference": "",
-        "line_account": [str(account_id(client, "4200")), str(account_id(client, "1210"))],
+        "line_account": [str(account_id(client, "4625")), str(account_id(client, "1210"))],
         "line_debit": ["1.234,56", ""],
         "line_credit": ["", "1.234,56"],
         "line_vat": ["", ""],

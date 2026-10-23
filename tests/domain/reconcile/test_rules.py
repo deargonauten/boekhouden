@@ -53,7 +53,7 @@ def test_specificity_and_order():
 
 
 def test_create_rule_validation(session, acc):
-    base = dict(name="Telecom", direction="af", account_id=acc("4200"))
+    base = dict(name="Telecom", direction="af", account_id=acc("4625"))
     with pytest.raises(ReconcileError):
         create_rule(session, counterparty_iban=None, description_contains=None, **base)
     with pytest.raises(ReconcileError) as exc:
@@ -67,11 +67,11 @@ def test_create_rule_validation(session, acc):
 
 def test_create_toggle_and_list(session, acc):
     r = create_rule(session, name="Telecom", counterparty_iban="nl20 ingb 0001 2345 67", description_contains=None,
-                    direction="af", account_id=acc("4200"), vat_code="NL_21")
+                    direction="af", account_id=acc("4625"), vat_code="NL_21")
     session.commit()
     rows = list_rules(session)
     assert rows[0].counterparty_iban == IBAN and rows[0].is_active and rows[0].use_count == 0
-    assert rows[0].account_code == "4200" and "IBAN" in rows[0].condition_text
+    assert rows[0].account_code == "4625" and "IBAN" in rows[0].condition_text
     set_rule_active(session, r.id, False)
     session.commit()
     assert not list_rules(session)[0].is_active

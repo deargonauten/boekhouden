@@ -231,7 +231,7 @@ def test_service_never_commits(session, storage):
 def test_other_tables_untouched(session, storage, acc):
     contact = create_contact(session, ContactInput(name="Bol B.V.", is_supplier=True))
     session.add(
-        SupplierDefault(contact_id=contact.id, account_id=acc("4200"), use_count=1, last_used_at=NOW)
+        SupplierDefault(contact_id=contact.id, account_id=acc("4625"), use_count=1, last_used_at=NOW)
     )
     session.commit()
     doc = add(session, storage)

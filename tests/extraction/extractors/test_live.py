@@ -47,7 +47,7 @@ def test_real_cli_reads_sample_pdf():
         content=_pdf(),
         content_type="application/pdf",
         filename="sample.pdf",
-        accounts=(AccountHint("4100", "Kantoorkosten"),),
+        accounts=(AccountHint("4215", "Kantoorkosten"),),
         vat_codes=("NL_21", "NL_9", "NL_0"),
     )
     invoice = ClaudeCliExtractor(model="haiku", timeout_seconds=180).extract(request)

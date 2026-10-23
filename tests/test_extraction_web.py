@@ -74,7 +74,7 @@ def sql(client, query, **params):
         return conn.execute(text(query), params).all()
 
 
-def account_id(client, code="4200"):
+def account_id(client, code="4625"):
     return sql(client, "SELECT id FROM account WHERE code = :c", c=code)[0][0]
 
 
@@ -82,7 +82,7 @@ def book(client, doc_id):
     """Mark a document geboekt, linked to a real journal entry."""
     client.post("/instellingen/boekjaren", data={"year": date.today().year})
     journal = sql(client, "SELECT id FROM journal WHERE code = 'MEM'")[0][0]
-    accounts = [r[0] for r in sql(client, "SELECT id FROM account WHERE code IN ('4200','1210') ORDER BY code")]
+    accounts = [r[0] for r in sql(client, "SELECT id FROM account WHERE code IN ('4625','1210') ORDER BY code")]
     r = client.post(
         "/boeken/nieuw",
         data={
@@ -127,7 +127,7 @@ def review_data(client, **over):
         "line_amount_excl": ["100,00"],
         "line_vat_code": ["NL_21"],
         "line_vat_amount": ["21,00"],
-        "line_account_code": ["4200"],
+        "line_account_code": ["4625"],
         "actie": "opslaan",
     }
     data.update(over)
@@ -334,7 +334,7 @@ def _account_options(html: str) -> str:
 def test_review_account_list_only_has_purchase_accounts_plus_selected(client):
     doc_id = read_out(client)
     options = _account_options(client.get(f"/inbox/{doc_id}/nakijken").text)
-    assert 'value="4210"' in options  # kosten: selectable at inkoop
+    assert 'value="4635"' in options  # kosten: selectable at inkoop
     assert 'value="1300"' not in options  # not an inkoop account
     with client.app.state.engine.begin() as conn:
         conn.execute(
@@ -348,8 +348,8 @@ def test_review_options_carry_data_vat_and_script(client):
     doc_id = read_out(client)
     html = client.get(f"/inbox/{doc_id}/nakijken").text
     assert '<script src="/static/js/vat-suggest.js"' in html
-    assert 'value="4210" data-vat="NL_21"' in html
-    assert 'value="4400" data-vat="GEEN"' in html
+    assert 'value="4635" data-vat="NL_21"' in html
+    assert 'value="4835" data-vat="GEEN"' in html
 
 
 def test_save_review_redirects_with_notice(client):

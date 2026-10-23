@@ -111,7 +111,7 @@ def test_new_form_prefills_defaults(shop):
     html = shop.get(f"/verkoop/nieuw?klant={shop.customer_id}").text
     assert TODAY.isoformat() in html
     assert 'placeholder="30"' in html
-    assert "Voorstel: 8000" in html
+    assert "Voorstel: 8400" in html
     assert 'value="stuk"' in html
 
 

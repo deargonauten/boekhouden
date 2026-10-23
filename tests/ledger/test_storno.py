@@ -47,7 +47,7 @@ def test_storno_of_storno(session, year2025, make_entry):
 def test_storno_copies_vat_and_line_description(session, year2025, jrn, acc):
     e = post_entry(session, NewEntry(jrn("MEM"), date(2025, 3, 1), "x", [
         NewLine(acc("1210"), debit_cents=121, description="a"),
-        NewLine(acc("8000"), credit_cents=121, description="b", vat_code="NL_21"),
+        NewLine(acc("8400"), credit_cents=121, description="b", vat_code="NL_21"),
     ]))
     d = get_entry(session, reverse_entry(session, e.id).id)
     assert d.lines[1].vat_code == "NL_21" and d.lines[1].description == "b"

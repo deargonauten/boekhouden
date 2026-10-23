@@ -21,7 +21,7 @@ def booked(client):
         book = Book(s, YEAR)
         book.sale(100_000, 21_000, day=DAY, desc="Verkoop")
         book.post(
-            [("1210", 50_000, 0), ("8000", 0, 50_000, "EU_GOEDEREN")], day=DAY, desc="Levering Klant BV", journal="VK",
+            [("1210", 50_000, 0), ("8400", 0, 50_000, "EU_GOEDEREN")], day=DAY, desc="Levering Klant BV", journal="VK",
         )
         contact = make_contact(s, name="Klant BV")
         set_company(s)

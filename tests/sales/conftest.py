@@ -77,7 +77,7 @@ def ready(year2026, company):
 @pytest.fixture
 def make_concept(session, acc, ready):
     def _make(contact, *, day=DAY, lines=None, **kw):
-        lines = lines if lines is not None else [LineInput("Website", 1000, 10000, "NL_21", acc("8000"))]
+        lines = lines if lines is not None else [LineInput("Website", 1000, 10000, "NL_21", acc("8400"))]
         inv = create_concept(session, ConceptInput(contact_id=contact.id, invoice_date=day, lines=lines, **kw))
         session.commit()
         return inv

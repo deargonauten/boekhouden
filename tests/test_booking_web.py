@@ -151,9 +151,9 @@ def test_review_page_has_book_button_only_when_ok_and_not_geboekt(client):
 
 def test_review_page_hints_what_you_chose_last_time(client):
     client.post(f"/inbox/{reviewed_doc(client)}/boeken")
-    second = reviewed_doc(client, invoice_number="2026-002", line_account_code=["4900"])
+    second = reviewed_doc(client, invoice_number="2026-002", line_account_code=["4905"])
     page = client.get(f"/inbox/{second}/nakijken").text
-    assert "Vorige keer koos je 4200" in page
+    assert "Vorige keer koos je 4625" in page
     assert 'data-term="leerfunctie"' in page
 
 

@@ -32,13 +32,13 @@ class Book:
         self.s.flush()
         return e
 
-    def sale(self, net, vat, *, code="NL_21", revenue="8000", btw="3100", day=DAY, desc="Verkoop"):
+    def sale(self, net, vat, *, code="NL_21", revenue="8400", btw="3100", day=DAY, desc="Verkoop"):
         lines = [("1210", net + vat, 0), (revenue, 0, net, code)]
         if vat:
             lines.append((btw, 0, vat))
         return self.post(lines, day=day, desc=desc, journal="VK")
 
-    def credit_note(self, net, vat, *, code="NL_21", revenue="8000", btw="3100", day=DAY):
+    def credit_note(self, net, vat, *, code="NL_21", revenue="8400", btw="3100", day=DAY):
         lines = [("1210", 0, net + vat), (revenue, net, 0, code)]
         if vat:
             lines.append((btw, vat, 0))

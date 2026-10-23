@@ -50,7 +50,7 @@ def make_extraction(session, make_doc, make_supplier, acc):
         doc = make_doc()
         if contact is None:
             contact = make_supplier()
-        lines = lines if lines is not None else [("Papier", 10000, 2100, "NL_21", "4200")]
+        lines = lines if lines is not None else [("Papier", 10000, 2100, "NL_21", "4625")]
         excl = sum(l[1] or 0 for l in lines)
         vat = sum(l[2] or 0 for l in lines)
         t_excl, t_vat, t_incl = totals or (excl, vat, excl + vat)

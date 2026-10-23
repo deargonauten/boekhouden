@@ -38,7 +38,7 @@ def post_line_with_code(session, vat_code, day=date(2025, 3, 10)):
     post_entry(session, NewEntry(
         journal_id=jid, booking_date=day, description="t",
         lines=[
-            NewLine(aid(session, "4210"), debit_cents=1000, vat_code=vat_code),
+            NewLine(aid(session, "4635"), debit_cents=1000, vat_code=vat_code),
             NewLine(aid(session, "1210"), credit_cents=1000),
         ],
     ))
@@ -209,7 +209,7 @@ def test_list_with_usage_order_and_counts(session):
     assert by["NL_21"].used_count == 1 and by["NL_9"].used_count == 0
     assert by["NL_21"].is_system and not by["AAA"].is_system
     assert (by["NL_21"].rate_bp, by["NL_21"].sales_rubriek, by["NL_21"].purchase_rubriek) == (2100, "1a", "5b")
-    assert "4210" in by["NL_21"].default_for and by["GEEN"].default_for
+    assert "4635" in by["NL_21"].default_for and by["GEEN"].default_for
     assert by["AAA"].default_for == [] and by["AAA"].is_active
 
 

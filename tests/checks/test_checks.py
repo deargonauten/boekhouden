@@ -119,7 +119,7 @@ def test_manual_expense_without_document_is_reported(session, book, manual):
 
 
 def test_manual_revenue_without_document_is_reported(session, book, manual):
-    manual([("1210", 1000, 0), ("8000", 0, 1000)])
+    manual([("1210", 1000, 0), ("8400", 0, 1000)])
     assert get(run_checks(session, Q3), "boeking_zonder_document").count == 1
 
 

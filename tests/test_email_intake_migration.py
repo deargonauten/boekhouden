@@ -17,7 +17,7 @@ def test_upgrade_from_0014_and_downgrade(test_settings):
     engine = _engine(test_settings)
     assert "email_message" not in inspect(engine).get_table_names()
 
-    command.upgrade(cfg, "0015_email_intake")
+    command.upgrade(cfg, "head")
     assert "email_message" in inspect(engine).get_table_names()
     command.check(cfg)
 

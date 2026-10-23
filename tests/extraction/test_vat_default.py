@@ -11,17 +11,17 @@ RATES = {"NL_21": 2100, "NL_9": 900, "GEEN": 0}
 
 
 def test_returns_the_accounts_default_when_active():
-    assert resolve_vat_code_for_account("4210", {"4210": "NL_21"}, RATES) == "NL_21"
+    assert resolve_vat_code_for_account("4635", {"4635": "NL_21"}, RATES) == "NL_21"
 
 
 def test_none_without_account_or_default():
-    assert resolve_vat_code_for_account(None, {"4210": "NL_21"}, RATES) is None
-    assert resolve_vat_code_for_account("4210", {"4210": None}, RATES) is None
+    assert resolve_vat_code_for_account(None, {"4635": "NL_21"}, RATES) is None
+    assert resolve_vat_code_for_account("4635", {"4635": None}, RATES) is None
     assert resolve_vat_code_for_account("9999", {}, RATES) is None
 
 
 def test_none_when_default_code_is_inactive():
-    assert resolve_vat_code_for_account("4210", {"4210": "KOR"}, RATES) is None
+    assert resolve_vat_code_for_account("4635", {"4635": "KOR"}, RATES) is None
 
 
 def inv(line: ExtractedLine) -> ExtractedInvoice:
@@ -38,20 +38,20 @@ def inv(line: ExtractedLine) -> ExtractedInvoice:
 
 
 def test_store_result_prefills_default_vat_when_no_code_resolvable(session, make_doc):
-    line = ExtractedLine("Abonnement", 10000, None, None, "4210")
+    line = ExtractedLine("Abonnement", 10000, None, None, "4635")
     ex = service.store_result(session, make_doc().id, "fake", None, inv(line))
     (stored,) = ex.lines
     assert stored.vat_code == "NL_21"
 
 
 def test_store_result_keeps_given_code(session, make_doc):
-    line = ExtractedLine("Abonnement", 10000, "NL_9", 900, "4210")
+    line = ExtractedLine("Abonnement", 10000, "NL_9", 900, "4635")
     (stored,) = service.store_result(session, make_doc().id, "fake", None, inv(line)).lines
     assert stored.vat_code == "NL_9"
 
 
 def test_store_result_keeps_code_inferred_from_amounts(session, make_doc):
-    line = ExtractedLine("Boeken", 10000, None, 900, "4210")
+    line = ExtractedLine("Boeken", 10000, None, 900, "4635")
     (stored,) = service.store_result(session, make_doc().id, "fake", None, inv(line)).lines
     assert stored.vat_code == "NL_9"
 

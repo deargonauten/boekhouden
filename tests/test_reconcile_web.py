@@ -73,7 +73,7 @@ class World:
             )
             s.add(ex)
             s.flush()
-            account = s.scalar(select(Account.id).where(Account.code == "4200"))
+            account = s.scalar(select(Account.id).where(Account.code == "4625"))
             s.add(InvoiceExtractionLine(
                 extraction_id=ex.id, position=0, description="Papier", amount_excl_cents=excl,
                 vat_amount_cents=vat, vat_code="NL_21", account_id=account,
@@ -359,7 +359,7 @@ def test_summary_ignores_bad_input(client, world):
 # --- direct booking -----------------------------------------------------------------------------------------
 
 
-def direct_form(world, amount="2,50", code="4900", vat="", **extra):
+def direct_form(world, amount="2,50", code="4905", vat="", **extra):
     data = {
         "line_account": [str(account_id(world, code))],
         "line_vat": [vat],
@@ -405,7 +405,7 @@ def test_direct_defaults_prefill_from_last_booking(client, world):
     client.post(f"/bank/transacties/{tid}/afletteren", data=direct_form(world, vat="GEEN"))
     nxt = world.txn(amount=-250, desc="Kosten maand 2", name="ING", iban=IBAN)
     html = client.get(f"/bank/transacties/{nxt}/afletteren").text
-    assert f'<option value="{account_id(world, "4900")}" ' in html and "selected" in html
+    assert f'<option value="{account_id(world, "4905")}" ' in html and "selected" in html
 
 
 # --- negeren / terugzetten / ongedaan maken ---------------------------------------------------------------
@@ -522,7 +522,7 @@ def test_rules_page_empty(client, world):
 def test_rules_page_lists_and_toggles(client, world):
     rid = make_rule(client, world)
     html = client.get("/bank/regels").text
-    assert "4900" in html and "Actief" in html
+    assert "4905" in html and "Actief" in html
     r = client.post(f"/bank/regels/{rid}/actief", data={"actief": "0"}, follow_redirects=False)
     assert r.status_code == 303
     assert world.one("SELECT is_active FROM bank_rule WHERE id = :i", i=rid) == 0
@@ -593,7 +593,7 @@ def sales_invoice(world, name="Klant BV", iban=IBAN):
             name=name, is_customer=True, iban=iban, address_line="Hoofdweg 2",
             postal_code="1000 AA", city="Amsterdam",
         ))
-        account = s.scalar(select(Account.id).where(Account.code == "8000"))
+        account = s.scalar(select(Account.id).where(Account.code == "8400"))
         inv = create_concept(s, ConceptInput(
             contact_id=customer.id, invoice_date=TODAY,
             lines=[LineInput("Website", 1000, 10000, "NL_21", account)],

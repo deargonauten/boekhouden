@@ -8,7 +8,7 @@ from app.domain.errors import ReviewValidationError
 from app.domain.extraction.review import ReviewInput, ReviewLineInput, parse_review
 from app.domain.extraction.suggestions import AccountRef
 
-ACCOUNTS = [AccountRef("4200", "expense"), AccountRef("1210", "asset")]
+ACCOUNTS = [AccountRef("4625", "expense"), AccountRef("1210", "asset")]
 VAT = {"NL_21": 2100, "NL_9": 900}
 
 
@@ -20,7 +20,7 @@ def form(**kw) -> ReviewInput:
         total_excl="100,00",
         total_vat="21,00",
         total_incl="121,00",
-        lines=[ReviewLineInput("Papier", "100,00", "NL_21", "21,00", "4200")],
+        lines=[ReviewLineInput("Papier", "100,00", "NL_21", "21,00", "4625")],
     )
     base.update(kw)
     return ReviewInput(**base)
@@ -45,7 +45,7 @@ def test_happy_path_converts_everything_to_typed_values():
     assert p.supplier_iban == "NL91ABNA0417164300"
     (line,) = p.lines
     assert (line.amount_excl_cents, line.vat_amount_cents) == (10000, 2100)
-    assert (line.vat_code, line.account_code) == ("NL_21", "4200")
+    assert (line.vat_code, line.account_code) == ("NL_21", "4625")
 
 
 def test_amounts_are_ints_never_floats():
@@ -87,7 +87,7 @@ def test_dates_accept_dutch_and_iso_and_reject_the_rest():
 
 def test_unknown_vat_code_and_bad_account():
     err = errors_of(
-        form(lines=[ReviewLineInput("a", "1,00", "BTW99", "", "4200"), ReviewLineInput("b", "1,00", "", "", "1210")])
+        form(lines=[ReviewLineInput("a", "1,00", "BTW99", "", "4625"), ReviewLineInput("b", "1,00", "", "", "1210")])
     )
     assert len(err.messages) == 2
     assert "BTW99" in err.messages[0]

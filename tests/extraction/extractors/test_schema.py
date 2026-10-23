@@ -31,7 +31,7 @@ GOOD = {
             "amount_excl_cents": 1000,
             "vat_code": "NL_9",
             "vat_amount_cents": 90,
-            "suggested_account_code": "4100",
+            "suggested_account_code": "4215",
             "confidence": {"amount_excl_cents": "high", "suggested_account_code": "medium"},
         }
     ],
@@ -50,7 +50,7 @@ def test_good_payload():
     assert inv.total_incl_cents == 1090
     assert inv.lines[0].amount_excl_cents == 1000
     assert inv.lines[0].vat_code == "NL_9"
-    assert inv.lines[0].suggested_account_code == "4100"
+    assert inv.lines[0].suggested_account_code == "4215"
     assert inv.lines[0].confidence["suggested_account_code"] == "medium"
     assert inv.confidence["invoice_date"] == "medium"
     assert inv.notes == ("Handgeschreven datum",)

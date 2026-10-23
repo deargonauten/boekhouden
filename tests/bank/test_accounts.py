@@ -89,7 +89,7 @@ def test_one_bankrekening_per_grootboekrekening(session, acc):
     assert exc.value.message.startswith("Deze grootboekrekening hoort al bij Zakelijk ING.")
 
 
-@pytest.mark.parametrize("code", ["8000", "4200"])
+@pytest.mark.parametrize("code", ["8400", "4625"])
 def test_account_must_be_asset(session, acc, code):
     with pytest.raises(BankImportError):
         create_bank_account(session, "X", ING_IBAN, acc(code), "ing")

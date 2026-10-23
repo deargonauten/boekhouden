@@ -74,7 +74,7 @@ def test_nl_21_sale(session, book):
 
 
 def test_nl_9_sale(session, book):
-    book.sale(10000, 900, code="NL_9", revenue="8010", btw="3110")
+    book.sale(10000, 900, code="NL_9", revenue="8401", btw="3110")
     r = report(session)
     assert (rubriek(r, "1b").grondslag_cents, rubriek(r, "1b").vat_cents) == (10000, 900)
     assert r.totals["5g"] == 900
@@ -143,7 +143,7 @@ def test_verlegd_purchase_2a_counts_in_5a_and_5b(session, book):
 
 
 def test_eu_goederen_sale_3b_has_no_btw(session, book):
-    book.sale(50000, 0, code="EU_GOEDEREN", revenue="8040")
+    book.sale(50000, 0, code="EU_GOEDEREN", revenue="8404")
     r = report(session)
     assert (rubriek(r, "3b").grondslag_cents, rubriek(r, "3b").vat_cents) == (50000, 0)
     assert r.totals["5g"] == 0
@@ -151,7 +151,7 @@ def test_eu_goederen_sale_3b_has_no_btw(session, book):
 
 
 def test_eu_diensten_sale_3b(session, book):
-    book.sale(50000, 0, code="EU_DIENSTEN", revenue="8040")
+    book.sale(50000, 0, code="EU_DIENSTEN", revenue="8404")
     assert rubriek(report(session), "3b").grondslag_cents == 50000
 
 
@@ -163,7 +163,7 @@ def test_eu_purchase_4b(session, book):
 
 
 def test_export_sale_3a_and_purchase_4a(session, book):
-    book.sale(70000, 0, code="EXPORT", revenue="8050")
+    book.sale(70000, 0, code="EXPORT", revenue="8408")
     book.post([("4000", 10000, 0, "EXPORT"), ("1410", 2100, 0), ("3130", 0, 2100), ("2000", 0, 10000)])
     r = report(session)
     assert rubriek(r, "3a").grondslag_cents == 70000 and rubriek(r, "3a").vat_cents == 0
@@ -171,8 +171,8 @@ def test_export_sale_3a_and_purchase_4a(session, book):
 
 
 def test_zero_percent_sale_goes_to_1e_and_geen_is_ignored(session, book):
-    book.sale(20000, 0, code="NL_0", revenue="8020")
-    book.sale(30000, 0, code="GEEN", revenue="8000")
+    book.sale(20000, 0, code="NL_0", revenue="8403")
+    book.sale(30000, 0, code="GEEN", revenue="8400")
     book.purchase(5000, 0, code="NL_0")
     r = report(session)
     assert rubriek(r, "1e").grondslag_cents == 20000
@@ -197,13 +197,13 @@ def test_btw_1c_other_rate(session, book):
     session.add(VatCode(code="NL_6", name="6%", rate_bp=600, is_active=True, is_system=False,
                         sales_rubriek="1c", purchase_rubriek="5b"))
     session.flush()
-    book.sale(10000, 600, code="NL_6", revenue="8000", btw="3120")
+    book.sale(10000, 600, code="NL_6", revenue="8400", btw="3120")
     r = report(session)
     assert (rubriek(r, "1c").grondslag_cents, rubriek(r, "1c").vat_cents) == (10000, 600)
 
 
 def test_opening_entries_excluded(session, book):
-    book.post([("1210", 12100, 0), ("8000", 0, 10000, "NL_21"), ("3100", 0, 2100)], kind="opening")
+    book.post([("1210", 12100, 0), ("8400", 0, 10000, "NL_21"), ("3100", 0, 2100)], kind="opening")
     r = report(session)
     assert r.is_empty and r.totals["5g"] == 0
 
@@ -275,7 +275,7 @@ def test_w1_purchase_without_voorbelasting(session, book):
 
 
 def test_w1_negative_zero_percent_code_has_no_btw_line(session, book):
-    book.sale(10000, 0, code="NL_0", revenue="8020")
+    book.sale(10000, 0, code="NL_0", revenue="8403")
     assert "W1" not in codes(report(session))
 
 
@@ -305,7 +305,7 @@ def test_w3_purchase_voorbelasting_deviation(session, book):
 
 
 def test_w4_eu_sale_without_klant(session, book):
-    e = book.sale(50000, 0, code="EU_GOEDEREN", revenue="8040")
+    e = book.sale(50000, 0, code="EU_GOEDEREN", revenue="8404")
     w = [w for w in report(session).warnings if w.code == "W4"]
     assert [x.entry_ids for x in w] == [(e.id,)]
     assert "ICP" in w[0].message
@@ -371,10 +371,10 @@ def test_w8_not_without_kor_and_partial_kor_has_own_warning(session, book):
 
 def test_drilldown_lists_grondslag_and_btw_lines(session, book):
     e = book.sale(100000, 21000)
-    book.sale(5000, 900, code="NL_9", revenue="8010", btw="3110")
+    book.sale(5000, 900, code="NL_9", revenue="8401", btw="3110")
     rows = drilldown(session, *Q3, "1a")
     assert {(r.entry_id, r.account_code, r.kind, r.amount_cents) for r in rows} == {
-        (e.id, "8000", "grondslag", 100000), (e.id, "3100", "btw", 21000),
+        (e.id, "8400", "grondslag", 100000), (e.id, "3100", "btw", 21000),
     }
 
 
@@ -396,7 +396,7 @@ def test_drilldown_unknown_rubriek_is_empty(session, book):
 def test_w3_compensating_errors_in_different_boxes(session, book):
     # 21% sale with 9 on 3100 (should be 21) and 9% sale with 21 on 3110 (should be 9)
     e = book.post([
-        ("1210", 20000 + 3000, 0), ("8000", 0, 10000, "NL_21"), ("8000", 0, 10000, "NL_9"),
+        ("1210", 20000 + 3000, 0), ("8400", 0, 10000, "NL_21"), ("8400", 0, 10000, "NL_9"),
         ("3100", 0, 900), ("3110", 0, 2100),
     ], journal="VK")
     w = [w for w in report(session).warnings if w.code == "W3"]

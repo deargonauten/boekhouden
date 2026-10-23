@@ -40,17 +40,17 @@ def test_add_account_validation(session):
 
 
 def test_deactivate_reactivate(session, acc):
-    set_account_active(session, acc("4200"), False)
-    assert by_code(session, "4200").is_active is False
-    set_account_active(session, acc("4200"), True)
-    assert by_code(session, "4200").is_active is True
+    set_account_active(session, acc("4625"), False)
+    assert by_code(session, "4625").is_active is False
+    set_account_active(session, acc("4625"), True)
+    assert by_code(session, "4625").is_active is True
     with pytest.raises(LedgerError) as ei:
         set_account_active(session, 99999, False)
     assert ei.value.code == "ACCOUNT_NOT_FOUND"
 
 
 def test_rename_rules(session, acc):
-    assert rename_account(session, acc("4200"), "Kantoor").name == "Kantoor"
+    assert rename_account(session, acc("4625"), "Kantoor").name == "Kantoor"
     with pytest.raises(LedgerError) as ei:
         rename_account(session, acc("1210"), "Anders")  # system account
     assert ei.value.code == "SYSTEM_ACCOUNT"
@@ -84,7 +84,7 @@ def test_add_journal_validation(session, acc):
         dict(code="bank9", name="x", type="bank", account_id=acc("1210")),  # lowercase
         dict(code="TOOLONG1", name="x", type="memoriaal"),
         dict(code="B3", name="x", type="bank"),  # no account
-        dict(code="B3", name="x", type="bank", account_id=acc("8000")),  # not an asset
+        dict(code="B3", name="x", type="bank", account_id=acc("8400")),  # not an asset
         dict(code="B3", name="x", type="wat"),
     ]
     for kw in cases:
