@@ -229,3 +229,24 @@ def test_btw_pages_are_plain_language(booked, path):
 def test_filed_page_is_plain_language(booked):
     booked.post(f"{Q1}/indienen", data={"filed_on": date.today().isoformat()})
     assert_plain_language(booked, Q1)
+
+
+def test_empty_period_full_kor_has_no_nihil_instruction(client):
+    client.post("/instellingen/boekjaren", data={"year": YEAR})
+    client.post("/instellingen/btw-aangifte", data={"frequency": "quarter", "kor_from": f"{YEAR}-01-01", "kor_until": ""})
+    page = client.get(Q2).text
+    assert "geen btw-aangifte te doen" in page
+    assert "Je moet toch een aangifte doen" not in page
+
+
+def test_empty_filed_period_has_no_todo_instruction(client):
+    client.post("/instellingen/boekjaren", data={"year": YEAR})
+    with Session(client.app.state.engine) as s:
+        set_company(s)
+        s.commit()
+    r = client.post(f"{Q2}/indienen", data={"filed_on": date.today().isoformat()})
+    assert r.status_code in (200, 303), r.text[:300]
+    page = client.get(Q2).text
+    assert "Ingediend" in page
+    assert "Geen btw in deze periode" in page
+    assert "Je moet toch een aangifte doen" not in page
