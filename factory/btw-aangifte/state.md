@@ -14,3 +14,4 @@ D merged. Tests: .venv/bin/python -m pytest -q -> 2485 passed, 1 deselected (202
 Review round 2: PASS. Step 4 approver started.
 Step 4: approver HUMAN_REVIEW (rounding of omzet to verify, ICP CSV format unverified, browser check of /btw). Awaiting user.
 Human rework 1: F merged (final amount rounding). Tests 2506 passed (builder F full run, 2026-10-23). Review round 3 (delta since f565de4).
+Review round 3: PASS. Awaiting user approval after human rework 1.
