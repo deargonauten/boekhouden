@@ -119,6 +119,12 @@ def pages(c):
         ("/inbox?status=geboekt", set()),
         ("/inbox/1", set()),
         ("/inbox/1/nakijken", set()),  # not yet read out; the ok/failed states: tests/test_extraction_web.py
+        ("/btw", set()),
+        (f"/btw?jaar={YEAR}", set()),
+        (f"/btw/{YEAR}/quarter/1", set()),
+        (f"/btw/{YEAR}/quarter/1/indienen", set()),
+        (f"/btw/{YEAR}/quarter/1/rubriek/1a", set()),
+        ("/instellingen/btw-aangifte", set()),
     ] + ([("/instellingen/btw-codes", set())] if BTW_CODES_PAGE_MERGED else [])
 
 

@@ -1,0 +1,32 @@
+{% extends "base_settings.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, notice, error_box with context %}
+{% block settings_header %}
+{{ page_header("Instellingen voor je btw-aangifte", breadcrumb=[("Instellingen", "/instellingen/grootboek"), ("BTW-aangifte", None)], term="btw_aangifte", icon_name="settings") }}
+{% endblock %}
+{% block settings_content %}
+<p class="lead">Kies hoe vaak je btw-aangifte doet {{ info("btw") }} en of je de KOR gebruikt. Dit staat op je belastingbrief of in Mijn Belastingdienst Zakelijk.</p>
+{% if saved %}{{ notice("De instellingen zijn opgeslagen.", "success") }}{% endif %}
+{% if error %}{{ error_box(error) }}{% endif %}
+<form method="post" action="/instellingen/btw-aangifte" class="settings-form" hx-boost="false">
+  <div class="field">
+    <label for="frequency">Hoe vaak doe je aangifte?</label>
+    <select id="frequency" name="frequency">
+      {% for key, label in frequencies.items() %}<option value="{{ key }}"{% if values.frequency == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <span class="field__hint">De meeste ondernemers doen aangifte per kwartaal. Wisselen kan niet meer in een jaar waarin al een aangifte is ingediend.</span>
+  </div>
+  <div class="field">
+    <label for="kor_from">{{ term_label("kor", "Kleineondernemersregeling vanaf") }}</label>
+    <input id="kor_from" name="kor_from" type="date" value="{{ values.kor_from }}">
+    <span class="field__hint">Laat leeg als je de KOR niet gebruikt. De startdatum is de eerste dag van een {{ "kwartaal" if values.frequency == "quarter" else "maand" }}.</span>
+  </div>
+  <div class="field">
+    <label for="kor_until">Tot en met (niet verplicht)</label>
+    <input id="kor_until" name="kor_until" type="date" value="{{ values.kor_until }}">
+  </div>
+  <p class="hint">Omzet in {{ year }} tot nu toe: {{ omzet_cents|euro }}. De grens voor de KOR is {{ kor_limit_cents|euro }} per jaar. Het programma waarschuwt hier niet voor.</p>
+  <p class="hint">Een btw-aangifte volgt het factuurstelsel. {{ info("factuurstelsel") }}</p>
+  <div class="form-actions"><button type="submit" class="btn">Opslaan</button></div>
+</form>
+{% endblock %}

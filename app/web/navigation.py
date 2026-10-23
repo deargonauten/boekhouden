@@ -75,6 +75,7 @@ SETTINGS_NAV: list[SettingsGroup] = [
             SettingsItem("Dagboeken", "/instellingen/dagboeken", "dagboek"),
             SettingsItem("Boekjaren", "/instellingen/boekjaren", "boekjaar"),
             SettingsItem("Beginbalans", "/instellingen/beginbalans", "beginbalans"),
+            SettingsItem("BTW-aangifte", "/instellingen/btw-aangifte", "btw_aangifte"),
         ),
     ),
 ]

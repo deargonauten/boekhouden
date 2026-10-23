@@ -1,0 +1,65 @@
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import pill, error_box with context %}
+<div id="icp-body">
+<section class="card card--flush">
+  <div class="card__header"><h2>ICP-opgaaf: verkoop aan bedrijven in de EU {{ info("icp_opgaaf") }}</h2></div>
+  {% if icp_error %}<div class="card__body">{{ error_box(icp_error) }}</div>{% endif %}
+  {% if snapshot.icp or snapshot.icp_unassigned %}
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Klant {{ info("klant") }}</th><th>Land</th><th>Btw-nummer {{ info("btw_nummer") }}</th><th class="num">Goederen</th><th class="num">Diensten</th><th>Controle</th></tr></thead>
+    <tbody>
+    {% for r in snapshot.icp %}
+    <tr>
+      <td>{{ r.name or "Onbekende klant" }}</td>
+      <td>{{ r.country }}</td>
+      <td>{{ r.btw_number or "-" }}</td>
+      <td class="num">{{ r.goederen_cents|euro }}</td>
+      <td class="num">{{ r.diensten_cents|euro }}</td>
+      <td>{% if r.issue %}{{ pill("Onvolledig", "warning") }} {{ r.issue }}{% else %}{{ pill("Compleet", "success") }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card__body"><p>Geen verkoop aan bedrijven in de EU in deze periode.</p></div>
+  {% endif %}
+</section>
+
+{% if snapshot.icp_unassigned %}
+<section class="card card--flush">
+  <div class="card__header"><h2>Nog geen klant gekoppeld</h2></div>
+  <div class="card__body"><p>Bij deze boekingen weten we niet aan welke klant je hebt verkocht. {% if not icp_locked %}Kies de klant en bevestig.{% endif %}</p></div>
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Boeking {{ info("boeking") }}</th><th>Omschrijving</th><th class="num">Goederen</th><th class="num">Diensten</th><th>Klant {{ info("klant") }}</th></tr></thead>
+    <tbody>
+    {% for u in snapshot.icp_unassigned %}
+    <tr>
+      <td class="nowrap"><a href="/boeken/{{ u.entry_id }}">{{ u.entry_number }}</a></td>
+      <td>{{ u.description }}</td>
+      <td class="num">{{ u.goederen_cents|euro }}</td>
+      <td class="num">{{ u.diensten_cents|euro }}</td>
+      <td>
+        {% if icp_locked %}-{% else %}
+        <form method="post" action="{{ base }}/klant" hx-post="{{ base }}/klant" hx-target="#icp-body" hx-swap="outerHTML" hx-boost="false">
+          <input type="hidden" name="entry_id" value="{{ u.entry_id }}">
+          <label class="visually-hidden" for="klant-{{ u.entry_id }}">Klant bij boeking {{ u.entry_number }}</label>
+          <select id="klant-{{ u.entry_id }}" name="contact_id" required>
+            {% if u.entry_id not in suggestions %}<option value="">Kies een klant</option>{% endif %}
+            {% for c in customers %}<option value="{{ c.id }}"{% if u.entry_id in suggestions and suggestions[u.entry_id].id == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          </select>
+          <button type="submit" class="btn btn-secondary btn-small">Koppelen</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+<p><a href="{{ base }}/icp.csv" hx-boost="false">ICP-opgaaf downloaden (CSV)</a></p>
+</div>
