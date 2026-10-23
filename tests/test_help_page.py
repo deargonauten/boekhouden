@@ -50,6 +50,7 @@ def test_settings_nav_contract():
     assert [g.label for g in SETTINGS_NAV] == ["Mijn bedrijf", "Boekhouding", "Koppelingen"]
     assert [(i.label, i.path, i.term_key) for i in SETTINGS_NAV[0].items] == [
         ("Bedrijfsgegevens", "/instellingen/bedrijfsgegevens", "bedrijfsgegevens"),
+        ("Factuurnummering", "/instellingen/factuurnummering", "factuurnummering"),
     ]
     items = SETTINGS_NAV[1].items
     assert [(i.label, i.path, i.term_key) for i in items] == [
@@ -79,7 +80,7 @@ def test_base_settings_renders_secondary_nav_with_active_link():
     nav = re.search(r'<nav class="settings-nav" aria-label="Instellingen">.*?</nav>', html, re.S).group(0)
     assert 'settings-nav__heading">Boekhouding<' in nav
     assert 'settings-nav__heading">Mijn bedrijf<' in nav
-    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 8
+    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 9
     assert nav.count('aria-current="page"') == 1
     assert re.search(r'href="/instellingen/dagboeken" aria-current="page">Dagboeken', nav)
     for key in ("bedrijfsgegevens", "grootboek", "btw_code", "dagboek", "boekjaar"):

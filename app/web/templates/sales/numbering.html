@@ -1,0 +1,50 @@
+{% extends "base_settings.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import notice, error_box with context %}
+{% from "ledger/_settings_nav.html" import settings_header with context %}
+{% block head %}<link rel="stylesheet" href="/static/css/relations.css">{% endblock %}
+{% block settings_header %}{{ settings_header("Factuurnummering") }}{% endblock %}
+{% block settings_content %}
+<p class="lead">Hier bepaal je hoe het nummer op je verkoopfacturen eruitziet en waar de reeks mee begint. {{ info("factuurnummer") }} {{ info("factuurnummering") }}</p>
+{% if flash %}{{ notice(flash, "success") }}{% endif %}
+{% if errors %}{{ error_box(errors) }}{% endif %}
+<form method="post" action="/instellingen/factuurnummering" class="stack relation-form" hx-boost="false">
+  <section class="card">
+    <div class="card__header"><h2>Hoe ziet het nummer eruit?</h2></div>
+    <div class="card__body form-grid">
+      <div class="field">
+        <label for="separator">Teken tussen jaar en volgnummer</label>
+        <select id="separator" name="separator">
+          {% for s in separators %}
+          <option value="{{ s }}"{% if values.separator == s %} selected{% endif %}>{{ "geen" if s == "" else s }}  ({{ year }}{{ s }}001)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="digits">Aantal cijfers van het volgnummer</label>
+        <input id="digits" name="digits" value="{{ values.digits }}" inputmode="numeric" size="3" aria-describedby="digits-hint">
+        <p class="field__hint hint" id="digits-hint">Bij 3 cijfers wordt het eerste volgnummer 001. Worden de nummers langer, dan groeit het volgnummer gewoon mee.</p>
+      </div>
+      <div class="field span-2">
+        <label class="check"><input type="checkbox" name="continuous" value="1"{% if values.continuous %} checked{% endif %}> Het volgnummer loopt door over de jaren heen</label>
+        <p class="field__hint hint">Aan: het volgnummer begint in het nieuwe jaar niet opnieuw bij 1, maar gaat door waar het bleef (2026.014, daarna 2027.015). Uit: elk jaar begint weer bij 1.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><h2>Waar begin of ga je mee verder?</h2></div>
+    <div class="card__body form-grid">
+      <div class="field span-2">
+        <label for="next_seq">Volgnummer van je volgende factuur</label>
+        <input id="next_seq" name="next_seq" value="{{ values.next_seq }}" inputmode="numeric" size="6" aria-describedby="next-hint">
+        <p class="field__hint hint" id="next-hint">Kom je van een ander programma of van losse Word-facturen? Vul dan hier het volgnummer in waarmee je verder wilt. Het moet hoger zijn dan het laatste nummer dat al op een definitieve factuur staat, zodat er geen nummers dubbel of ontbreken.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <button type="submit" class="btn">Opslaan</button>
+  </div>
+</form>
+{% endblock %}

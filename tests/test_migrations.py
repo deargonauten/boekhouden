@@ -17,7 +17,7 @@ def test_upgrade_downgrade_check(test_settings):
     cfg = alembic_config(test_settings)
 
     command.upgrade(cfg, "head")
-    assert _version(test_settings) == ["0018_foreign_invoices"]
+    assert _version(test_settings) == ["0019_invoice_numbering"]
 
     command.check(cfg)  # raises on drift
 

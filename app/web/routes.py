@@ -8,6 +8,7 @@ from app.web.email_routes import router as email_router
 from app.web.extraction_routes import router as extraction_router
 from app.web.relations_routes import router as relations_router
 from app.web.company_routes import router as company_router
+from app.web.numbering_routes import router as numbering_router
 from app.web.vat_routes import router as vat_router
 from app.web.booking_routes import router as booking_router  # Builder B; resolves after integration
 from app.web.purchase_routes import router as purchase_router
@@ -26,6 +27,7 @@ router = APIRouter()
 router.include_router(ledger_router)
 router.include_router(relations_router)
 router.include_router(company_router)
+router.include_router(numbering_router)
 router.include_router(vat_router)
 router.include_router(inbox_router)
 router.include_router(email_router)

@@ -183,3 +183,20 @@ class SalesReminder(Base):
     pdf_sha256: Mapped[str | None] = mapped_column(String)
     pdf_path: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class InvoiceNumbering(Base):
+    """How verkoopfactuur numbers look and run. Single row (id = 1); without a row the old default
+    applies (`YYYY-NNNN`, a new series every year)."""
+
+    __tablename__ = "invoice_numbering"
+    __table_args__ = (
+        CheckConstraint("id = 1", name="ck_invoice_numbering_single_row"),
+        CheckConstraint("separator IN ('-','.','/','')", name="ck_invoice_numbering_separator"),
+        CheckConstraint("digits BETWEEN 1 AND 8", name="ck_invoice_numbering_digits"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    separator: Mapped[str] = mapped_column(String, server_default=text("'-'"))
+    digits: Mapped[int] = mapped_column(Integer, server_default=text("4"))
+    continuous: Mapped[bool] = mapped_column(Boolean, server_default=text("0"))

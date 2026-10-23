@@ -66,7 +66,10 @@ class SettingsGroup:
 SETTINGS_NAV: list[SettingsGroup] = [
     SettingsGroup(
         "Mijn bedrijf",
-        (SettingsItem("Bedrijfsgegevens", "/instellingen/bedrijfsgegevens", "bedrijfsgegevens"),),
+        (
+            SettingsItem("Bedrijfsgegevens", "/instellingen/bedrijfsgegevens", "bedrijfsgegevens"),
+            SettingsItem("Factuurnummering", "/instellingen/factuurnummering", "factuurnummering"),
+        ),
     ),
     SettingsGroup(
         "Boekhouding",

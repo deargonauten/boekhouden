@@ -113,3 +113,24 @@ def test_labels_and_terms_in_plain_dutch(client):
     for key in ("bedrijfsgegevens", "handelsnaam", "rechtsvorm", "kvk", "btw_id", "iban"):
         assert f'data-term="{key}"' in html
     assert "Staat op je btw-aangifte en op brieven van de Belastingdienst" in html
+
+
+NUMBERING = "/instellingen/factuurnummering"
+
+
+def test_numbering_form_defaults_and_save(client):
+    html = client.get(NUMBERING).text
+    assert 'name="digits" value="4"' in html and 'name="next_seq" value="1"' in html
+    r = client.post(NUMBERING, data={"separator": ".", "digits": "3", "continuous": "1", "next_seq": "17"},
+                    follow_redirects=False)
+    assert r.status_code == 303
+    html = client.get(NUMBERING + "?opgeslagen=1").text
+    assert "Factuurnummering opgeslagen." in html
+    assert 'name="digits" value="3"' in html and 'name="next_seq" value="17"' in html and "checked" in html
+
+
+def test_numbering_rejects_bad_input_in_plain_dutch(client):
+    r = client.post(NUMBERING, data={"separator": ".", "digits": "abc", "next_seq": "1"})
+    assert r.status_code == 422 and "heel getal" in r.text
+    r = client.post(NUMBERING, data={"separator": "x", "digits": "3", "next_seq": "1"})
+    assert r.status_code == 422 and "scheidingsteken" in r.text
