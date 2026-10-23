@@ -138,7 +138,8 @@
     <div id="reconcile-summary" aria-live="polite">{% include "bank/_reconcile_summary.html" %}</div>
   </div>
   <div class="cluster">
-    <button type="submit" class="btn">Boeken</button>
+    <button type="submit" class="btn">Boeken en volgende</button>
+    <a class="btn btn-secondary" href="/bank/transacties/{{ t.id }}/overslaan?terug={{ back|urlencode }}">Overslaan</a>
     <a class="btn btn-secondary" href="{{ back }}">Terug naar de lijst</a>
   </div>
 </form>

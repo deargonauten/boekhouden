@@ -700,3 +700,33 @@ def test_quick_choice_with_bad_period_says_what_to_do(client, world):
 def test_quick_glossary_terms_exist():
     for key in ("snelkeuze", "btw_aangifte_betaling", "prive"):
         assert GLOSSARY[key].plain and GLOSSARY[key].explanation
+
+
+# --- volgende mutatie na opslaan / overslaan ---------------------------------------------------------------
+
+
+def test_booking_opens_next_transaction(client, world):
+    first = world.txn(amount=-500, desc="Eerste")
+    second = world.txn(amount=-700, desc="Tweede")
+    direct = {"line_account": [account_id(world, "4625")], "line_vat": ["NL_21"], "line_amount": ["7,00"], "line_description": ["x"]}
+    r = client.post(f"/bank/transacties/{second}/afletteren", data={**direct, "terug": "/bank/afletteren"}, follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"].startswith(f"/bank/transacties/{first}/afletteren?")
+    assert "melding=geboekt" in r.headers["location"]
+
+
+def test_skip_opens_next_without_changing_status_and_wraps(client, world):
+    a = world.txn(desc="A")
+    b = world.txn(desc="B")
+    r = client.get(f"/bank/transacties/{b}/overslaan?terug=/bank/afletteren", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"].startswith(f"/bank/transacties/{a}/afletteren")
+    r = client.get(f"/bank/transacties/{a}/overslaan?terug=/bank/afletteren", follow_redirects=False)
+    assert r.headers["location"].startswith(f"/bank/transacties/{b}/afletteren")
+    assert world.one("SELECT count(*) FROM bank_transaction WHERE status = 'nieuw'") == 2
+
+
+def test_ignore_opens_next_transaction(client, world):
+    a = world.txn(desc="A")
+    b = world.txn(desc="B")
+    r = client.post(f"/bank/transacties/{b}/negeren", data={"terug": "/bank/afletteren"}, follow_redirects=False)
+    assert r.headers["location"].startswith(f"/bank/transacties/{a}/afletteren")

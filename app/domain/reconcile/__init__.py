@@ -37,6 +37,7 @@ from app.domain.reconcile.service import (  # noqa: F401
     list_all_open_items,
     list_open_items,
     list_to_process,
+    next_to_process,
     payment_candidates_for_extraction,
     restore,
     suggestions_for,

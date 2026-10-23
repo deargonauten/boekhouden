@@ -290,18 +290,7 @@ class ReconcileRow:
         return STATUS_LABELS[self.status]
 
 
-def list_to_process(
-    session: Session,
-    *,
-    bank_account_id: int | None = None,
-    q: str | None = None,
-    direction: str | None = None,
-    status: str = STATUS_NEW,
-    page: int = 1,
-    per_page: int = 50,
-) -> Page:
-    """Transactions of one status (default `nieuw`), newest first, each with its best
-    suggestion (only for `nieuw`). Items are ReconcileRow."""
+def _filtered_transactions(*, bank_account_id: int | None, q: str | None, direction: str | None, status: str):
     stmt = select(BankTransaction, BankAccount.name).join(
         BankAccount, BankAccount.id == BankTransaction.bank_account_id
     )
@@ -323,6 +312,52 @@ def list_to_process(
         if amounts:
             conditions.append(func.abs(BankTransaction.amount_cents).in_(amounts))
         stmt = stmt.where(or_(*conditions))
+    return stmt
+
+
+def next_to_process(
+    session: Session,
+    txn_id: int,
+    *,
+    bank_account_id: int | None = None,
+    q: str | None = None,
+    direction: str | None = None,
+) -> int | None:
+    """Id of the transaction to handle after `txn_id` in the list order (newest first), within the
+    same filters; wraps around to the first one left. None when nothing is left to process.
+    `txn_id` itself may already be processed (just booked or ignored)."""
+    stmt = _filtered_transactions(bank_account_id=bank_account_id, q=q, direction=direction, status=STATUS_NEW)
+    ordered = stmt.order_by(BankTransaction.booking_date.desc(), BankTransaction.id.desc())
+    current = session.get(BankTransaction, txn_id)
+    if current is not None:
+        after = ordered.where(
+            or_(
+                BankTransaction.booking_date < current.booking_date,
+                (BankTransaction.booking_date == current.booking_date) & (BankTransaction.id < current.id),
+            )
+        ).limit(1)
+        row = session.execute(after).first()
+        if row is not None:
+            return row[0].id
+    row = session.execute(ordered.where(BankTransaction.id != txn_id).limit(1)).first()
+    return row[0].id if row is not None else None
+
+
+def list_to_process(
+    session: Session,
+    *,
+    bank_account_id: int | None = None,
+    q: str | None = None,
+    direction: str | None = None,
+    status: str = STATUS_NEW,
+    page: int = 1,
+    per_page: int = 50,
+) -> Page:
+    """Transactions of one status (default `nieuw`), newest first, each with its best
+    suggestion (only for `nieuw`). Items are ReconcileRow."""
+    stmt = _filtered_transactions(
+        bank_account_id=bank_account_id, q=q, direction=direction, status=status
+    )
 
     total = session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     page = min(max(1, page), max(1, -(-total // per_page)))

@@ -5,7 +5,7 @@ the domain only flushes, so these handlers commit (or roll back on a refused boo
 """
 
 from dataclasses import dataclass, field
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -88,6 +88,23 @@ def _list_url(params: dict) -> str:
 
 def _with_melding(url: str, key: str) -> str:
     return f"{url}{'&' if '?' in url else '?'}{urlencode({'melding': key})}"
+
+
+def _next_or_back(session: Session, txn_id: int, back: str, melding: str = "") -> RedirectResponse:
+    """After handling a transaction: straight to the next one to process (same filters as the list
+    we came from), or back to the list when nothing is left."""
+    query = parse_qs(urlsplit(back).query)
+    richting = query.get("richting", [""])[0]
+    next_id = rec.next_to_process(
+        session, txn_id,
+        bank_account_id=_to_int(query.get("rekening", [""])[0]),
+        q=query.get("q", [""])[0] or None,
+        direction=richting if richting in ("af", "bij") else None,
+    )
+    if next_id is None:
+        return _see_other(_with_melding(back, melding) if melding else back)
+    params = {"terug": back, "melding": melding}
+    return _see_other(f"/bank/transacties/{next_id}/afletteren?{urlencode({k: v for k, v in params.items() if v})}")
 
 
 # --- list -----------------------------------------------------------------------------------------------------
@@ -424,7 +441,13 @@ async def reconcile_book(request: Request, txn_id: int, session: Session = Depen
         if status_for(exc) == 404:
             return web.not_found_response(request)
         return _detail_page(request, session, txn_id, state, error=exc.message, status_code=status_for(exc), back=back)
-    return _see_other(_with_melding(back, "geboekt"))
+    return _next_or_back(session, txn_id, back, "geboekt")
+
+
+@router.get("/bank/transacties/{txn_id:int}/overslaan", response_class=HTMLResponse)
+def reconcile_skip(txn_id: int, terug: str = "", session: Session = Depends(get_session)):
+    """Leave this transaction for later and open the next one."""
+    return _next_or_back(session, txn_id, _safe_back(terug))
 
 
 @router.post("/bank/transacties/{txn_id:int}/afletteren/controle", response_class=HTMLResponse)
@@ -444,7 +467,9 @@ async def reconcile_summary(request: Request, txn_id: int, session: Session = De
 # --- negeren / terugzetten / ongedaan maken -----------------------------------------------------------------
 
 
-def _simple_action(request: Request, session: Session, txn_id: int, action, melding: str, target: str):
+def _simple_action(
+    request: Request, session: Session, txn_id: int, action, melding: str, target: str, *, advance: bool = False
+):
     try:
         action(session, txn_id)
         session.commit()
@@ -453,6 +478,8 @@ def _simple_action(request: Request, session: Session, txn_id: int, action, meld
         if status_for(exc) == 404:
             return web.not_found_response(request)
         return _detail_page(request, session, txn_id, error=exc.message, status_code=status_for(exc))
+    if advance:
+        return _next_or_back(session, txn_id, target, melding)
     return _see_other(_with_melding(target, melding))
 
 
@@ -460,7 +487,8 @@ def _simple_action(request: Request, session: Session, txn_id: int, action, meld
 async def reconcile_ignore(request: Request, txn_id: int, session: Session = Depends(get_session)):
     form = await request.form()
     return _simple_action(
-        request, session, txn_id, rec.ignore, "genegeerd", _safe_back(str(form.get("terug", "")))
+        request, session, txn_id, rec.ignore, "genegeerd", _safe_back(str(form.get("terug", ""))),
+        advance=True,
     )
 
 

@@ -21,6 +21,7 @@ from app.domain.reconcile import (
     list_open_items,
     list_rules,
     list_to_process,
+    next_to_process,
     restore,
     suggestions_for,
     to_process_count,
@@ -428,6 +429,33 @@ def test_list_to_process_shows_best_suggestion_and_filters(session, invoice, mak
     assert [r.description for r in list_to_process(session, direction="af").items] == ["F1"]
     assert [r.description for r in list_to_process(session, q="rente").items] == ["Rente"]
     assert page.total == 2
+
+
+def test_next_to_process_follows_list_order_and_wraps(session, make_txn):
+    new = make_txn(-100, "Nieuw", day=date(2025, 4, 5))
+    mid = make_txn(-200, "Midden", day=date(2025, 4, 3))
+    old = make_txn(300, "Oud", day=date(2025, 4, 1))
+    assert next_to_process(session, new.id) == mid.id
+    assert next_to_process(session, mid.id) == old.id
+    assert next_to_process(session, old.id) == new.id  # wraps around
+    assert next_to_process(session, mid.id, direction="af") == new.id
+    assert next_to_process(session, new.id, direction="bij") == old.id
+
+
+def test_next_to_process_works_for_transaction_just_ignored(session, make_txn):
+    a = make_txn(-100, "A", day=date(2025, 4, 5))
+    b = make_txn(-200, "B", day=date(2025, 4, 3))
+    ignore(session, a.id)
+    session.commit()
+    assert next_to_process(session, a.id) == b.id
+
+
+def test_next_to_process_none_when_nothing_left(session, make_txn):
+    a = make_txn(-100, "A")
+    assert next_to_process(session, a.id) is None
+    ignore(session, a.id)
+    session.commit()
+    assert next_to_process(session, a.id) is None
 
 
 # --- rules -----------------------------------------------------------------------------------------------------
