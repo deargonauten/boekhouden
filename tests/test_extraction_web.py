@@ -455,3 +455,22 @@ def test_review_saved_notice_is_a_status_notice(client):
     doc_id = read_out(client)
     html = client.get(f"/inbox/{doc_id}/nakijken?melding=opgeslagen").text
     assert "notice notice--success" in html and "Opgeslagen." in html
+
+
+def test_nakijken_carries_source_text_and_serves_the_pdf_viewer(client):
+    invoice = ExtractedInvoice(
+        **{**INVOICE.__dict__, "lines": (ExtractedLine("Kantoorspullen", 10000, "NL_21", 2100, source_text="Kantoorspullen 100,00"),)}
+    )
+    use(client, FakeExtractor(invoice))
+    doc_id = add_doc(client)
+    assert client.post(f"/inbox/{doc_id}/uitlezen", follow_redirects=False).status_code == 303
+    page = client.get(f"/inbox/{doc_id}/nakijken").text
+    assert 'name="line_source_text" value="Kantoorspullen 100,00"' in page
+    assert 'id="pdf-view"' in page and "source-highlight.js" in page
+    mjs = client.get("/static/vendor/pdfjs/pdf.min.mjs")
+    assert mjs.status_code == 200 and "javascript" in mjs.headers["content-type"]
+    assert client.get("/static/vendor/pdfjs/pdf.worker.min.mjs").status_code == 200
+    # saving the form keeps the passage
+    client.post(f"/inbox/{doc_id}/nakijken", data={"line_description": "Kantoorspullen", "line_amount_excl": "100,00",
+        "line_vat_code": "NL_21", "line_vat_amount": "21,00", "line_account_code": "", "line_source_text": "Kantoorspullen 100,00"})
+    assert sql(client, "SELECT source_text FROM invoice_extraction_line") == [("Kantoorspullen 100,00",)]

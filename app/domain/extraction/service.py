@@ -209,6 +209,7 @@ def _line_rows(
                 vat_amount_cents=line.vat_amount_cents,
                 vat_code=vat_code,
                 account_id=account_ids.get(account_code) if account_code else None,
+                source_text=line.source_text,
                 flags_json=_dump(per_line_flags.get(i, [])),
             )
         )
@@ -459,6 +460,7 @@ def save_review(
                 vat_amount_cents=ln.vat_amount_cents,
                 vat_code=ln.vat_code,
                 account_id=account_ids.get(ln.account_code) if ln.account_code else None,
+                source_text=ln.source_text,
                 flags_json=_dump(per_line.get(i, [])),
             )
         )

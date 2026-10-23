@@ -98,6 +98,10 @@ JSON_SCHEMA: dict[str, Any] = {
                     "vat_code": _NULLABLE_STRING,
                     "vat_amount_cents": _NULLABLE_CENTS,
                     "suggested_account_code": _NULLABLE_STRING,
+                    "source_text": {
+                        "type": ["string", "null"],
+                        "description": "Short verbatim excerpt (max ~80 chars) of the document text this line was read from, copied exactly as printed, or null",
+                    },
                     "confidence": _confidence_schema(LINE_FIELDS),
                 },
             },
@@ -157,6 +161,14 @@ def _confidence(value: Any) -> dict[str, Confidence]:
     }
 
 
+def _source_text(value: Any) -> str | None:
+    """Optional hint for the review screen; anything odd is simply dropped."""
+    if not isinstance(value, str):
+        return None
+    value = " ".join(value.split())
+    return value[:200] or None
+
+
 def _parse_line(data: Any) -> ExtractedLine | None:
     if not isinstance(data, dict):
         return None
@@ -170,6 +182,7 @@ def _parse_line(data: Any) -> ExtractedLine | None:
             data.get("suggested_account_code"), forced, "suggested_account_code"
         ),
         confidence={**_confidence(data.get("confidence")), **forced},
+        source_text=_source_text(data.get("source_text")),
     )
     return line
 

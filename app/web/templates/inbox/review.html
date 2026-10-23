@@ -7,7 +7,9 @@
 {%- endfor -%}
 {%- endmacro %}
 {% block head %}<link rel="stylesheet" href="/static/css/inbox.css">
-<script src="/static/js/vat-suggest.js" defer></script>{% endblock %}
+<script src="/static/js/vat-suggest.js" defer></script>
+<link rel="stylesheet" href="/static/vendor/pdfjs/pdf_viewer.css">
+<script type="module" src="/static/js/source-highlight.js"></script>{% endblock %}
 {% block content %}
 {{ page_header("Nakijken: " ~ document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Nakijken", None)], term="nakijken", icon_name="file",
    lead="Links zie je het originele bestand, rechts wat het programma eruit heeft gelezen. Controleer vooral de gemarkeerde velden.") }}
@@ -19,10 +21,11 @@
   <section class="review-doc card" aria-label="Origineel bestand">
     <div class="card__body">
       {% if document.content_type == "application/pdf" %}
-      <iframe class="file-view" src="/inbox/{{ document.id }}/bestand" title="{{ document.original_filename }}"></iframe>
+      <div id="pdf-view" class="pdf-view" data-src="/inbox/{{ document.id }}/bestand"></div>
       {% else %}
       <img class="file-view" src="/inbox/{{ document.id }}/bestand" alt="{{ document.original_filename }}">
       {% endif %}
+      <p id="source-status" class="hint source-status" aria-live="polite">Klik op een regel rechts: dan laat ik hier zien waar die in het origineel staat.</p>
       <p><a href="/inbox/{{ document.id }}/bestand" target="_blank" rel="noopener">Open origineel bestand in een nieuw tabblad</a></p>
     </div>
   </section>

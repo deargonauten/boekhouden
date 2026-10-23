@@ -67,7 +67,7 @@ HEADER_FIELDS = (
     "invoice_number", "invoice_date", "due_date", "currency",
     "total_excl", "total_vat", "total_incl",
 )
-LINE_FIELDS = ("description", "amount_excl", "vat_code", "vat_amount", "account_code")
+LINE_FIELDS = ("description", "amount_excl", "vat_code", "vat_amount", "account_code", "source_text")
 FIELD_LABELS = {
     "supplier_name": "Leverancier", "supplier_kvk": "KvK-nummer",
     "supplier_btw_number": "Btw-nummer", "supplier_iban": "IBAN",
@@ -306,6 +306,7 @@ def _values_from_extraction(session: Session, extraction) -> dict:
             "vat_code": line.vat_code or "",
             "vat_amount": _amount_text(line.vat_amount_cents),
             "account_code": codes.get(line.account_id, ""),
+            "source_text": line.source_text or "",
         }
         for line in extraction.lines
     ]

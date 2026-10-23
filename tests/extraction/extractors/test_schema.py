@@ -174,3 +174,17 @@ def test_schema_is_valid_object_schema():
         assert key in props
     assert props["total_excl_cents"]["type"] == ["integer", "null"]
     json.dumps(JSON_SCHEMA)
+
+
+def test_line_source_text_is_normalized_and_optional():
+    payload = {**GOOD, "lines": [{**GOOD["lines"][0], "source_text": "  Brood \n  10,00 "}, {"description": "x"}]}
+    inv = parse_extraction(payload)
+    assert inv.lines[0].source_text == "Brood 10,00"
+    assert inv.lines[1].source_text is None
+
+
+@pytest.mark.parametrize("bad", [5, ["a"], "", "   "])
+def test_bad_source_text_is_dropped_without_failing(bad):
+    inv = parse_extraction({**GOOD, "lines": [{**GOOD["lines"][0], "source_text": bad}]})
+    assert inv.lines[0].source_text is None
+    assert inv.lines[0].amount_excl_cents == 1000

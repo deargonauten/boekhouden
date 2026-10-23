@@ -470,3 +470,17 @@ def test_backend_status_messages(monkeypatch):
     assert service.backend_status(_settings(anthropic_api_key="k")).message == "Uitlezen verloopt via je API-sleutel"
     _stub_factory(monkeypatch, "missing")
     assert "niet gevonden" in service.backend_status(_settings()).message
+
+
+def test_source_text_is_stored_and_survives_review_save(session, make_doc):
+    doc = make_doc()
+    inv = invoice(lines=(ExtractedLine("Papier", 10000, "NL_21", 2100, "4625", source_text="Papier A4 100,00"),))
+    ex = service.store_result(session, doc.id, "fake", "m1", inv)
+    session.commit()
+    assert ex.lines[0].source_text == "Papier A4 100,00"
+
+    data = form(lines=[ReviewLineInput("Papier", "100,00", "NL_21", "21,00", "4625", "Papier A4 100,00")])
+    service.save_review(session, doc.id, data, finish=False)
+    session.commit()
+    session.refresh(ex)
+    assert ex.lines[0].source_text == "Papier A4 100,00"

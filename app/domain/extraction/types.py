@@ -33,6 +33,7 @@ class ExtractedLine:
     vat_amount_cents: int | None = None
     suggested_account_code: str | None = None
     confidence: Mapping[str, Confidence] = field(default_factory=dict)
+    source_text: str | None = None  # verbatim passage of the document this line was read from
 
 
 @dataclass(frozen=True)

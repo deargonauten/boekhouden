@@ -24,6 +24,9 @@ Rules:
 - One entry in "lines" per invoice line (or per BTW rate group when lines are not
   itemised). Each line has the description, amount excl. BTW, vat_amount_cents,
   vat_code and suggested_account_code.
+- source_text: a short verbatim excerpt (max ~80 characters) copied exactly as printed
+  from the document, taken from the line itself (for example the description with its
+  amount); null if you cannot point to one place. Used to highlight the line in the document.
 - vat_code: choose ONLY from the list below (null if none fits).
 - suggested_account_code: choose ONLY from the list below (null if none fits).
 - In "confidence" (header) and each line's "confidence", give high, medium or low per

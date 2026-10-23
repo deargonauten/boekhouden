@@ -816,6 +816,12 @@ iframe.file-view { height: 75vh; }
 .extract-form.compact { margin: 0; }
 .review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
 .review-doc { position: sticky; top: var(--space-4); }
+.pdf-view { height: 80vh; overflow: auto; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); display: grid; gap: var(--space-3); align-content: start; justify-content: center; padding: var(--space-2); }
+.pdf-view .pdf-page { position: relative; background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / .15); }
+.pdf-view .textLayer { position: absolute; inset: 0; }
+.pdf-view .textLayer span.src-hit { background: rgb(255 214 0 / .45); border-radius: 2px; outline: 2px solid rgb(255 160 0 / .8); }
+.source-status { min-height: 1.4em; }
+.review-lines tr.line-row.is-active { box-shadow: inset 4px 0 0 var(--primary); background: var(--surface-2); }
 .review-doc iframe.file-view { height: 80vh; margin-top: 0; }
 .review-doc img.file-view { margin-top: 0; max-height: 80vh; object-fit: contain; }
 .review-form .stack { display: grid; gap: var(--space-2); }
@@ -856,7 +862,7 @@ iframe.file-view { height: 75vh; }
 @media (max-width: 899px) {
   .review-grid { grid-template-columns: minmax(0, 1fr); }
   .review-doc { position: static; }
-  .review-doc iframe.file-view { height: 50vh; }
+  .review-doc iframe.file-view, .pdf-view { height: 50vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {

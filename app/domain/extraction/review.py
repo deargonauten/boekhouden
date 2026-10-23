@@ -31,6 +31,7 @@ class ReviewLineInput:
     vat_code: str = ""
     vat_amount: str = ""
     account_code: str = ""  # 4-digit grootboekcode as shown in the select
+    source_text: str = ""  # passage in the original document; carried through, never edited
 
     def is_blank(self) -> bool:
         return not any(
@@ -70,6 +71,7 @@ class ParsedLine:
     vat_code: str | None
     vat_amount_cents: int | None
     account_code: str | None
+    source_text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -192,6 +194,7 @@ def parse_review(
                 vat_code=vat_code,
                 vat_amount_cents=amount(raw_line.vat_amount, f"line.{n}.vat_amount", f"{prefix}, BTW-bedrag"),
                 account_code=account_code,
+                source_text=_text(raw_line.source_text),
             )
         )
 

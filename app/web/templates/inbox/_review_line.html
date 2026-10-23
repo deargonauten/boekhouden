@@ -5,6 +5,7 @@
 <tr class="line-row">
   <td class="cell-desc">
     <span class="cell-label">Omschrijving</span>
+    <input type="hidden" name="line_source_text" value="{{ line.source_text or '' }}">
     <textarea name="line_description" rows="1" aria-label="Wat is er uitgegeven?" maxlength="255" class="desc-input" onkeydown="if(event.key==='Enter')event.preventDefault()">{{ line.description or "" }}</textarea>
     {% set _seen = [] %}
     {% for items in flags.values() %}{% for f in items %}{% if (f.level ~ f.reason) not in _seen %}{% set _ = _seen.append(f.level ~ f.reason) %}<div class="flag-item">{{ pill(level_labels[f.level] if level_labels and f.level in level_labels else "Let op", {"low": "danger", "medium": "warning"}.get(f.level, "neutral")) }} <span class="flag-reason">{{ f.reason }}</span></div>{% endif %}{% endfor %}{% endfor %}

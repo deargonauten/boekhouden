@@ -79,3 +79,4 @@ class InvoiceExtractionLine(Base):
     vat_code: Mapped[str | None] = mapped_column(ForeignKey("vat_code.code"))
     account_id: Mapped[int | None] = mapped_column(ForeignKey("account.id"))
     flags_json: Mapped[str] = mapped_column(String, server_default=text("'[]'"))
+    source_text: Mapped[str | None] = mapped_column(String)  # passage in the document, for highlighting
