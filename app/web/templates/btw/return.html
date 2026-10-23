@@ -13,7 +13,7 @@
 <p>
   {% if filed %}{{ pill("Ingediend", "success") }} {{ info("ingediend") }} op {{ snapshot.filed_on.strftime("%d-%m-%Y") }}{% if snapshot.reference %}, ontvangstnummer {{ snapshot.reference }}{% endif %}.
   Dit zijn de bedragen zoals ze toen waren. De periode is vergrendeld. {{ info("vergrendelen") }}
-  {% else %}{{ pill("Voorlopig", "warning") }} Nog niet ingediend. Uiterlijk indienen: {{ deadline.strftime("%d-%m-%Y") }}{% if overdue %} {{ pill("Te laat", "danger") }}{% else %} {{ pill("Tijdig", "neutral") }}{% endif %}.{% endif %}
+  {% else %}{{ pill("Voorlopig", "warning") }} Nog niet ingediend. Uiterlijk indienen: {{ deadline.strftime("%d-%m-%Y") }}{% if overdue %} {{ pill("Te laat", "danger") }}{% else %} {{ pill("Op tijd", "neutral") }}{% endif %}.{% endif %}
 </p>
 <p class="hint">Je btw {{ info("btw") }} telt mee in de periode {{ info("periode") }} van de boekingsdatum. {{ info("factuurstelsel") }}</p>
 
@@ -60,7 +60,7 @@
     <tr><td>Subtotaal (5c)</td><td></td><td class="num">{{ snapshot.totals["5c"]|euro }}</td><td></td></tr>
     <tr><td><strong>{{ direction_label }} (5g)</strong></td><td></td><td class="num"><strong>{{ snapshot.totals["5g"]|abs|euro }}</strong></td><td></td></tr>
     {% if snapshot.totals["5g_afgerond"] or snapshot.totals["5g"] %}
-    <tr><td><strong>Af te ronden bedrag voor je aangifte</strong> {{ info("afronding_aangifte") }}<br><small class="muted">Dit vul je in bij de Belastingdienst, {{ direction_label|lower }} (exact: {{ snapshot.totals["5g"]|abs|euro }})</small></td><td></td><td class="num"><strong>{{ snapshot.totals["5g_afgerond"]|abs|euro }}</strong></td><td></td></tr>
+    <tr><td><strong>Afgerond bedrag voor je aangifte</strong> {{ info("afronding_aangifte") }}<br><small class="muted">Dit vul je in bij de Belastingdienst, {{ direction_label|lower }} (exact: {{ snapshot.totals["5g"]|abs|euro }})</small></td><td></td><td class="num"><strong>{{ snapshot.totals["5g_afgerond"]|abs|euro }}</strong></td><td></td></tr>
     {% endif %}
     </tbody>
   </table>

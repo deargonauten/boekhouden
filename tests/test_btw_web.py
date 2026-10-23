@@ -259,7 +259,7 @@ def test_return_page_shows_exact_and_rounded_amount(client):
         s.commit()
     r = client.get(Q1)
     assert "21,99" in r.text
-    assert "Af te ronden bedrag voor je aangifte" in r.text
+    assert "Afgerond bedrag voor je aangifte" in r.text
     assert "21,00" in r.text
     overview = client.get(f"/btw?jaar={YEAR}")
     assert "21,00" in overview.text and "21,99" in overview.text
@@ -271,7 +271,7 @@ def test_return_page_refund_rounds_up(client):
         set_company(s)
         s.commit()
     r = client.get(Q1)
-    assert "Af te ronden bedrag voor je aangifte" in r.text
+    assert "Afgerond bedrag voor je aangifte" in r.text
     assert "1,00" in r.text and "0,96" in r.text
 
 

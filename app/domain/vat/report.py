@@ -39,7 +39,7 @@ TOTAL_LABELS: dict[str, str] = {
     "5b": PURCHASE_RUBRIEKEN["5b"],
     "5c": "Subtotaal (verschuldigd min voorbelasting)",
     "5g": "Totaal",
-    "5g_afgerond": "Af te ronden bedrag voor je aangifte",
+    "5g_afgerond": "Afgerond bedrag voor je aangifte",
 }
 DIRECTION_LABELS: dict[str, str] = {
     "pay": "Te betalen", "refund": "Terug te vragen", "zero": "Niets te betalen",

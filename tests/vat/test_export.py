@@ -237,7 +237,7 @@ def test_rubrieken_csv_has_rounded_row_refund():
 def test_pdf_shows_exact_and_rounded_amount():
     text = " ".join(p.extract_text() for p in PdfReader(BytesIO(aangifte_pdf(snapshot(totals=_totals(1299, 1200))))).pages)
     assert "12,99" in text
-    assert "Af te ronden bedrag voor je aangifte" in text
+    assert "Afgerond bedrag voor je aangifte" in text
     assert "12,00" in text
 
 

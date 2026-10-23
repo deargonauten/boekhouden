@@ -23,7 +23,7 @@ from app.domain.vat.report import TOTAL_LABELS, final_rounded, round_whole_cents
 BOM = "﻿"
 TOTAL_KEYS = ("5a", "5b", "5c", "5g", "5g_afgerond")
 ROUNDING_NOTE = (
-    "Het eindbedrag vul je af op hele euro's in: bij betalen naar beneden, bij terugvragen naar boven. "
+    "Het eindbedrag vul je in op hele euro's: bij betalen naar beneden, bij terugvragen naar boven. "
     "De bedragen per rubriek houden hun centen."
 )
 DISCLAIMER = (
