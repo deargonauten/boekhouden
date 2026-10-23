@@ -37,6 +37,7 @@ from app.domain.reconcile.errors import (
     ReconcileError,
     over_allocated,
 )
+from app.domain.reconcile.invoice_payments import InvoiceView, PaymentCandidate, payment_candidates
 from app.domain.reconcile.matching import suggest
 from app.domain.reconcile.types import (
     SIDE_CREDITOR,
@@ -792,3 +793,47 @@ def restore(session: Session, txn_id: int) -> None:
         session, txn_id, STATUS_IGNORED, STATUS_NEW,
         ReconcileError(NOT_IGNORED, "Deze mutatie is niet genegeerd, dus je hoeft hem niet terug te zetten."),
     )
+
+
+# --- payment of an invoice under review (nakijken) ---------------------------------------------------
+def payment_candidates_for_extraction(session: Session, extraction) -> list[PaymentCandidate]:
+    """Unprocessed transactions that could be the payment of the invoice read out in `extraction`."""
+    total = extraction.total_incl_cents
+    if not total or total <= 0:
+        return []
+    is_credit = extraction.kind == CREDIT_NOTE
+    # Pre-filter in SQL on direction and size; the matching rules decide the rest.
+    direction = BankTransaction.amount_cents > 0 if is_credit else BankTransaction.amount_cents < 0
+    txns = session.scalars(
+        select(BankTransaction).where(
+            BankTransaction.status == STATUS_NEW,
+            direction,
+            func.abs(BankTransaction.amount_cents) <= total,
+        )
+    )
+    view = InvoiceView(
+        number=extraction.invoice_number, invoice_date=extraction.invoice_date, total_incl_cents=total,
+        is_credit=is_credit, supplier_name=extraction.supplier_name, supplier_iban=extraction.supplier_iban,
+    )
+    return payment_candidates(view, [to_view(t) for t in txns])
+
+
+def book_payment_for_invoice(session: Session, txn_id: int, invoice: PurchaseInvoice) -> JournalEntry:
+    """Link a just-booked inkoopfactuur to a bank transaction: books the payment on the invoice.
+
+    The transaction must still look like a payment of this invoice (same rules as the list
+    shown during nakijken); nothing the form posted is trusted beyond the transaction id.
+    """
+    t = _txn(session, txn_id)
+    if t.status != STATUS_NEW:
+        raise _status_error(t.status)
+    contact = session.get(Contact, invoice.contact_id)
+    view = InvoiceView(
+        number=invoice.invoice_number, invoice_date=invoice.invoice_date, total_incl_cents=invoice.total_incl_cents,
+        is_credit=invoice.kind == CREDIT_NOTE, supplier_name=contact.name, supplier_iban=contact.iban,
+    )
+    if not payment_candidates(view, [to_view(t)]):
+        raise ReconcileError(
+            SUGGESTION_GONE, "Deze betaling past niet bij de factuur. Kies een andere betaling of sla dit over."
+        )
+    return book(session, txn_id, [Allocation(SOURCE_PURCHASE_INVOICE, invoice.id, abs(t.amount_cents))])

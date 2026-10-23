@@ -2,6 +2,7 @@
 
 from app.domain.reconcile.entries import SystemAccounts, build_payment_entry, split_vat  # noqa: F401
 from app.domain.reconcile.errors import ReconcileError  # noqa: F401
+from app.domain.reconcile.invoice_payments import InvoiceView, PaymentCandidate, payment_candidates  # noqa: F401
 from app.domain.reconcile.matching import normalize_text, suggest  # noqa: F401
 from app.domain.reconcile.quick import (  # noqa: F401
     QUICK_KINDS,
@@ -28,6 +29,7 @@ from app.domain.reconcile.service import (  # noqa: F401
     TransactionDetail,
     accept,
     book,
+    book_payment_for_invoice,
     default_vat_for,
     direct_defaults,
     get_transaction_detail,
@@ -35,6 +37,7 @@ from app.domain.reconcile.service import (  # noqa: F401
     list_all_open_items,
     list_open_items,
     list_to_process,
+    payment_candidates_for_extraction,
     restore,
     suggestions_for,
     to_process_count,
