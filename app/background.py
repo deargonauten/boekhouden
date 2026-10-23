@@ -65,7 +65,7 @@ async def run_email_poller(
 async def _run_once(runner: _Runner, last_error: tuple | None) -> tuple | None:
     """Run one intake in a worker thread; return the error key, or None on success."""
     try:
-        await asyncio.to_thread(runner.run_now)
+        report = await asyncio.to_thread(runner.run_now)
     except asyncio.CancelledError:
         raise
     except EmailIntakeError as exc:
@@ -81,5 +81,11 @@ async def _run_once(runner: _Runner, last_error: tuple | None) -> tuple | None:
                 "Automatisch ophalen mislukt met een onverwachte fout (%s).",
                 type(exc).__name__,
             )
+        return key
+    # The real runner reports connection-level failures as a returned report.
+    if getattr(report, "status", None) == "fout":
+        key = ("intake", getattr(report, "error_code", None))
+        if key != last_error:
+            logger.warning("Automatisch ophalen mislukt: %s", getattr(report, "error_message", None))
         return key
     return None

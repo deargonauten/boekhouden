@@ -2,6 +2,7 @@ import asyncio
 import imaplib
 import logging
 import time
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -290,3 +291,25 @@ def test_lifespan_without_interval_has_no_poller(tmp_path):
     app = create_app(settings)
     with TestClient(app):
         assert app.state.email_poller is None
+
+
+def test_returned_error_report_is_logged_once(caplog):
+    failed = SimpleNamespace(
+        status="fout", error_code="EMAIL_LOGIN_FAILED", error_message="Inloggen mislukt."
+    )
+    runner = FakeRunner(outcomes=[failed, failed, failed])
+    caplog.set_level(logging.INFO, logger=LOGGER)
+
+    async def scenario():
+        task = asyncio.create_task(run_email_poller(runner, 0.005, first_delay_seconds=0))
+        for _ in range(400):
+            if runner.calls >= 3:
+                break
+            await asyncio.sleep(0.005)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(scenario())
+    logs = [r for r in caplog.records if r.name == LOGGER and r.levelno >= logging.WARNING]
+    assert len(logs) == 1
