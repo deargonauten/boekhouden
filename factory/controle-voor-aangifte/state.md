@@ -1,6 +1,6 @@
 # State: controle-voor-aangifte
-Step: 2 (build) – spec APPROVED; wave 1 = builder A, wave 2 = B+C
+Step: 3 (review) round 1
 Base branch: main
-Branch: factory/controle-voor-aangifte
-Review round: 0
-Agents: (none yet)
+Branch: factory/controle-voor-aangifte (A, B, C merged; worktrees removed)
+Tests: python -m pytest -q -> 2671 passed, 1 deselected (2026-10-23, integrated branch)
+Review round: 1
