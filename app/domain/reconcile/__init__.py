@@ -3,6 +3,14 @@
 from app.domain.reconcile.entries import SystemAccounts, build_payment_entry, split_vat  # noqa: F401
 from app.domain.reconcile.errors import ReconcileError  # noqa: F401
 from app.domain.reconcile.matching import normalize_text, suggest  # noqa: F401
+from app.domain.reconcile.quick import (  # noqa: F401
+    QUICK_KINDS,
+    QUICK_PRIVATE,
+    QUICK_VAT_RETURN,
+    VatPeriodChoice,
+    quick_line,
+    vat_period_choices,
+)
 from app.domain.reconcile.rules import (  # noqa: F401
     DIRECTION_LABELS,
     RuleRow,

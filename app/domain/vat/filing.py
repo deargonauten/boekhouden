@@ -36,6 +36,7 @@ from app.domain.vat.report import (
     has_entries,
     round_final_cents,
 )
+from app.domain.vat.settlement import settle_vat_period
 from app.domain.vat.settings import get_vat_settings, is_kor
 from app.models import CompanyProfile, FiscalYear, Period, VatReturn
 
@@ -287,6 +288,7 @@ def file_vat_return(
         )
         session.add(row)
         session.flush()
+        settle_vat_period(session, vat_period)
         for m in months(vat_period):
             lock_period(session, month_periods[m].id)
     return _to_filed(row)

@@ -656,3 +656,47 @@ def test_detail_search_by_customer_name(client, world):
     tid = world.txn(amount=12100, desc="Betaling", name="Onbekend", iban=None)
     html = client.get(f"/bank/transacties/{tid}/afletteren?q=Klant").text
     assert number in html
+
+
+# --- snelkeuze: btw-aangifte en privé ---------------------------------------------------------------------
+
+
+def test_detail_offers_quick_choices(client, world):
+    tid = world.txn(amount=-5000, iban=None)
+    html = client.get(f"/bank/transacties/{tid}/afletteren").text
+    assert 'name="soort" value="btw"' in html and 'name="soort" value="prive"' in html
+    assert 'name="aangifte"' in html and ">1e kwartaal " in html
+
+
+def test_quick_vat_return_payment_books_without_invoice(client, world):
+    tid = world.txn(amount=-123400, desc="Belastingdienst", name="Belastingdienst", iban=None)
+    r = client.post(
+        f"/bank/transacties/{tid}/afletteren", data={"soort": "btw", "aangifte": f"{YEAR}-Q1"}, follow_redirects=False
+    )
+    assert r.status_code == 303, r.text
+    assert world.one("SELECT status FROM bank_transaction WHERE id = :i", i=tid) == "geboekt"
+    assert world.one(
+        "SELECT sum(l.debit_cents) FROM journal_line l JOIN account a ON a.id = l.account_id WHERE a.code = '3150'"
+    ) == 123400
+
+
+def test_quick_private_withdrawal_books_to_prive_opnamen(client, world):
+    tid = world.txn(amount=-30000, desc="Eigen rekening", name="J. Jansen", iban=None)
+    r = client.post(f"/bank/transacties/{tid}/afletteren", data={"soort": "prive"}, follow_redirects=False)
+    assert r.status_code == 303, r.text
+    assert world.one(
+        "SELECT sum(l.debit_cents) FROM journal_line l JOIN account a ON a.id = l.account_id WHERE a.code = '2010'"
+    ) == 30000
+
+
+def test_quick_choice_with_bad_period_says_what_to_do(client, world):
+    tid = world.txn(amount=-100, iban=None)
+    r = client.post(f"/bank/transacties/{tid}/afletteren", data={"soort": "btw", "aangifte": "kerst"})
+    assert r.status_code == 422
+    assert "Kies een periode" in r.text
+    assert world.one("SELECT status FROM bank_transaction WHERE id = :i", i=tid) == "nieuw"
+
+
+def test_quick_glossary_terms_exist():
+    for key in ("snelkeuze", "btw_aangifte_betaling", "prive"):
+        assert GLOSSARY[key].plain and GLOSSARY[key].explanation

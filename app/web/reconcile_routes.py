@@ -176,6 +176,8 @@ class DetailState:
     lines: list[dict] = field(default_factory=list)  # account, vat, amount, description
     remember: bool = False
     needle: str = ""
+    soort: str = ""  # snelkeuze: '' | 'btw' | 'prive'
+    aangifte: str = ""
     posted: bool = False
     back: str = LIST_URL
 
@@ -207,6 +209,8 @@ async def _read_state(request: Request) -> DetailState:
         q=str(form.get("q", "")).strip(),
         remember=bool(form.get("remember")),
         needle=str(form.get("remember_needle", "")).strip(),
+        soort=str(form.get("soort", "")).strip(),
+        aangifte=str(form.get("aangifte", "")).strip(),
         posted=True,
         back=_safe_back(str(form.get("terug", ""))),
     )
@@ -230,7 +234,7 @@ async def _read_state(request: Request) -> DetailState:
     return state
 
 
-def _parse_state(session: Session, state: DetailState):
+def _parse_state(session: Session, state: DetailState, txn_id: int):
     """Typed state -> domain input plus plain-Dutch parse errors. Fully empty direct lines are dropped."""
     errors: list[str] = []
     known = {_item_key(i): i for i in rec.list_all_open_items(session)}
@@ -248,6 +252,12 @@ def _parse_state(session: Session, state: DetailState):
             continue
         allocations.append(rec.Allocation(item.source, item.source_id, cents))
     directs: list[rec.DirectLine] = []
+    if state.soort:
+        try:
+            directs.append(rec.quick_line(session, txn_id, state.soort, state.aangifte))
+        except LedgerError as exc:
+            errors.append(exc.message)
+        return allocations, directs, errors, known
     for line in state.lines:
         if not any(v.strip() for v in line.values()):
             continue
@@ -351,7 +361,7 @@ def _detail_page(
             state.q = base.q
         else:
             state.contact = state.contact or str(contact_id or "")
-        allocations, directs, _, known = _parse_state(session, state)
+        allocations, directs, _, known = _parse_state(session, state, txn_id)
         lines = list(state.lines)
         while lines and not any(v.strip() for v in lines[-1].values()):
             lines.pop()
@@ -366,6 +376,7 @@ def _detail_page(
             vat_codes=[v for v in ledger.list_vat_codes(session) if v.is_active],
             lines=lines,
             summary=_summary(detail, allocations, directs, known),
+            vat_periods=rec.vat_period_choices(session, txn_id),
             can_remember=True,
             has_iban=bool(detail.txn.counterparty_iban),
         )
@@ -396,7 +407,7 @@ def reconcile_detail(
 async def reconcile_book(request: Request, txn_id: int, session: Session = Depends(get_session)):
     state = await _read_state(request)
     back = state.back
-    allocations, directs, errors, _ = _parse_state(session, state)
+    allocations, directs, errors, _ = _parse_state(session, state, txn_id)
     if errors:
         return _detail_page(request, session, txn_id, state, error=errors, status_code=422, back=back)
     draft = None
@@ -424,7 +435,7 @@ async def reconcile_summary(request: Request, txn_id: int, session: Session = De
     except LedgerError:
         return HTMLResponse("")
     state = await _read_state(request)
-    allocations, directs, _, known = _parse_state(session, state)
+    allocations, directs, _, known = _parse_state(session, state, txn_id)
     return web.templates.TemplateResponse(
         request, "bank/_reconcile_summary.html", {"summary": _summary(detail, allocations, directs, known)}
     )

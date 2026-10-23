@@ -6,13 +6,13 @@ import pytest
 from alembic import command
 
 from app.seed.rgs_accounts import SEED_ACCOUNTS
-from tests.conftest import alembic_config
+from tests.conftest import alembic_config, migrate_to_head
 
 
 @pytest.fixture
 def db(test_settings):
     test_settings.database_path.parent.mkdir(parents=True, exist_ok=True)
-    command.upgrade(alembic_config(test_settings), "head")
+    migrate_to_head(test_settings)
     conn = sqlite3.connect(test_settings.database_path)
     conn.execute("PRAGMA foreign_keys=ON")
     yield conn

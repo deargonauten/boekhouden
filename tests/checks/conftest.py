@@ -3,7 +3,6 @@
 from datetime import date, datetime
 
 import pytest
-from alembic import command
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -22,7 +21,7 @@ from app.models import (
     Period,
     SalesInvoice,
 )
-from tests.conftest import alembic_config
+from tests.conftest import migrate_to_head
 from tests.vat.vat_helpers import Book
 
 Q3 = VatPeriod(2026, "quarter", 3)
@@ -33,7 +32,7 @@ NOW = datetime(2026, 10, 1)
 @pytest.fixture
 def engine(test_settings):
     test_settings.database_path.parent.mkdir(parents=True, exist_ok=True)
-    command.upgrade(alembic_config(test_settings), "head")
+    migrate_to_head(test_settings)
     engine = create_db_engine(test_settings)
     yield engine
     engine.dispose()

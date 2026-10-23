@@ -77,6 +77,24 @@
     </section>
 
     <section class="card card--flush">
+      <div class="card__header"><h2>Is dit een btw-aangifte of privé? Snelkeuze {{ info("snelkeuze") }}</h2></div>
+      <div class="card__body stack">
+        <label class="check"><input type="radio" name="soort" value=""{% if not state.soort %} checked{% endif %}> Nee, kies hieronder zelf een rekening</label>
+        <label class="check"><input type="radio" name="soort" value="btw"{% if state.soort == "btw" %} checked{% endif %}>
+          {{ "Dit is een betaling aan de Belastingdienst voor een btw-aangifte" if t.direction == "af" else "Dit is een teruggave van de Belastingdienst voor een btw-aangifte" }} {{ info("btw_aangifte_betaling") }}</label>
+        <label>Over welke aangifte gaat het? (niet verplicht)
+          <select name="aangifte">
+            <option value="">Weet ik niet</option>
+            {% for p in vat_periods %}<option value="{{ p.value }}"{% if state.aangifte == p.value %} selected{% endif %}>{{ p.label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="check"><input type="radio" name="soort" value="prive"{% if state.soort == "prive" %} checked{% endif %}>
+          {{ "Dit is een privé-opname: ik heb geld voor mezelf overgemaakt" if t.direction == "af" else "Dit is een privé-storting: ik heb eigen geld op de zakelijke rekening gezet" }} {{ info("prive") }}</label>
+        <p class="muted">Met een snelkeuze wordt het hele bedrag geboekt en gelden de rekeningen hieronder niet.</p>
+      </div>
+    </section>
+
+    <section class="card card--flush">
       <div class="card__header"><h2>{{ "Wat is dit voor uitgave?" if t.direction == "af" else "Wat is dit voor inkomst?" }} Boeken zonder factuur {{ info("direct_boeken") }}</h2></div>
       <div class="table-wrap">
       <table class="data bank-table">

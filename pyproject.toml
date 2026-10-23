@@ -21,6 +21,7 @@ dev = [
     "pytest",
     "httpx",
     "pypdf>=6.21.2",
+    "pytest-xdist>=3.8.0",
 ]
 
 [tool.uv]
@@ -29,5 +30,5 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-m 'not live'"
+addopts = "-m 'not live' -n auto"
 markers = ["live: manual smoke test that runs the real claude CLI (pytest -m live)"]

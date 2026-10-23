@@ -3,9 +3,8 @@
 import sqlite3
 
 import pytest
-from alembic import command
 
-from tests.conftest import alembic_config
+from tests.conftest import migrate_to_head
 
 NOW = "2026-10-21 12:00:00"
 
@@ -13,7 +12,7 @@ NOW = "2026-10-21 12:00:00"
 @pytest.fixture
 def db(test_settings):
     test_settings.database_path.parent.mkdir(parents=True, exist_ok=True)
-    command.upgrade(alembic_config(test_settings), "head")
+    migrate_to_head(test_settings)
     conn = sqlite3.connect(test_settings.database_path)
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute(
