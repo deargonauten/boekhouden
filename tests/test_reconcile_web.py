@@ -467,6 +467,24 @@ def test_undo_in_locked_period_says_what_to_do(client, world):
     assert world.one("SELECT status FROM bank_transaction WHERE id = :i", i=tid) == "geboekt"
 
 
+def test_book_in_locked_period_needs_explicit_checkbox(client, world):
+    inv = world.invoice()
+    tid = world.txn(amount=-12100)
+    with world.engine.begin() as conn:
+        conn.execute(text("UPDATE period SET status = 'locked'"))
+    r = client.post(f"/bank/transacties/{tid}/afletteren", data=alloc_form(inv, "121,00"))
+    assert r.status_code == 422
+    assert "vergrendeld" in r.text and 'name="allow_locked"' in r.text
+    assert world.one("SELECT status FROM bank_transaction WHERE id = :i", i=tid) == "nieuw"
+    r = client.post(
+        f"/bank/transacties/{tid}/afletteren",
+        data={**alloc_form(inv, "121,00"), "allow_locked": "1"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert world.one("SELECT status FROM bank_transaction WHERE id = :i", i=tid) == "geboekt"
+
+
 def test_generic_storno_of_bank_entry_is_refused_and_state_stays_consistent(client, world):
     inv = world.invoice()
     tid = world.txn(amount=-12100)

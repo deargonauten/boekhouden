@@ -1,0 +1,57 @@
+{# Filed aangifte against the books today. Context: comparison, base, period #}
+<div class="cluster">
+  {% if comparison.differs and not comparison.open_supplement %}
+  <form method="post" action="{{ base }}/suppletie" hx-boost="false"><button type="submit" class="btn">Suppletie maken</button></form>
+  {% endif %}
+  <a class="btn btn-secondary" href="{{ base }}/pdf" hx-boost="false">{{ icon("file") }}PDF</a>
+</div>
+
+{% if comparison.differs %}
+<div class="notice notice--danger" role="alert">{{ icon("alert") }}<div>
+  <strong>Je vastgelegde btw-aangifte wijkt af van de stand per vandaag.</strong>
+  Na het indienen is er nog iets geboekt in {{ period.label }}, bijvoorbeeld een bankmutatie in een vergrendelde periode.
+  {% if comparison.open_supplement %}Je hebt hier al een suppletie voor gemaakt; die vind je onder het tabblad Suppletie.
+  {% else %}Klik op "Suppletie maken" om het verschil vast te leggen. Je neemt het dan mee in je volgende btw-aangifte. {{ info("suppletie") }}{% endif %}
+</div></div>
+{% else %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Je vastgelegde btw-aangifte klopt nog met je boekingen. Er is geen suppletie nodig.</div></div>
+{% endif %}
+
+<section class="card">
+  <div class="card__body stats">
+    <div><span class="muted">Periode {{ info("periode") }}</span><br><strong>{{ period.label }}</strong></div>
+    <div><span class="muted">Stand per vandaag</span><br><strong>{{ comparison.live_cents|euro }}</strong></div>
+    <div><span class="muted">Ingediende btw</span><br><strong>{{ comparison.filed_cents|euro }}</strong></div>
+    <div><span class="muted">Btw verschil {{ info("btw") }}</span><br><strong>{{ comparison.diff_cents|euro }}</strong></div>
+  </div>
+</section>
+
+{% if comparison.differs %}
+<section class="card card--flush">
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr>
+      <th>Onderdeel (rubriek) {{ info("rubriek") }}</th><th class="num">Grondslag ingediend</th><th class="num">Grondslag nu</th><th class="num">Btw ingediend</th><th class="num">Btw nu</th><th class="num">Verschil</th>
+    </tr></thead>
+    <tbody>
+    {% for r in comparison.rows if r.differs %}
+    <tr>
+      <td>{{ r.label }} ({{ r.rubriek }})</td>
+      <td class="num">{{ r.filed_grondslag_cents|euro }}</td><td class="num">{{ r.live_grondslag_cents|euro }}</td>
+      <td class="num">{{ r.filed_vat_cents|euro }}</td><td class="num">{{ r.live_vat_cents|euro }}</td>
+      <td class="num">{{ r.vat_diff_cents|euro }}</td>
+    </tr>
+    {% endfor %}
+    {% if comparison.live_5b_cents != comparison.filed_5b_cents %}
+    <tr><td>Voorbelasting (5b) {{ info("voorbelasting") }}</td><td></td><td></td>
+      <td class="num">{{ comparison.filed_5b_cents|euro }}</td><td class="num">{{ comparison.live_5b_cents|euro }}</td>
+      <td class="num">{{ (comparison.live_5b_cents - comparison.filed_5b_cents)|euro }}</td></tr>
+    {% endif %}
+    <tr><td><strong>Totaal (5g)</strong></td><td></td><td></td>
+      <td class="num"><strong>{{ comparison.filed_cents|euro }}</strong></td><td class="num"><strong>{{ comparison.live_cents|euro }}</strong></td>
+      <td class="num"><strong>{{ comparison.diff_cents|euro }}</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}

@@ -632,6 +632,14 @@ def _recompute_paid(session: Session, source: str, source_id: int) -> None:
     session.execute(update(model).where(model.id == source_id).values(paid_cents=paid))
 
 
+def _only_vat_current_account(session: Session, entry, bank_ledger_id: int) -> bool:
+    """A betaling or teruggave van de btw-aangifte only moves the bank and the rekening-courant btw (3150).
+    It changes no aangifte, so a vergrendelde periode is no reason to refuse it."""
+    current = session.scalar(select(Account.id).where(Account.code == "3150"))
+    others = [l for l in entry.lines if l.account_id != bank_ledger_id]
+    return current is not None and bool(others) and all(l.account_id == current and l.vat_code in (None, "GEEN") for l in others)
+
+
 def book(
     session: Session,
     txn_id: int,
@@ -640,10 +648,12 @@ def book(
     *,
     remember_rule: RuleDraft | None = None,
     rule_id: int | None = None,
+    allow_locked_period: bool = False,
 ) -> JournalEntry:
     """Book one transaction: one balanced entry in the bank's dagboek, `bank_match` rows,
     paid_cents of each item, transaction `geboekt`. Atomic; booking twice fails the second time
-    with 'Deze mutatie is al verwerkt.' `rule_id` (a rule that was followed) counts as used.
+    with 'Deze mutatie is al verwerkt.' `allow_locked_period` (explicit user consent) books into a
+    vergrendelde periode. `rule_id` (a rule that was followed) counts as used.
 
     Raises ReconcileError (plain Dutch) or the ledger's LedgerError (locked period, ...).
     """
@@ -667,6 +677,7 @@ def book(
         description=_entry_description(alloc_lines, names, view, bool(directs)),
     )
     rule_draft = _prepare_rule(view, directs, remember_rule)
+    allow_locked_period = allow_locked_period or _only_vat_current_account(session, new_entry, bank.account_id)
 
     _open_transaction(session)
     try:
@@ -679,7 +690,7 @@ def book(
             )
             if claimed.rowcount != 1:
                 raise ReconcileError(ALREADY_PROCESSED, ALREADY_PROCESSED_MESSAGE)
-            entry = post_entry(session, new_entry)
+            entry = post_entry(session, new_entry, allow_locked_period=allow_locked_period)
             session.execute(
                 update(BankTransaction).where(BankTransaction.id == t.id).values(journal_entry_id=entry.id)
             )

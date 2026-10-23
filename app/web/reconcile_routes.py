@@ -195,6 +195,7 @@ class DetailState:
     needle: str = ""
     soort: str = ""  # snelkeuze: '' | 'btw' | 'prive'
     aangifte: str = ""
+    allow_locked: bool = False  # explicit consent to book in a vergrendelde periode
     posted: bool = False
     back: str = LIST_URL
 
@@ -228,6 +229,7 @@ async def _read_state(request: Request) -> DetailState:
         needle=str(form.get("remember_needle", "")).strip(),
         soort=str(form.get("soort", "")).strip(),
         aangifte=str(form.get("aangifte", "")).strip(),
+        allow_locked=bool(form.get("allow_locked")),
         posted=True,
         back=_safe_back(str(form.get("terug", ""))),
     )
@@ -360,12 +362,14 @@ def _detail_page(
     melding="",
     status_code=200,
     back=LIST_URL,
+    period_locked=False,
 ):
     try:
         detail = rec.get_transaction_detail(session, txn_id)
     except LedgerError as exc:
         return _not_found_or_error(request, exc)
-    ctx: dict = {"detail": detail, "error": error, "melding_text": MELDINGEN.get(melding, ""), "state": state, "back": back}
+    ctx: dict = {"detail": detail, "error": error, "melding_text": MELDINGEN.get(melding, ""), "state": state, "back": back,
+           "period_locked": period_locked}
     if detail.status == "nieuw":
         suggestions = rec.suggestions_for(session, txn_id)
         best = suggestions[0] if suggestions else None
@@ -434,13 +438,18 @@ async def reconcile_book(request: Request, txn_id: int, session: Session = Depen
             contact_id=_to_int(state.contact),
         )
     try:
-        rec.book(session, txn_id, allocations, directs, remember_rule=draft)
+        rec.book(
+            session, txn_id, allocations, directs, remember_rule=draft, allow_locked_period=state.allow_locked
+        )
         session.commit()
     except LedgerError as exc:
         session.rollback()
         if status_for(exc) == 404:
             return web.not_found_response(request)
-        return _detail_page(request, session, txn_id, state, error=exc.message, status_code=status_for(exc), back=back)
+        return _detail_page(
+            request, session, txn_id, state, error=exc.message, status_code=status_for(exc), back=back,
+            period_locked=exc.code == "PERIOD_LOCKED",
+        )
     return _next_or_back(session, txn_id, back, "geboekt")
 
 

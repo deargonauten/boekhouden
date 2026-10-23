@@ -33,7 +33,7 @@
     <tr{% if r.status == "niet_gestart" %} class="inactive"{% endif %}>
       <td class="nowrap"><a href="{{ path_of(r.period) }}">{{ r.period.label }}</a>{% if current and current == r.period %} {{ pill("Nu bezig", "info") }}{% endif %}</td>
       <td class="nowrap">{{ r.deadline.strftime("%d-%m-%Y") }}{% if r.status != "ingediend" %}{% if r.overdue %} {{ pill("Te laat", "danger") }}{% else %} {{ pill("Op tijd", "neutral") }}{% endif %}{% endif %}</td>
-      <td>{{ pill(status_labels[r.status], status_tones[r.status]) }}{% if r.kor == "full" %} {{ pill("KOR", "info") }}{% elif r.kor == "partial" %} {{ pill("Deels KOR", "info") }}{% endif %}</td>
+      <td>{{ pill(status_labels[r.status], status_tones[r.status]) }}{% if r.differs %} {{ pill("Wijkt af", "danger", "Er is na het indienen iets veranderd in deze periode; maak een suppletie") }}{% endif %}{% if r.kor == "full" %} {{ pill("KOR", "info") }}{% elif r.kor == "partial" %} {{ pill("Deels KOR", "info") }}{% endif %}</td>
       <td class="num">{% if r.total_cents is not none %}{{ r.rounded_cents|abs|euro }} <small class="muted">{{ direction_labels[r.direction] }}</small>{% if r.rounded_cents != r.total_cents %}<br><small class="muted">exact {{ r.total_cents|abs|euro }}</small>{% endif %}{% else %}-{% endif %}</td>
       <td class="nowrap"><a href="{{ path_of(r.period) }}">{% if r.status == "ingediend" %}Bekijken{% else %}Openen{% endif %}</a></td>
     </tr>
@@ -42,5 +42,5 @@
   </table>
   </div>
 </section>
-<p class="hint">Een btw-aangifte {{ info("btw_aangifte") }} doe je zelf bij de Belastingdienst. Is een aangifte ingediend? {{ info("ingediend") }} Dan staat hij vast. Een fout daarna corrigeer je met een correctieboeking in de huidige open periode; die telt mee in de volgende aangifte.</p>
+<p class="hint">Een btw-aangifte {{ info("btw_aangifte") }} doe je zelf bij de Belastingdienst. Is een aangifte ingediend? {{ info("ingediend") }} Dan staat hij vast. Is er daarna toch nog iets veranderd in die periode, bijvoorbeeld een bankmutatie die je bewust in een vergrendelde periode boekt, dan maak je een suppletie {{ info("suppletie") }} en neem je het verschil mee in je volgende aangifte.</p>
 {% endblock %}

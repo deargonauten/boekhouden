@@ -3,8 +3,13 @@
 from datetime import date
 
 import pytest
+from sqlalchemy import select
 
-from app.domain.reconcile import ReconcileError, book
+from app.domain.errors import LedgerError
+from app.domain.ledger import lock_period
+from app.domain.reconcile import DirectLine, ReconcileError, book
+from app.models import Account, Period
+from tests.domain.reconcile.conftest import DAY
 from app.domain.reconcile.quick import QUICK_PRIVATE, QUICK_VAT_RETURN, quick_line, vat_period_choices
 from tests.domain.reconcile.test_service import balance
 
@@ -62,3 +67,16 @@ def test_period_choices_cover_year_of_transaction_and_before(session, make_txn, 
     t = make_txn(-100, iban=None, day=date(2025, 4, 20))
     values = [c.value for c in vat_period_choices(session, t.id)]
     assert "2025-Q1" in values and "2025-Q4" in values and "2024-Q4" in values
+
+
+def test_vat_return_booking_is_allowed_in_locked_period(session, year2025, make_txn):
+    period = session.scalar(select(Period).where(Period.start_date <= DAY, Period.end_date >= DAY))
+    lock_period(session, period.id)
+    session.commit()
+    t = make_txn(amount=2100, desc="TERUGGAAF OB")
+    book(session, t.id, [], [quick_line(session, t.id, QUICK_VAT_RETURN)])  # moves only 3150: no aangifte changes
+    other = make_txn(amount=-2100)
+    paper = session.scalar(select(Account.id).where(Account.code == "4625"))
+    with pytest.raises(LedgerError) as e:
+        book(session, other.id, [], [DirectLine(paper, 2100, None, "Papier")])
+    assert e.value.code == "PERIOD_LOCKED"

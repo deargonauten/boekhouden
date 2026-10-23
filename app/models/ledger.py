@@ -188,3 +188,13 @@ class JournalLine(Base):
     vat_code: Mapped[str | None] = mapped_column(ForeignKey("vat_code.code"))
 
     entry: Mapped[JournalEntry] = relationship(back_populates="lines")
+
+
+class LockedBookingOverride(Base):
+    """Single-row flag, set only while one explicitly confirmed posting into a vergrendelde periode runs."""
+
+    __tablename__ = "locked_booking_override"
+    __table_args__ = (CheckConstraint("id = 1", name="ck_locked_booking_override_single_row"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    active: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)

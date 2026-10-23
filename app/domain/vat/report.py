@@ -16,6 +16,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domain.vat.settlement import not_settlement_entry
 from app.domain.vat.rubrieken import ALSO_INPUT_VAT, PURCHASE_RUBRIEKEN, SALES_RUBRIEKEN
 from app.models import Account, JournalEntry, JournalLine, VatCode
 
@@ -397,7 +398,8 @@ def fetch_rows(session: Session, start: date, end: date) -> list[LineRow]:
         .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
         .join(Account, Account.id == JournalLine.account_id)
         .outerjoin(VatCode, VatCode.code == JournalLine.vat_code)
-        .where(JournalEntry.kind != "opening", JournalEntry.booking_date >= start, JournalEntry.booking_date <= end)
+        .where(JournalEntry.kind != "opening", JournalEntry.booking_date >= start, JournalEntry.booking_date <= end,
+               not_settlement_entry())
         .order_by(JournalEntry.id, JournalLine.line_no)
     )
     return [

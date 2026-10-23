@@ -283,6 +283,9 @@ _TERMS: list[Term] = [
     Term("ingediend", "Ingediend", "Aangifte is verstuurd",
          "Je hebt de aangifte in Mijn Belastingdienst gedaan en dat hier gemarkeerd. De maanden van die aangifte worden vergrendeld; terugdraaien kan niet. Het programma verstuurt zelf niets.",
          (_NEVER,)),
+    Term("suppletie", "Suppletie", "Verschil met een eerdere aangifte bijwerken",
+         "Is er na het indienen nog iets veranderd, dan legt een suppletie het verschil vast. Je neemt hem mee in je volgende aangifte of doet zelf een aanvullende aangifte. Het programma verstuurt niets.",
+         (_NEVER,)),
     Term("nihilaangifte", "Nihilaangifte", "Aangifte zonder btw-bedragen",
          "Een aangifte over een kwartaal of maand waarin je geen btw hebt gerekend of afgetrokken. Je moet hem toch indienen, met nul als bedrag.",
          (_NEVER,)),
@@ -337,6 +340,10 @@ _TERMS: list[Term] = [
          (_NEVER,)),
     Term("matchingregel", "Matchingregel", "Onthouden keuze voor terugkerende mutaties",
          "Het programma onthoudt je keuze, bijvoorbeeld voor maandelijkse bankkosten, en stelt die de volgende keer voor. Je bevestigt altijd zelf.",
+         (_NEVER,)),
+    Term("vergrendelde_periode", "Vergrendelde periode", "Een periode waarin niet meer geboekt wordt",
+         "Een afgesloten maand of kwartaal, bijvoorbeeld na je btw-aangifte. Bij een bankmutatie kun je er bewust toch in boeken; "
+         "controleer dan zelf of je een ingediende aangifte moet corrigeren.",
          (_NEVER,)),
     # Controle voor aangifte
     Term("controle_aangifte", "Controle voor aangifte", "Klopt dit?",

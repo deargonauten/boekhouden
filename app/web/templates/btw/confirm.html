@@ -13,12 +13,14 @@
     <ul>
       <li>De bedragen worden vastgezet: {{ snapshot.totals["5g_afgerond"]|abs|euro }} (exact {{ snapshot.totals["5g"]|abs|euro }}, afgerond voor je aangifte) {{ "te betalen" if snapshot.totals["5g"] > 0 else ("terug te vragen" if snapshot.totals["5g"] < 0 else "(niets te betalen)") }}.</li>
       <li>{{ month_count }} {{ "maand" if month_count == 1 else "maanden" }} worden vergrendeld. {{ info("vergrendelen") }} Je kunt daarna niets meer boeken in {{ "die maand" if month_count == 1 else "die maanden" }}.</li>
+      {% if snapshot.supplements %}<li>Suppleties die worden meegenomen: {% for s in snapshot.supplements %}{{ s.label }} ({{ s.total_cents|euro }}){% if not loop.last %}, {% endif %}{% endfor %}. {{ info("suppletie") }} Ze zijn daarna niet meer te verwijderen.</li>{% endif %}
       {% if closes_year %}<li>Het boekjaar {{ period.year }} wordt daarmee afgesloten.</li>{% endif %}
     </ul>
     <p><strong>Dit kun je niet terugdraaien.</strong></p>
   </div>
 </section>
 <form method="post" action="{{ base }}/indienen" class="settings-form" hx-boost="false">
+  {% for i in supplement_ids %}<input type="hidden" name="suppletie" value="{{ i }}">{% endfor %}
   <div class="field">
     <label for="filed_on">Datum waarop je de aangifte deed</label>
     <input id="filed_on" name="filed_on" type="date" value="{{ values.filed_on }}" required>

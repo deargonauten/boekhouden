@@ -302,6 +302,12 @@ VAT_KOR_START_INVALID = "VAT_KOR_START_INVALID"
 VAT_KOR_FILED = "VAT_KOR_FILED"
 VAT_ENTRY_NOT_FOUND = "VAT_ENTRY_NOT_FOUND"
 VAT_CONTACT_NOT_FOUND = "VAT_CONTACT_NOT_FOUND"
+VAT_NOT_FILED = "VAT_NOT_FILED"
+VAT_NO_DIFFERENCE = "VAT_NO_DIFFERENCE"
+VAT_SUPPLEMENT_EXISTS = "VAT_SUPPLEMENT_EXISTS"
+VAT_SUPPLEMENT_NOT_FOUND = "VAT_SUPPLEMENT_NOT_FOUND"
+VAT_SUPPLEMENT_INCLUDED = "VAT_SUPPLEMENT_INCLUDED"
+VAT_SUPPLEMENT_INVALID = "VAT_SUPPLEMENT_INVALID"
 
 VAT_MESSAGES: dict[str, str] = {
     VAT_PERIOD_INVALID: "Deze periode bestaat niet. Kies een kwartaal van 1 tot 4 of een maand van 1 tot 12.",
@@ -322,6 +328,18 @@ VAT_MESSAGES: dict[str, str] = {
     VAT_KOR_FILED: "Je kunt de KOR niet wijzigen voor {periode}: daarover heb je al een btw-aangifte ingediend.",
     VAT_ENTRY_NOT_FOUND: "Deze boeking bestaat niet. Ga terug naar de btw-aangifte en kies de boeking opnieuw.",
     VAT_CONTACT_NOT_FOUND: "Deze relatie bestaat niet meer. Kies een andere klant.",
+    VAT_NOT_FILED: "Deze aangifte is nog niet ingediend, dus er valt niets te corrigeren met een suppletie. Pas de boekingen gewoon aan.",
+    VAT_NO_DIFFERENCE: "Er is geen verschil met de ingediende aangifte, dus een suppletie is niet nodig.",
+    VAT_SUPPLEMENT_EXISTS: (
+        "Er is al een suppletie voor {periode} die nog niet is meegenomen. "
+        "Verwijder die eerst, of neem hem mee in je volgende aangifte."
+    ),
+    VAT_SUPPLEMENT_NOT_FOUND: "Deze suppletie bestaat niet (meer). Ga terug naar de btw-aangifte.",
+    VAT_SUPPLEMENT_INCLUDED: "Deze suppletie is al meegenomen in een ingediende aangifte, dus je kunt hem niet meer verwijderen.",
+    VAT_SUPPLEMENT_INVALID: (
+        "Je kunt deze suppletie niet meenemen: hij is al meegenomen of hoort bij dezelfde of een latere periode. "
+        "Vink hem uit en probeer het opnieuw."
+    ),
 }
 
 
@@ -366,4 +384,10 @@ _VAT_CLASSES: dict[str, type[VatReturnError]] = {
     VAT_KOR_FILED: _vat_class("VatKorFiledError", VAT_KOR_FILED),
     VAT_ENTRY_NOT_FOUND: _vat_class("VatEntryNotFoundError", VAT_ENTRY_NOT_FOUND),
     VAT_CONTACT_NOT_FOUND: _vat_class("VatContactNotFoundError", VAT_CONTACT_NOT_FOUND),
+    VAT_NOT_FILED: _vat_class("VatNotFiledError", VAT_NOT_FILED),
+    VAT_NO_DIFFERENCE: _vat_class("VatNoDifferenceError", VAT_NO_DIFFERENCE),
+    VAT_SUPPLEMENT_EXISTS: _vat_class("VatSupplementExistsError", VAT_SUPPLEMENT_EXISTS),
+    VAT_SUPPLEMENT_NOT_FOUND: _vat_class("VatSupplementNotFoundError", VAT_SUPPLEMENT_NOT_FOUND),
+    VAT_SUPPLEMENT_INCLUDED: _vat_class("VatSupplementIncludedError", VAT_SUPPLEMENT_INCLUDED),
+    VAT_SUPPLEMENT_INVALID: _vat_class("VatSupplementInvalidError", VAT_SUPPLEMENT_INVALID),
 }

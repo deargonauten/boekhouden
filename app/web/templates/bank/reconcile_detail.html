@@ -137,6 +137,10 @@
 
     <div id="reconcile-summary" aria-live="polite">{% include "bank/_reconcile_summary.html" %}</div>
   </div>
+  {% if period_locked or state.allow_locked %}
+  <label class="check"><input type="checkbox" name="allow_locked" value="1"{% if state.allow_locked %} checked{% endif %}>
+    Ik weet dat deze periode vergrendeld is en wil de mutatie toch boeken {{ info("vergrendelde_periode") }}</label>
+  {% endif %}
   <div class="cluster">
     <button type="submit" class="btn">Boeken en volgende</button>
     <a class="btn btn-secondary" href="/bank/transacties/{{ t.id }}/overslaan?terug={{ back|urlencode }}">Overslaan</a>

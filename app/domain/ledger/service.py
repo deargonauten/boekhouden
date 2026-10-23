@@ -128,8 +128,8 @@ def _error(code: str, message: str) -> LedgerError:
     return LedgerError(code, message)
 
 
-def _find_period(session: Session, day: date) -> Period:
-    """Return the open period containing `day`, or raise."""
+def _find_period(session: Session, day: date, *, allow_locked: bool = False) -> Period:
+    """Return the open period containing `day`, or raise. `allow_locked` is the user's explicit override."""
     period = session.scalar(
         select(Period).where(Period.start_date <= day, Period.end_date >= day)
     )
@@ -139,7 +139,7 @@ def _find_period(session: Session, day: date) -> Period:
             f"Er is geen boekjaar voor {day:%d-%m-%Y}. Maak eerst het boekjaar aan "
             "onder Instellingen > Boekjaren.",
         )
-    if period.status != "open":
+    if period.status != "open" and not allow_locked:
         raise _error(
             "PERIOD_LOCKED",
             f"De periode van {day:%d-%m-%Y} is vergrendeld, dus je kunt er niet meer in boeken. "
@@ -215,6 +215,7 @@ def _post(
     *,
     reverses_entry_id: int | None = None,
     strict_refs: bool = True,
+    allow_locked_period: bool = False,
 ) -> JournalEntry:
     validate_entry(new)
     if new.kind not in ENTRY_KINDS:
@@ -230,10 +231,14 @@ def _post(
         )
     _check_accounts(session, new.lines, check_active=strict_refs)
     _check_vat_codes(session, new.lines, check_active=strict_refs)
-    period = _find_period(session, new.booking_date)
+    period = _find_period(session, new.booking_date, allow_locked=allow_locked_period)
 
     # Savepoint: a failure after the sequence bump must not consume a number.
     with session.begin_nested():
+        override = allow_locked_period and period.status != "open"
+        if override:
+            # The DB triggers also guard the lock; open the gate for exactly this posting.
+            session.execute(text("UPDATE locked_booking_override SET active = 1 WHERE id = 1"))
         seq = _next_number(session, journal.id, period.fiscal_year_id)
         year = session.scalar(select(FiscalYear.year).where(FiscalYear.id == period.fiscal_year_id))
         entry = JournalEntry(
@@ -249,16 +254,19 @@ def _post(
         session.add(entry)
         session.flush()
         _insert_lines(session, entry.id, new.lines)
+        if override:
+            session.execute(text("UPDATE locked_booking_override SET active = 0 WHERE id = 1"))
     return entry
 
 
 # --- posting ---------------------------------------------------------------
 
 
-def post_entry(session: Session, new: NewEntry) -> JournalEntry:
+def post_entry(session: Session, new: NewEntry, *, allow_locked_period: bool = False) -> JournalEntry:
+    """`allow_locked_period` books in a vergrendelde periode; callers set it only on explicit user consent."""
     if new.kind == "storno":
         raise _error("INVALID_ENTRY", "Een stornoboeking maak je vanuit de boeking zelf, met 'Stornoboeking maken'.")
-    return _post(session, new)
+    return _post(session, new, allow_locked_period=allow_locked_period)
 
 
 def _entry_lines(session: Session, entry_id: int) -> list[JournalLine]:

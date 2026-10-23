@@ -1,0 +1,15 @@
+{# Concept aangifte: which suppleties to take along. Context: available, chosen_ids, base #}
+<form method="get" action="{{ base }}" class="card" hx-boost="false">
+  <div class="card__header"><h2>Welke suppleties wil je meenemen in deze aangifte? {{ info("suppletie") }}</h2></div>
+  <div class="card__body">
+    <input type="hidden" name="gekozen" value="1">
+    {% for s in available %}
+    <label class="check">
+      <input type="checkbox" name="suppletie" value="{{ s.id }}"{% if s.id in chosen_ids %} checked{% endif %} onchange="this.form.submit()">
+      <span>Suppletie over <strong>{{ s.period.label }}</strong>, btw verschil <strong>{{ s.total_cents|euro }}</strong></span>
+    </label>
+    {% endfor %}
+    <noscript><button type="submit" class="btn btn-secondary">Bijwerken</button></noscript>
+    <p class="hint">Aangevinkte suppleties tellen mee in de bedragen hieronder en worden vastgelegd als je de aangifte indient.</p>
+  </div>
+</form>

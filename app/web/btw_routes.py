@@ -6,7 +6,7 @@ No btw logic lives here; see app.domain.vat. Downloads (pdf/csv) live in btw_exp
 import logging
 from datetime import date
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -19,10 +19,11 @@ from app.domain.vat.periods import is_overdue
 
 router = APIRouter(include_in_schema=False)
 
-NOT_FOUND_CODES = {"VAT_PERIOD_INVALID", "VAT_ENTRY_NOT_FOUND", "VAT_CONTACT_NOT_FOUND"}
+NOT_FOUND_CODES = {"VAT_PERIOD_INVALID", "VAT_ENTRY_NOT_FOUND", "VAT_CONTACT_NOT_FOUND", "VAT_SUPPLEMENT_NOT_FOUND"}
 CONFLICT_CODES = {
     "VAT_ALREADY_FILED", "VAT_EARLIER_NOT_FILED", "VAT_KOR_NO_RETURN", "VAT_ENTRY_LOCKED",
-    "VAT_FREQUENCY_CONFLICT", "VAT_KOR_FILED", "PERIOD_LOCKED",
+    "VAT_FREQUENCY_CONFLICT", "VAT_KOR_FILED", "PERIOD_LOCKED", "VAT_NOT_FILED", "VAT_NO_DIFFERENCE",
+    "VAT_SUPPLEMENT_EXISTS", "VAT_SUPPLEMENT_INCLUDED",
 }
 KIND_LABELS = {"quarter": "Per kwartaal", "month": "Per maand"}
 STATUS_LABELS = {"niet_gestart": "Nog niet gestart", "concept": "Concept", "ingediend": "Ingediend"}
@@ -126,9 +127,38 @@ def _controle_report(session: Session, period: vat.VatPeriod):
         return None
 
 
-def _return_page(request: Request, session: Session, period: vat.VatPeriod, *, error=None, status=200):
-    snapshot = vat.get_snapshot(session, period)
-    filed = snapshot.status == "ingediend"
+TABS = ("vastgelegd", "stand", "suppletie")
+
+
+def _chosen_supplements(session: Session, period: vat.VatPeriod, chosen: list[int] | None) -> list[int]:
+    """Ids of the suppleties to take along: the user's choice, by default all that are available."""
+    available = [s.id for s in vat.available_supplements(session, period)]
+    return available if chosen is None else [i for i in available if i in chosen]
+
+
+def _supplement_context(session: Session, period: vat.VatPeriod, filed: bool, tab: str, chosen: list[int] | None) -> dict:
+    if filed:
+        comparison = vat.compare_with_filed(session, period)
+        history = vat.supplements_of(session, period)
+        shown = comparison.open_supplement or (history[-1] if history else None)
+        return {
+            "tab": tab if tab in TABS and (tab != "suppletie" or shown) else ("stand" if comparison.differs else "vastgelegd"),
+            "comparison": comparison, "supplement": shown, "available": [], "chosen_ids": [],
+        }
+    available = vat.available_supplements(session, period)
+    return {
+        "tab": "vastgelegd", "comparison": None, "supplement": None, "available": available,
+        "chosen_ids": _chosen_supplements(session, period, chosen),
+    }
+
+
+def _return_page(
+    request: Request, session: Session, period: vat.VatPeriod, *, error=None, status=200,
+    tab: str = "", chosen: list[int] | None = None,
+):
+    filed = vat.get_return(session, period) is not None
+    ctx_supplement = _supplement_context(session, period, filed, tab, chosen)
+    snapshot = vat.get_snapshot(session, period, supplement_ids=ctx_supplement["chosen_ids"])
     total = snapshot.totals["5g"]
     direction = "pay" if total > 0 else "refund" if total < 0 else "zero"
     return _render(
@@ -142,14 +172,53 @@ def _return_page(request: Request, session: Session, period: vat.VatPeriod, *, e
         kor_limit_cents=vat.KOR_LIMIT_CENTS,
         base=_path(period),
         controle=None if filed else _controle_report(session, period),
+        **ctx_supplement,
         **_icp_context(session, snapshot, filed),
     )
 
 
 @router.get("/btw/{year}/{kind}/{number}")
-def btw_return(request: Request, year: str, kind: str, number: str, session: Session = Depends(get_session)):
+def btw_return(
+    request: Request, year: str, kind: str, number: str, tab: str = "",
+    gekozen: str = "", suppletie: list[int] = Query(default=[]), session: Session = Depends(get_session),
+):
     period, missing = _period_or_404(request, year, kind, number)
-    return missing or _return_page(request, session, period)
+    return missing or _return_page(request, session, period, tab=tab, chosen=suppletie if gekozen else None)
+
+
+# --- suppletie ---------------------------------------------------------------------------
+
+
+@router.post("/btw/{year}/{kind}/{number}/suppletie")
+def btw_supplement_create(request: Request, year: str, kind: str, number: str, session: Session = Depends(get_session)):
+    period, missing = _period_or_404(request, year, kind, number)
+    if missing:
+        return missing
+    try:
+        vat.create_supplement(session, period)
+        session.commit()
+    except LedgerError as exc:
+        session.rollback()
+        return _return_page(request, session, period, error=exc.message, status=_status_for(exc), tab="stand")
+    return RedirectResponse(_path(period) + "?tab=suppletie", status_code=303)
+
+
+@router.post("/btw/{year}/{kind}/{number}/suppletie/{supplement_id}/verwijderen")
+def btw_supplement_delete(
+    request: Request, year: str, kind: str, number: str, supplement_id: int, session: Session = Depends(get_session),
+):
+    period, missing = _period_or_404(request, year, kind, number)
+    if missing:
+        return missing
+    try:
+        vat.delete_supplement(session, supplement_id)
+        session.commit()
+    except LedgerError as exc:
+        session.rollback()
+        if _status_for(exc) == 404:
+            return web.not_found_response(request)
+        return _return_page(request, session, period, error=exc.message, status=_status_for(exc), tab="suppletie")
+    return RedirectResponse(_path(period) + "?tab=stand", status_code=303)
 
 
 @router.get("/btw/{year}/{kind}/{number}/rubriek/{rubriek}")
@@ -204,32 +273,40 @@ def btw_couple_klant(
 # --- indienen ---------------------------------------------------------------------------
 
 
-def _confirm_page(request, session, period, *, error=None, status=200, values=None):
+def _confirm_page(request, session, period, *, error=None, status=200, values=None, supplement_ids=()):
     return _render(
         request, "btw/confirm.html", status,
         title=f"Aangifte {period.label} indienen", period=period, base=_path(period),
         month_count=len(vat.months(period)), closes_year=max(vat.months(period)) == 12, error=error,
         values=values or {"filed_on": date.today().isoformat(), "reference": ""},
-        snapshot=vat.get_snapshot(session, period),
+        snapshot=vat.get_snapshot(session, period, supplement_ids=supplement_ids),
+        supplement_ids=list(supplement_ids),
         kor=vat.is_kor(period, vat.get_vat_settings(session)),
         controle=_controle_report(session, period),
     )
 
 
 @router.get("/btw/{year}/{kind}/{number}/indienen")
-def btw_confirm(request: Request, year: str, kind: str, number: str, session: Session = Depends(get_session)):
+def btw_confirm(
+    request: Request, year: str, kind: str, number: str, suppletie: list[int] = Query(default=[]),
+    session: Session = Depends(get_session),
+):
     period, missing = _period_or_404(request, year, kind, number)
     if missing:
         return missing
     if vat.get_return(session, period) is not None:
         return _return_page(request, session, period, error=VAT_MESSAGES["VAT_ALREADY_FILED"], status=409)
-    return _confirm_page(request, session, period)
+    try:
+        return _confirm_page(request, session, period, supplement_ids=suppletie)
+    except LedgerError as exc:
+        return _return_page(request, session, period, error=exc.message, status=_status_for(exc))
 
 
 @router.post("/btw/{year}/{kind}/{number}/indienen")
 def btw_file(
     request: Request, year: str, kind: str, number: str,
-    filed_on: str = Form(""), reference: str = Form(""), session: Session = Depends(get_session),
+    filed_on: str = Form(""), reference: str = Form(""), suppletie: list[int] = Form(default=[]),
+    session: Session = Depends(get_session),
 ):
     period, missing = _period_or_404(request, year, kind, number)
     if missing:
@@ -237,11 +314,17 @@ def btw_file(
     values = {"filed_on": filed_on, "reference": reference}
     try:
         day = _parse_date(filed_on) or date.today()
-        vat.file_vat_return(session, period, filed_on=day, reference=reference.strip() or None)
+        vat.file_vat_return(session, period, filed_on=day, reference=reference.strip() or None, supplement_ids=suppletie)
         session.commit()
     except LedgerError as exc:
         session.rollback()
-        return _confirm_page(request, session, period, error=exc.message, status=_status_for(exc), values=values)
+        try:
+            return _confirm_page(
+                request, session, period, error=exc.message, status=_status_for(exc), values=values,
+                supplement_ids=suppletie,
+            )
+        except LedgerError:
+            return _return_page(request, session, period, error=exc.message, status=_status_for(exc))
     return RedirectResponse(_path(period), status_code=303)
 
 

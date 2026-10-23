@@ -10,6 +10,18 @@
 {% if error %}{{ error_box(error) }}{% endif %}
 <p class="hint">Downloaden kan als PDF of als CSV-bestand. {{ info("csv_export") }}</p>
 
+{% if filed %}
+<nav class="tabs" aria-label="Weergave van de aangifte">
+  <span class="tab"><a href="{{ base }}?tab=vastgelegd"{% if tab == "vastgelegd" %} aria-current="page"{% endif %}>Vastgelegde btw-aangifte</a></span>
+  <span class="tab"><a href="{{ base }}?tab=stand"{% if tab == "stand" %} aria-current="page"{% endif %}>{% if comparison.differs %}{{ icon("alert") }} {% endif %}Stand per vandaag</a></span>
+  {% if supplement %}<span class="tab"><a href="{{ base }}?tab=suppletie"{% if tab == "suppletie" %} aria-current="page"{% endif %}>Suppletie</a></span>{% endif %}
+</nav>
+{% endif %}
+{% if filed and tab == "stand" %}
+{% include "btw/_stand.html" %}
+{% elif filed and tab == "suppletie" %}
+{% include "btw/_suppletie.html" %}
+{% else %}
 <p>
   {% if filed %}{{ pill("Ingediend", "success") }} {{ info("ingediend") }} op {{ snapshot.filed_on.strftime("%d-%m-%Y") }}{% if snapshot.reference %}, ontvangstnummer {{ snapshot.reference }}{% endif %}.
   Dit zijn de bedragen zoals ze toen waren. De periode is vergrendeld. {{ info("vergrendelen") }}
@@ -30,6 +42,12 @@
 {% endif %}
 
 {% if controle %}{% include "controle/_banner.html" %}{% endif %}
+{% if available %}{% include "btw/_supplement_choice.html" %}{% endif %}
+{% if filed and snapshot.supplements %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>In deze aangifte zijn suppleties meegenomen: {% for s in snapshot.supplements %}{{ s.label }} ({{ s.total_cents|euro }}){% if not loop.last %}, {% endif %}{% endfor %}. {{ info("suppletie") }}</div></div>
+{% elif snapshot.supplements %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Meegenomen suppleties: {% for s in snapshot.supplements %}{{ s.label }} ({{ s.total_cents|euro }}){% if not loop.last %}, {% endif %}{% endfor %}.</div></div>
+{% endif %}
 
 {% if snapshot.warnings %}
 <section class="card">
@@ -74,6 +92,8 @@
   {% include "btw/_icp.html" %}
 </section>
 
+{% endif %}{# tab vastgelegd #}
+
 {% if not filed %}
 <section class="card">
   <div class="card__header"><h2>Heb je de aangifte gedaan?</h2></div>
@@ -82,11 +102,11 @@
     <p>Voor deze periode hoef je geen aangifte te doen, dus je kunt hem ook niet als ingediend markeren.</p>
     {% else %}
     <p>Doe de aangifte eerst bij Mijn Belastingdienst Zakelijk. Markeer hem daarna hier als ingediend. {{ info("ingediend") }}</p>
-    <a class="btn" href="{{ base }}/indienen">Markeer als ingediend</a>
+    <a class="btn" href="{{ base }}/indienen{% if chosen_ids %}?{% for i in chosen_ids %}suppletie={{ i }}{% if not loop.last %}&amp;{% endif %}{% endfor %}{% endif %}">Markeer als ingediend</a>
     {% endif %}
   </div>
 </section>
 {% else %}
-<p class="hint">Klopt er iets niet? Boek een correctie in de huidige open periode. Die komt mee in je volgende aangifte.</p>
+<p class="hint">Klopt er iets niet meer? Kijk onder "Stand per vandaag": daar maak je een suppletie {{ info("suppletie") }} die je meeneemt in je volgende aangifte. Je kunt ook een correctieboeking maken in de huidige open periode.</p>
 {% endif %}
 {% endblock %}

@@ -62,3 +62,24 @@ class VatEntryContact(Base):
     entry_id: Mapped[int] = mapped_column(ForeignKey("journal_entry.id"), primary_key=True, autoincrement=False)
     contact_id: Mapped[int] = mapped_column(ForeignKey("contact.id"))
     updated_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class VatSupplement(Base):
+    """A suppletie: the frozen difference of a filed period, to be taken along in a later aangifte.
+
+    Deletable until `included_in_return_id` is set; then immutable (database triggers).
+    """
+
+    __tablename__ = "vat_supplement"
+    __table_args__ = (CheckConstraint("kind IN ('quarter','month')", name="ck_vat_supplement_kind"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    year: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String)
+    number: Mapped[int] = mapped_column(Integer)
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    snapshot_json: Mapped[str] = mapped_column(Text)
+    total_cents: Mapped[int] = mapped_column(Integer)
+    included_in_return_id: Mapped[int | None] = mapped_column(ForeignKey("vat_return.id"))

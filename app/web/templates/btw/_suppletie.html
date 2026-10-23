@@ -1,0 +1,30 @@
+{# One suppletie. Context: supplement, base, period #}
+<div class="cluster">
+  {% if supplement.included_in is none %}
+  <form method="post" action="{{ base }}/suppletie/{{ supplement.id }}/verwijderen" hx-boost="false"><button type="submit" class="btn btn-secondary">Verwijderen</button></form>
+  {% else %}
+  {{ pill("Meegenomen in " ~ supplement.included_in.label, "success") }}
+  {% endif %}
+</div>
+
+{% if supplement.included_in is none %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Deze suppletie is mee te nemen bij een volgende btw-aangifte. Om dit te doen vink je hem aan op die aangifte. {{ info("suppletie") }} Is het verschil niet meer van toepassing, dan kun je de suppletie verwijderen en zo nodig opnieuw maken.</div></div>
+{% else %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Deze suppletie is meegenomen in de aangifte over {{ supplement.included_in.label }} en staat vast.</div></div>
+{% endif %}
+
+<section class="card card--flush">
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Onderdeel (rubriek) {{ info("rubriek") }}</th><th class="num">Omzet</th><th class="num">Btw</th></tr></thead>
+    <tbody>
+    {% for l in supplement.lines %}
+    <tr><td>{{ l.label }} ({{ l.rubriek }})</td><td class="num">{{ l.grondslag_cents|euro }}</td><td class="num">{{ l.vat_cents|euro }}</td></tr>
+    {% endfor %}
+    <tr><td>Btw die je moet afdragen (5a)</td><td></td><td class="num">{{ supplement.totals["5a"]|euro }}</td></tr>
+    <tr><td>Voorbelasting (5b) {{ info("voorbelasting") }}</td><td></td><td class="num">{{ supplement.totals["5b"]|euro }}</td></tr>
+    <tr><td><strong>Verschil (5g)</strong></td><td></td><td class="num"><strong>{{ supplement.totals["5g"]|euro }}</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>

@@ -249,6 +249,18 @@ def test_locked_period_refused_with_plain_message(session, invoice, make_txn):
     assert session.get(BankTransaction, t.id).status == "nieuw"
 
 
+def test_locked_period_booked_only_with_explicit_consent(session, invoice, make_txn):
+    pi, _ = invoice()
+    period = session.scalar(select(Period).where(Period.start_date <= date(2025, 4, 1), Period.end_date >= date(2025, 4, 1)))
+    lock_period(session, period.id)
+    session.commit()
+    t = make_txn()
+    entry = book(session, t.id, [inv(pi)], allow_locked_period=True)
+    session.commit()
+    assert entry.period_id == period.id
+    assert session.get(BankTransaction, t.id).status == "geboekt"
+
+
 def test_duplicate_item_in_allocations_refused(session, invoice, make_txn):
     pi, _ = invoice()
     t = make_txn(-12100)

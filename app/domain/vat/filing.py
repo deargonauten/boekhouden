@@ -7,8 +7,9 @@ whole operation runs in a savepoint so a failure leaves no half-locked periods.
 """
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
+from typing import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -35,12 +36,23 @@ from app.domain.vat.report import (
     build_vat_report,
     has_entries,
     round_final_cents,
+    round_whole_cents,
 )
 from app.domain.vat.settlement import settle_vat_period
+from app.domain.vat.supplement import Supplement, compare_with_filed, mark_included, pick_supplements
 from app.domain.vat.settings import get_vat_settings, is_kor
 from app.models import CompanyProfile, FiscalYear, Period, VatReturn
 
 SNAPSHOT_VERSION = 1
+
+
+@dataclass(frozen=True)
+class SupplementRef:
+    """A suppletie taken along in an aangifte: what it corrects and by how much."""
+
+    id: int
+    label: str  # the corrected period, e.g. 'Q3 2026'
+    total_cents: int
 
 
 @dataclass
@@ -59,6 +71,7 @@ class ReturnSnapshot:
     filed_on: date | None
     reference: str | None
     is_concept: bool
+    supplements: list[SupplementRef] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -73,6 +86,8 @@ class ReturnRow:
     direction: str | None  # 'pay' | 'refund' | 'zero' (see report.DIRECTION_LABELS)
     kor: str  # 'none' | 'partial' | 'full'
     filed_on: date | None = None
+    differs: bool = False  # ingediend, but the books changed since
+    open_supplement: bool = False
 
     @property
     def rounded_cents(self) -> int | None:
@@ -121,6 +136,7 @@ def snapshot_to_json(s: ReturnSnapshot) -> str:
         "filed_on": s.filed_on.isoformat() if s.filed_on else None,
         "reference": s.reference,
         "is_concept": s.is_concept,
+        "supplements": [{"id": r.id, "label": r.label, "total_cents": r.total_cents} for r in s.supplements],
     }
     return json.dumps(data, sort_keys=True, ensure_ascii=False)
 
@@ -144,6 +160,7 @@ def snapshot_from_json(raw: str) -> ReturnSnapshot:
         filed_on=date.fromisoformat(d["filed_on"]) if d["filed_on"] else None,
         reference=d["reference"],
         is_concept=d["is_concept"],
+        supplements=[SupplementRef(**r) for r in d.get("supplements", [])],
     )
 
 
@@ -153,26 +170,51 @@ def _with_rounded(totals: dict[str, int]) -> dict[str, int]:
     return totals
 
 
+def _merge_supplements(lines: list[RubriekLine], totals: dict[str, int], supplements: list[Supplement]):
+    """Add the differences of the taken-along suppleties to the rubriek lines and totals."""
+    grondslag: dict[str, int] = {}
+    vat: dict[str, int] = {}
+    for s in supplements:
+        for l in s.lines:
+            grondslag[l.rubriek] = grondslag.get(l.rubriek, 0) + l.grondslag_cents
+            vat[l.rubriek] = vat.get(l.rubriek, 0) + l.vat_cents
+    merged = [
+        RubriekLine(l.rubriek, l.side, l.label, l.grondslag_cents + grondslag.get(l.rubriek, 0),
+                    round_whole_cents(l.grondslag_cents + grondslag.get(l.rubriek, 0)),
+                    l.vat_cents + vat.get(l.rubriek, 0))
+        for l in lines
+    ]
+    five_a = totals["5a"] + sum(s.totals["5a"] for s in supplements)
+    five_b = totals["5b"] + sum(s.totals["5b"] for s in supplements)
+    new_totals = {"5a": five_a, "5b": five_b, "5c": five_a - five_b, "5g": five_a - five_b,
+                  "5g_afgerond": round_final_cents(five_a - five_b)}
+    return merged, new_totals
+
+
 def _live_snapshot(
     session: Session, period: VatPeriod, *, status: str, filed_on: date | None, reference: str | None,
+    supplements: list[Supplement] | None = None,
 ) -> ReturnSnapshot:
     start, end = period_range(period)
     report = build_vat_report(session, start, end)
     icp = build_icp(session, start, end)
     company = session.get(CompanyProfile, 1)
+    supplements = supplements or []
+    lines, totals = _merge_supplements(report.lines, dict(report.totals), supplements)
     return ReturnSnapshot(
         period=period,
         status=status,
         company_name=company.legal_name if company else "",
         btw_id=company.btw_id if company else None,
-        lines=report.lines,
-        totals=dict(report.totals),
+        lines=lines,
+        totals=totals,
         icp=icp.rows,
         icp_unassigned=icp.unassigned,
         warnings=[*report.warnings, *icp.warnings],
         filed_on=filed_on,
         reference=reference,
         is_concept=status == "concept",
+        supplements=[SupplementRef(s.id, s.period.label, s.total_cents) for s in supplements],
     )
 
 
@@ -200,12 +242,17 @@ def get_return(session: Session, period: VatPeriod) -> FiledReturn | None:
     return _to_filed(row) if row else None
 
 
-def get_snapshot(session: Session, period: VatPeriod, *, today: date | None = None) -> ReturnSnapshot:
-    """The stored snapshot of an ingediende aangifte, otherwise a live concept."""
+def get_snapshot(
+    session: Session, period: VatPeriod, *, today: date | None = None, supplement_ids: Sequence[int] = (),
+) -> ReturnSnapshot:
+    """The stored snapshot of an ingediende aangifte, otherwise a live concept.
+
+    A concept takes along the suppleties in `supplement_ids` (VAT_SUPPLEMENT_INVALID if one cannot be)."""
     filed = get_return(session, period)
     if filed is not None:
         return filed.snapshot
-    return _live_snapshot(session, period, status="concept", filed_on=None, reference=None)
+    picked = pick_supplements(session, period, supplement_ids)
+    return _live_snapshot(session, period, status="concept", filed_on=None, reference=None, supplements=picked)
 
 
 def kind_for_year(session: Session, year: int) -> str:
@@ -225,8 +272,9 @@ def list_returns(session: Session, year: int, kind: str, *, today: date | None =
         kor = is_kor(p, settings)
         if p.number in filed:
             r = filed[p.number]
+            comparison = compare_with_filed(session, p)
             rows.append(ReturnRow(p, "ingediend", deadline(p), False, r.total_cents, _direction(r.total_cents),
-                                  kor, r.filed_on))
+                                  kor, r.filed_on, comparison.differs, comparison.open_supplement is not None))
         elif has_entries(session, start, end):
             total = build_vat_report(session, start, end).totals["5g"]
             rows.append(ReturnRow(p, "concept", deadline(p), is_overdue(p, today), total, _direction(total), kor))
@@ -240,9 +288,11 @@ def list_returns(session: Session, year: int, kind: str, *, today: date | None =
 
 def file_vat_return(
     session: Session, vat_period: VatPeriod, *, filed_on: date, reference: str | None = None,
-    today: date | None = None,
+    today: date | None = None, supplement_ids: Sequence[int] = (),
 ) -> FiledReturn:
-    """Mark a period's aangifte as ingediend: freeze the snapshot and lock its months."""
+    """Mark a period's aangifte as ingediend: freeze the snapshot and lock its months.
+
+    `supplement_ids` takes suppleties of earlier periods along; their btw is settled with this period."""
     today = today or date.today()
     start, end = period_range(vat_period)
 
@@ -278,8 +328,10 @@ def file_vat_return(
             continue
         raise vat_error("VAT_EARLIER_NOT_FILED", periode=earlier.label)
 
+    picked = pick_supplements(session, vat_period, supplement_ids)
     with session.begin_nested():
-        snapshot = _live_snapshot(session, vat_period, status="ingediend", filed_on=filed_on, reference=reference)
+        snapshot = _live_snapshot(
+            session, vat_period, status="ingediend", filed_on=filed_on, reference=reference, supplements=picked)
         row = VatReturn(
             year=vat_period.year, kind=vat_period.kind, number=vat_period.number,
             start_date=start, end_date=end, status="ingediend", filed_on=filed_on,
@@ -288,7 +340,12 @@ def file_vat_return(
         )
         session.add(row)
         session.flush()
-        settle_vat_period(session, vat_period)
+        extra: dict[str, int] = {}
+        for s in picked:
+            for code, cents in s.settle.items():
+                extra[code] = extra.get(code, 0) + cents
+        settle_vat_period(session, vat_period, extra=extra, return_id=row.id)
+        mark_included(session, picked, row.id)
         for m in months(vat_period):
             lock_period(session, month_periods[m].id)
     return _to_filed(row)

@@ -10,6 +10,15 @@ from app.domain.vat.filing import (
     kind_for_year,
     list_returns,
 )
+from app.domain.vat.supplement import (
+    Comparison,
+    Supplement,
+    available_supplements,
+    compare_with_filed,
+    create_supplement,
+    delete_supplement,
+    supplements_of,
+)
 from app.domain.vat.icp import (
     IcpReport,
     IcpRow,
