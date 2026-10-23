@@ -18,7 +18,7 @@ from app.domain.vat.export import (
     rubrieken_csv,
 )
 from app.domain.vat.filing import ReturnSnapshot
-from app.domain.vat.icp import IcpRow
+from app.domain.vat.icp import IcpRow, IcpUnassigned
 from app.domain.vat.report import RubriekLine
 
 Q3 = VatPeriod(2026, "quarter", 3)
@@ -29,11 +29,11 @@ def line(rubriek, grondslag, vat, side="sales", label=None):
     return RubriekLine(rubriek, side, label or f"Omschrijving {rubriek}", grondslag, whole, vat)
 
 
-def snapshot(lines=None, icp=None, *, concept=True, totals=None, period=Q3, name="Jansen Advies"):
+def snapshot(lines=None, icp=None, unassigned=None, *, concept=True, totals=None, period=Q3, name="Jansen Advies"):
     return ReturnSnapshot(
         period=period, status="concept" if concept else "ingediend", company_name=name,
         btw_id="NL123456789B01", lines=lines or [], totals=totals or {"5a": 0, "5b": 0, "5c": 0, "5g": 0},
-        icp=icp or [], icp_unassigned=[], warnings=[], filed_on=None if concept else date(2026, 10, 5),
+        icp=icp or [], icp_unassigned=unassigned or [], warnings=[], filed_on=None if concept else date(2026, 10, 5),
         reference=None if concept else "REF-1", is_concept=concept,
     )
 
@@ -170,3 +170,42 @@ def test_filenames_use_slug():
     assert filename_rubrieken_csv(Q3) == "btw-aangifte-2026-Q3-rubrieken.csv"
     assert filename_icp_csv(Q3) == "btw-icp-2026-Q3.csv"
     assert filename_pdf(VatPeriod(2026, "month", 7)) == "btw-aangifte-2026-M07.pdf"
+
+
+def unassigned(n=1, goederen=250_000, diensten=0):
+    return [IcpUnassigned(entry_id=i, entry_number=f"VK-{i}", booking_date=date(2026, 8, 1),
+                          description=f"Levering {i}", goederen_cents=goederen, diensten_cents=diensten)
+            for i in range(1, n + 1)]
+
+
+def pdf_text(data: bytes) -> str:
+    return " ".join(page.extract_text() for page in PdfReader(BytesIO(data)).pages)
+
+
+def test_icp_csv_keeps_unassigned_sales_with_marker():
+    rows = rows_of(icp_csv(snapshot(unassigned=unassigned(2))))
+    assert len(rows) == 3
+    assert rows[1] == ["ONBEKEND", "", "2500", "0", "0"]
+
+
+def test_icp_csv_partially_unassigned_keeps_both():
+    s = snapshot(icp=[IcpRow(country="DE", btw_number="DE123", goederen_cents=100_000, diensten_cents=0)],
+                 unassigned=unassigned(1, diensten=5_000))
+    rows = rows_of(icp_csv(s))
+    assert rows[1][:3] == ["DE", "DE123", "1000"]
+    assert rows[2] == ["ONBEKEND", "", "2500", "50", "0"]
+
+
+def test_pdf_fully_unassigned_does_not_claim_no_eu_sales():
+    text = pdf_text(aangifte_pdf(snapshot(unassigned=unassigned(1))))
+    assert "Geen EU-verkopen" not in text
+    assert "Nog geen klant gekoppeld" in text
+    assert "VK-1" in text and "2.500" in text
+    assert "btw-nummer" in text.lower() and "koppel" in text.lower()
+
+
+def test_pdf_partially_unassigned_shows_both_tables():
+    s = snapshot(icp=[IcpRow(country="DE", btw_number="DE123", goederen_cents=100_000, diensten_cents=0,
+                             name="Klant BV")], unassigned=unassigned(1))
+    text = pdf_text(aangifte_pdf(s))
+    assert "Klant BV" in text and "Nog geen klant gekoppeld" in text and "VK-1" in text

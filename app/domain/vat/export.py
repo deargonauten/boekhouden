@@ -25,6 +25,7 @@ TOTAL_KEYS = ("5a", "5b", "5c", "5g")
 DISCLAIMER = (
     "Dit is een overzicht om over te nemen in Mijn Belastingdienst Zakelijk; het is zelf geen aangifte."
 )
+UNKNOWN_COUNTRY = "ONBEKEND"
 _INJECTION_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
@@ -87,6 +88,8 @@ def icp_csv(snapshot: ReturnSnapshot) -> bytes:
     """`landcode;btw_nummer;goederen;diensten;driehoek` in whole euros, one row per klant.
 
     Incomplete rows (no klant data yet) are kept with empty cells so the gap stays visible.
+    Sales without a linked klant follow as rows with landcode ONBEKEND and an empty btw_nummer,
+    so the file never presents an incomplete total as complete.
     """
     rows = [["landcode", "btw_nummer", "goederen", "diensten", "driehoek"]]
     for r in snapshot.icp:
@@ -94,6 +97,8 @@ def icp_csv(snapshot: ReturnSnapshot) -> bytes:
             _safe_text(r.country), _safe_text(r.btw_number),
             _whole_euros(r.goederen_cents), _whole_euros(r.diensten_cents), _whole_euros(r.driehoek_cents),
         ])
+    for u in snapshot.icp_unassigned:
+        rows.append([UNKNOWN_COUNTRY, "", _whole_euros(u.goederen_cents), _whole_euros(u.diensten_cents), "0"])
     return _csv_bytes(rows)
 
 
@@ -189,8 +194,22 @@ def aangifte_pdf(snapshot: ReturnSnapshot) -> bytes:
                           _p(format_euro(round_whole_cents(r.goederen_cents)), _RIGHT),
                           _p(format_euro(round_whole_cents(r.diensten_cents)), _RIGHT)])
         story.append(_table(irows, [14 * mm, 38 * mm, width - 14 * mm - 38 * mm - 56 * mm, 28 * mm, 28 * mm]))
-    else:
+    elif not snapshot.icp_unassigned:
         story.append(_p("Geen EU-verkopen in deze periode.", _SMALL))
+    if snapshot.icp_unassigned:
+        story.append(_p("Nog geen klant gekoppeld", _H2))
+        story.append(_p(
+            "Bij deze verkopen aan bedrijven in de EU ontbreken het land en het btw-nummer van de klant. "
+            "De ICP-opgaaf is daarom nog niet compleet. Koppel eerst bij elke boeking een klant "
+            "(met land en btw-nummer) voordat je de ICP-opgaaf afrondt.", _BASE))
+        story.append(Spacer(1, 2 * mm))
+        urows = [[_p("Boeking", _HEAD), _p("Omschrijving", _HEAD), _p("Goederen", _HEAD_RIGHT),
+                  _p("Diensten", _HEAD_RIGHT)]]
+        for u in snapshot.icp_unassigned:
+            urows.append([_p(u.entry_number), _p(u.description),
+                          _p(format_euro(round_whole_cents(u.goederen_cents)), _RIGHT),
+                          _p(format_euro(round_whole_cents(u.diensten_cents)), _RIGHT)])
+        story.append(_table(urows, [26 * mm, width - 26 * mm - 56 * mm, 28 * mm, 28 * mm]))
 
     story.append(Spacer(1, 6 * mm))
     story.append(_p(DISCLAIMER, _SMALL))

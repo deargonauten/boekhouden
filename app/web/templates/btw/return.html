@@ -23,7 +23,9 @@
 <div class="notice notice--warning" role="status">{{ icon("alert") }}<div>Een deel van deze periode valt onder de KOR {{ info("kor") }}. Controleer zelf welke boekingen meetellen.</div></div>
 {% endif %}
 
-{% if is_empty %}
+{% if is_empty and filed %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Geen btw in deze periode. Dit was een aangifte met nul als bedrag: een nihilaangifte. {{ info("nihilaangifte") }}</div></div>
+{% elif is_empty and kor != "full" %}
 <div class="notice notice--info" role="status">{{ icon("info") }}<div>Geen btw in deze periode. Je moet toch een aangifte doen, met nul als bedrag: dat heet een nihilaangifte. {{ info("nihilaangifte") }}</div></div>
 {% endif %}
 
@@ -53,7 +55,7 @@
       <td class="nowrap">{% if l.grondslag_cents or l.vat_cents %}<a href="{{ base }}/rubriek/{{ l.rubriek }}">Welke boekingen?</a>{% endif %}</td>
     </tr>
     {% endfor %}
-    <tr><td><strong>Verschuldigde btw (5a)</strong></td><td></td><td class="num">{{ snapshot.totals["5a"]|euro }}</td><td></td></tr>
+    <tr><td><strong>Btw die je moet afdragen (5a)</strong> {{ info("btw_af_te_dragen") }}</td><td></td><td class="num">{{ snapshot.totals["5a"]|euro }}</td><td></td></tr>
     <tr><td>Voorbelasting (5b) {{ info("voorbelasting") }}</td><td></td><td class="num">{{ snapshot.totals["5b"]|euro }}</td><td></td></tr>
     <tr><td>Subtotaal (5c)</td><td></td><td class="num">{{ snapshot.totals["5c"]|euro }}</td><td></td></tr>
     <tr><td><strong>{{ direction_label }} (5g)</strong></td><td></td><td class="num"><strong>{{ snapshot.totals["5g"]|abs|euro }}</strong></td><td></td></tr>

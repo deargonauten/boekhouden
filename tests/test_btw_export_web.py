@@ -81,3 +81,13 @@ def test_unknown_year_without_fiscal_year_still_exports_empty_concept(api):
     assert r.status_code in (200, 409)
     if r.status_code == 409:
         assert "boekjaar" in r.text.lower()
+
+
+def test_icp_csv_includes_sale_without_klant(api):
+    with Session(api.app.state.engine) as s:
+        book = Book.__new__(Book)
+        book.s = s
+        book.post([("1210", 70_000, 0), ("8000", 0, 70_000, "EU_GOEDEREN")], day=date(2026, 8, 5), desc="Levering", journal="VK")
+        s.commit()
+    r = api.get(f"{BASE}/icp.csv")
+    assert "ONBEKEND;;700;0;0" in r.text
