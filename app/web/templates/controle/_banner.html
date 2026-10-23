@@ -1,0 +1,13 @@
+{#- Short "Klopt dit?" banner for the aangifte and indienen pages. Context: controle (CheckReport), optional banner_confirm. Advisory, never blocks. -#}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import icon with context %}
+{% set controle_href = "/controle/" ~ controle.period.year ~ "/" ~ controle.period.kind ~ "/" ~ controle.period.number %}
+<div class="notice notice--{{ 'success' if controle.verdict == 'ok' else 'warning' }}" role="status">
+  {{ icon("check" if controle.verdict == "ok" else "alert") }}
+  <div>
+    <strong>Klopt dit?</strong> {{ info("controle_aangifte") }}
+    {{ controle.headline }}
+    <a href="{{ controle_href }}">{{ "Bekijk de controle" if controle.verdict == "ok" else "Bekijk wat je moet nakijken" }}</a>
+    {% if banner_confirm %}<br>Je kunt toch indienen als je zeker weet dat het klopt.{% endif %}
+  </div>
+</div>

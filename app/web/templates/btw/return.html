@@ -29,6 +29,8 @@
 <div class="notice notice--info" role="status">{{ icon("info") }}<div>Geen btw in deze periode. Je moet toch een aangifte doen, met nul als bedrag: dat heet een nihilaangifte. {{ info("nihilaangifte") }}</div></div>
 {% endif %}
 
+{% if controle %}{% include "controle/_banner.html" %}{% endif %}
+
 {% if snapshot.warnings %}
 <section class="card">
   <div class="card__header"><h2>Controleer dit</h2></div>

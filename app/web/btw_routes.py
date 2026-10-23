@@ -3,6 +3,7 @@
 No btw logic lives here; see app.domain.vat. Downloads (pdf/csv) live in btw_export_routes.
 """
 
+import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app import web
 from app.db import get_session
-from app.domain import ledger, vat
+from app.domain import checks, ledger, vat
 from app.domain.errors import VAT_MESSAGES, LedgerError
 from app.domain.relations.service import list_contacts
 from app.domain.vat.periods import is_overdue
@@ -51,6 +52,9 @@ def _parse_date(raw: str) -> date | None:
         return date.fromisoformat(raw)
     except ValueError:
         raise LedgerError("VAT_DATE_INVALID", "Vul een geldige datum in, bijvoorbeeld 2026-07-01.")
+
+
+logger = logging.getLogger(__name__)
 
 
 def _path(period: vat.VatPeriod) -> str:
@@ -113,6 +117,15 @@ def _icp_context(session: Session, snapshot, locked: bool) -> dict:
     return {"snapshot": snapshot, "icp_locked": locked, "customers": customers, "suggestions": suggestions}
 
 
+def _controle_report(session: Session, period: vat.VatPeriod):
+    """The advisory check report for the banner; None (banner omitted) if the checks fail."""
+    try:
+        return checks.run_checks(session, period)
+    except Exception:
+        logger.exception("Controle voor aangifte failed for %s; banner omitted", period.label)
+        return None
+
+
 def _return_page(request: Request, session: Session, period: vat.VatPeriod, *, error=None, status=200):
     snapshot = vat.get_snapshot(session, period)
     filed = snapshot.status == "ingediend"
@@ -128,6 +141,7 @@ def _return_page(request: Request, session: Session, period: vat.VatPeriod, *, e
         is_empty=not any(l.grondslag_cents or l.vat_cents for l in snapshot.lines) and not any(snapshot.totals.values()),
         kor_limit_cents=vat.KOR_LIMIT_CENTS,
         base=_path(period),
+        controle=None if filed else _controle_report(session, period),
         **_icp_context(session, snapshot, filed),
     )
 
@@ -198,6 +212,7 @@ def _confirm_page(request, session, period, *, error=None, status=200, values=No
         values=values or {"filed_on": date.today().isoformat(), "reference": ""},
         snapshot=vat.get_snapshot(session, period),
         kor=vat.is_kor(period, vat.get_vat_settings(session)),
+        controle=_controle_report(session, period),
     )
 
 
