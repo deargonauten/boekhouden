@@ -9,3 +9,5 @@ A merged (2382 passed, 1 expected glossary-usage failure until B). Wave 2: B + C
 C merged (2440 passed, 1 expected glossary failure). Waiting for B (kind values: quarter|month|kwartaal|maand).
 Integrated A+B+C. Tests: .venv/bin/python -m pytest -q -> 2476 passed, 1 deselected (2026-10-23). Step 3 review round 1 starting (codex). Base: main
 Review round 1: security PASS, code REWORK (3), ux-ui REWORK (2). Fix builders D (filing.py, report.py) and E (export.py, return.html) started.
+E merged (2483 passed on E branch). Waiting for D.
+D merged. Tests: .venv/bin/python -m pytest -q -> 2485 passed, 1 deselected (2026-10-23). Review round 2 started (delta since e16e3c8).
