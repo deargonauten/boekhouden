@@ -21,7 +21,6 @@ from app.domain.purchase.errors import (
     DUPLICATE_INVOICE,
     NO_JOURNAL,
     NOT_REVIEWED,
-    UNSUPPORTED_VAT,
 )
 from app.models import (
     Document,
@@ -215,12 +214,46 @@ def test_unknown_document(session, year2025):
         prepare_booking(session, 4242)
 
 
-def test_unsupported_vat(session, year2025, make_extraction):
-    doc = make_extraction(lines=[("Dienst", 10000, 0, "VERLEGD", "4625")])
+def test_eu_service_invoice_books_verlegde_btw(session, year2025, make_extraction):
+    doc = make_extraction(lines=[("Hosting", 10000, 0, "EU_DIENSTEN", "4625")])
+    invoice = book_extraction(session, doc.id)
+    session.commit()
+    assert invoice.currency == "EUR" and invoice.exchange_rate_micro is None
+    assert (invoice.total_excl_cents, invoice.total_vat_cents, invoice.total_incl_cents) == (10000, 0, 10000)
+    assert balance(session, "4625") == 10000
+    assert balance(session, "1410") == 2100
+    assert balance(session, "3130") == -2100
+    assert balance(session, "3000") == -10000
+    assert balance(session, "1400") == 0
+
+
+def test_foreign_currency_invoice_is_booked_in_euro_and_keeps_original(session, year2025, make_extraction):
+    doc = make_extraction(
+        lines=[("Hosting", 10000, 0, "EU_DIENSTEN", "4625")], currency="USD", exchange_rate_micro=1_250_000,
+    )
+    invoice = book_extraction(session, doc.id)
+    session.commit()
+    assert invoice.currency == "USD"
+    assert invoice.exchange_rate_micro == 1_250_000
+    assert invoice.original_total_incl_cents == 10000
+    assert invoice.total_incl_cents == 8000
+    assert balance(session, "3000") == -8000
+    assert balance(session, "3130") == -1680
+
+
+def test_foreign_currency_without_rate_is_refused(session, year2025, make_extraction):
+    doc = make_extraction(currency="USD")
     with pytest.raises(BookingError) as exc:
         book_extraction(session, doc.id)
-    assert exc.value.code == UNSUPPORTED_VAT
+    assert exc.value.code == "MISSING_FIELD" and exc.value.field == "exchange_rate"
     assert_nothing_booked(session, doc)
+
+
+def test_shifted_vat_rate_is_taken_from_the_review(session, year2025, make_extraction):
+    doc = make_extraction(lines=[("Boek", 10000, 0, "EU_GOEDEREN", "4625")], shifted_vat_rate_bp=900)
+    book_extraction(session, doc.id)
+    session.commit()
+    assert balance(session, "3130") == -900
 
 
 def test_inactive_account_uses_ledger_message(session, year2025, make_extraction, acc):
@@ -375,3 +408,17 @@ def test_prepare_booking_already_booked(session, year2025, make_extraction):
     session.commit()
     preview = prepare_booking(session, doc.id)
     assert preview.error.code == ALREADY_BOOKED
+
+
+def test_verlegde_btw_lands_in_the_btw_aangifte(session, year2025, make_extraction):
+    from app.domain.vat.report import build_vat_report
+
+    book_extraction(session, make_extraction(lines=[("Hosting", 10000, 0, "EU_DIENSTEN", "4625")]).id)
+    session.commit()
+    report = build_vat_report(session, date(2025, 1, 1), date(2025, 3, 31))
+    by_rubriek = {l.rubriek: l for l in report.lines}
+    assert by_rubriek["4b"].grondslag_cents == 10000
+    assert by_rubriek["4b"].vat_cents == 2100
+    assert report.totals["5b"] == 2100  # the same btw is deducted again
+    assert report.totals["5g"] == 0
+    assert report.warnings == []

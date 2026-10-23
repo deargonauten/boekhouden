@@ -10,9 +10,11 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from app.domain.errors import RelationError, ReviewValidationError
+from app.domain.errors import LedgerError, RelationError, ReviewValidationError
+from app.domain.fx import BASE_CURRENCY, format_amount, parse_rate
 from app.domain.extraction.suggestions import AccountRef, resolve_account_code
-from app.domain.money import format_euro, parse_euro
+from app.domain.money import parse_euro
+from app.domain.vat.rates import parse_rate_bp
 from app.domain.relations.validation import (
     validate_btw_number,
     validate_country,
@@ -62,6 +64,8 @@ class ReviewInput:
     total_incl: str = ""
     lines: list[ReviewLineInput] = field(default_factory=list)
     totals_override: bool = False  # "Het totaal klopt niet met de regels, ik weet het"
+    exchange_rate: str = ""  # foreign units per euro, e.g. "1,0842"; only used when currency is not EUR
+    shifted_vat_rate: str = ""  # Dutch btw rate (%) we compute on verlegde lines; blank = 21
 
 
 @dataclass(frozen=True)
@@ -94,6 +98,8 @@ class ParsedReview:
     total_incl_cents: int | None
     lines: tuple[ParsedLine, ...]
     totals_override: bool
+    exchange_rate_micro: int | None = None
+    shifted_vat_rate_bp: int | None = None
 
 
 def _text(value: str | None) -> str | None:
@@ -164,6 +170,19 @@ def parse_review(
         problem("currency", f"'{data.currency.strip()}' is geen geldige valuta. Schrijf bijvoorbeeld EUR.")
         currency = "EUR"
 
+    exchange_rate_micro = None
+    if currency != BASE_CURRENCY and (data.exchange_rate or "").strip():
+        try:
+            exchange_rate_micro = parse_rate(data.exchange_rate)
+        except LedgerError as exc:
+            problem("exchange_rate", exc.message)
+    shifted_vat_rate_bp = None
+    if (data.shifted_vat_rate or "").strip():
+        try:
+            shifted_vat_rate_bp = parse_rate_bp(data.shifted_vat_rate)
+        except LedgerError as exc:
+            problem("shifted_vat_rate", exc.message)
+
     parsed_lines: list[ParsedLine] = []
     position = 0
     for raw_line in data.lines:
@@ -221,9 +240,17 @@ def parse_review(
         total_incl_cents=amount(data.total_incl, "total_incl", "Totaal incl. BTW"),
         lines=tuple(parsed_lines),
         totals_override=bool(data.totals_override),
+        exchange_rate_micro=exchange_rate_micro,
+        shifted_vat_rate_bp=shifted_vat_rate_bp,
     )
 
     if finish:
+        if currency != BASE_CURRENCY and exchange_rate_micro is None and "exchange_rate" not in fields:
+            problem(
+                "exchange_rate",
+                f"Deze factuur is in {currency}. Vul de wisselkoers in (hoeveel {currency} je voor "
+                "1 euro krijgt), anders kan ik de bedragen niet naar euro's omrekenen.",
+            )
         if parsed.supplier_name is None:
             problem("supplier_name", "Vul de naam van de leverancier in.")
         if parsed.invoice_date is None and "invoice_date" not in fields:
@@ -238,8 +265,8 @@ def parse_review(
         ):
             problem(
                 "total_excl",
-                f"De regels tellen op tot {format_euro(sum(amounts))}, maar het totaal is "
-                f"{format_euro(parsed.total_excl_cents)}. Pas een regel of het totaal aan.",
+                f"De regels tellen op tot {format_amount(sum(amounts), currency)}, maar het totaal is "
+                f"{format_amount(parsed.total_excl_cents, currency)}. Pas een regel of het totaal aan.",
             )
 
     if messages:

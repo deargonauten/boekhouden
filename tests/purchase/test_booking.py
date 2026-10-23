@@ -21,7 +21,6 @@ from app.domain.purchase.errors import (
     INVALID_TOTALS,
     MISSING_FIELD,
     NOT_REVIEWED,
-    UNSUPPORTED_CURRENCY,
     UNSUPPORTED_VAT,
     ZERO_AMOUNT,
     BookingError,
@@ -216,10 +215,6 @@ def test_missing_invoice_number(number):
     raises(inp(invoice_number=number), MISSING_FIELD, "factuurnummer", field="invoice_number")
 
 
-def test_foreign_currency_refused():
-    raises(inp(currency="USD"), UNSUPPORTED_CURRENCY, "USD", "euro")
-
-
 def test_no_lines():
     data = inp(lines=(), total_excl_cents=0, total_vat_cents=0, total_incl_cents=100)
     raises(data, MISSING_FIELD, "regel", field="lines")
@@ -254,18 +249,9 @@ def test_float_amounts_are_refused():
         check_bookable(inp(line(amount=100.0, vat=21)))
 
 
-@pytest.mark.parametrize("code", ["VERLEGD", "EU_GOEDEREN", "EU_DIENSTEN", "EXPORT"])
-def test_unsupported_vat_codes(code):
-    err = raises(inp(line(10000, 0, code)), UNSUPPORTED_VAT, field="line.0.vat_code")
-    assert err.message == (
-        "Deze factuur heeft verlegde of buitenlandse BTW. Dat boeken we hier nog niet "
-        "automatisch; leg het vast met een handmatige boeking."
-    )
-
-
-def test_unsupported_by_rubriek_even_for_unknown_custom_code():
-    data = inp(line(10000, 0, "MIJN_EU"), vat_purchase_rubrieken={**RUBRIEKEN, "MIJN_EU": "4b"})
-    raises(data, UNSUPPORTED_VAT)
+def test_rubriek_outside_purchase_is_refused():
+    data = inp(line(10000, 0, "MIJN_X"), vat_purchase_rubrieken={**RUBRIEKEN, "MIJN_X": "3b"})
+    raises(data, UNSUPPORTED_VAT, field="line.0.vat_code")
 
 
 def test_custom_5b_code_is_supported():

@@ -10,6 +10,7 @@ from app.domain.extraction.suggestions import (
     half_up_vat,
     infer_vat_code,
     resolve_account_code,
+    suggest_foreign_vat_code,
 )
 from app.domain.extraction.types import ExtractedInvoice, ExtractedLine
 from app.domain.extraction.validation import Flag, assess, flagged_fields
@@ -302,10 +303,29 @@ def test_inferred_code_is_used_for_group_arithmetic():
 
 
 # --- i/j. currency and credit notes ----------------------------------------------------
-def test_non_euro_currency():
+def test_non_euro_currency_asks_for_exchange_rate():
     f = by_field(run(good(currency="USD")), "currency")
-    assert len(f) == 1
-    assert f[0].reason == "Deze factuur is niet in euro's; bedragen zijn niet omgerekend."
+    assert len(f) == 1 and f[0].level == "medium"
+    assert "USD" in f[0].reason and "wisselkoers" in f[0].reason
+
+
+def test_foreign_supplier_without_btw_gets_reverse_charge_hint():
+    vat = {**VAT, "EU_DIENSTEN": 0, "EXPORT": 0}
+    inv = good(
+        supplier=ExtractedContact(name="Hetzner GmbH", country="DE"),
+        total_vat_cents=0, total_incl_cents=10000,
+        lines=(ExtractedLine("Hosting", 10000, None, 0, "4625"),),
+    )
+    (f,) = by_field(run(inv, vat=vat), "line.0.vat_code")
+    assert f.level == "medium" and "verlegd" in f.reason.lower() and "DE" in f.reason
+    # once a verlegd tarief is chosen there is nothing left to warn about
+    chosen = replace(inv, lines=(ExtractedLine("Hosting", 10000, "EU_DIENSTEN", 0, "4625"),))
+    assert by_field(run(chosen, vat=vat), "line.0.vat_code") == []
+
+
+def test_dutch_supplier_has_no_reverse_charge_hint():
+    inv = good(lines=(ExtractedLine("a", 10000, "NL_0", 0, "4625"),), total_vat_cents=0, total_incl_cents=10000)
+    assert by_field(run(inv), "line.0.vat_code") == []
 
 
 def test_credit_note_is_info():
@@ -362,3 +382,21 @@ def test_none_amounts_everywhere_never_raise():
         lines=(ExtractedLine(), ExtractedLine(None, None, "NL_21", 5, None)),
     )
     run(inv)
+
+
+# --- vat code suggestion from the supplier's country ---------------------------------
+FOREIGN_VAT = {"NL_21": 2100, "NL_0": 0, "EU_DIENSTEN": 0, "EU_GOEDEREN": 0, "EXPORT": 0}
+
+
+@pytest.mark.parametrize(
+    "country,expected",
+    [("DE", "EU_DIENSTEN"), ("fr", "EU_DIENSTEN"), ("IE", "EU_DIENSTEN"),
+     ("US", "EXPORT"), ("GB", "EXPORT"), ("CH", "EXPORT"),
+     ("NL", None), (None, None), ("", None)],
+)
+def test_suggest_foreign_vat_code(country, expected):
+    assert suggest_foreign_vat_code(country, FOREIGN_VAT) == expected
+
+
+def test_suggest_foreign_vat_code_needs_the_code_to_exist():
+    assert suggest_foreign_vat_code("DE", {"NL_21": 2100}) is None

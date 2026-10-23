@@ -138,3 +138,35 @@ def test_finish_without_total_has_nothing_to_compare():
 
 def test_mismatch_is_fine_when_not_finishing():
     parse(form(total_excl="110,00"))
+
+
+# --- foreign currency and verlegde btw ---------------------------------------------------
+def test_exchange_rate_and_shifted_rate_are_parsed():
+    p = parse(form(currency="USD", exchange_rate="1,0842", shifted_vat_rate="9"))
+    assert p.exchange_rate_micro == 1_084_200
+    assert p.shifted_vat_rate_bp == 900
+
+
+def test_blank_rates_are_none():
+    p = parse(form())
+    assert p.exchange_rate_micro is None and p.shifted_vat_rate_bp is None
+
+
+def test_bad_exchange_rate_is_reported():
+    err = errors_of(form(currency="USD", exchange_rate="veel"))
+    assert "exchange_rate" in err.fields and "wisselkoers" in err.fields["exchange_rate"].lower()
+
+
+def test_bad_shifted_rate_is_reported():
+    assert "shifted_vat_rate" in errors_of(form(shifted_vat_rate="abc")).fields
+
+
+def test_finish_requires_exchange_rate_for_foreign_currency():
+    err = errors_of(form(currency="USD"), finish=True)
+    assert "exchange_rate" in err.fields and "USD" in err.fields["exchange_rate"]
+    assert parse(form(currency="USD", exchange_rate="1,25"), finish=True).exchange_rate_micro == 1_250_000
+    assert parse(form(currency="EUR"), finish=True).exchange_rate_micro is None
+
+
+def test_euro_invoice_drops_a_leftover_exchange_rate():
+    assert parse(form(currency="EUR", exchange_rate="1,25")).exchange_rate_micro is None

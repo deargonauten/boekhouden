@@ -15,6 +15,13 @@ VAT_TOLERANCE_CENTS = 2
 _INFERABLE = (("NL_21", 2100), ("NL_9", 900))
 
 
+# EU member states other than NL (ISO 3166 alpha-2); a supplier here that charges no Dutch btw
+# means the btw is shifted to us (intracommunautaire verwerving).
+EU_COUNTRIES = frozenset(
+    "AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT PL PT RO SK SI ES SE".split()
+)
+
+
 @dataclass(frozen=True)
 class AccountRef:
     """What we need to know about a grootboekrekening to judge a suggestion."""
@@ -83,3 +90,21 @@ def resolve_vat_code(
         return line.vat_code, False
     inferred = infer_vat_code(line.amount_excl_cents, line.vat_amount_cents, vat_rates)
     return inferred, inferred is not None
+
+
+def is_foreign_country(country: str | None) -> bool:
+    """True for a filled-in country that is not the Netherlands."""
+    value = (country or "").strip().upper()
+    return bool(value) and value != "NL"
+
+
+def suggest_foreign_vat_code(country: str | None, vat_codes: Mapping[str, int]) -> str | None:
+    """Verlegd btw-code for a supplier abroad: EU country -> EU_DIENSTEN, elsewhere -> EXPORT.
+
+    Services and goods from the EU are booked the same way (rubriek 4b), so the services
+    code is the default; the owner can switch to goods. None for NL or an unknown country.
+    """
+    if not is_foreign_country(country):
+        return None
+    code = "EU_DIENSTEN" if country.strip().upper() in EU_COUNTRIES else "EXPORT"
+    return code if code in vat_codes else None

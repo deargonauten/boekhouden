@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app import web
 from app.db import get_session
-from app.domain import ledger
+from app.domain import ledger, reconcile
 from app.domain.documents import (
     STATUS_LABELS,
     DocumentError,
@@ -48,8 +48,10 @@ from app.domain.extraction import (
     store_result,
 )
 from app.domain.extraction.extractors.factory import get_extractor
+from app.domain.fx import format_rate
 from app.domain.money import format_euro
 from app.domain.purchase import book_extraction
+from app.domain.purchase.booking import DEFAULT_SHIFTED_VAT_BP
 from app.models import Account, Contact
 from app.web.inbox_routes import DOCUMENT_STATUSES, LIST_LIMIT, _list_page, get_storage
 
@@ -69,7 +71,7 @@ HEADER_FIELDS = (
     "supplier_name", "supplier_kvk", "supplier_btw_number", "supplier_iban",
     "supplier_address_line", "supplier_postal_code", "supplier_city", "supplier_country",
     "invoice_number", "invoice_date", "due_date", "currency",
-    "total_excl", "total_vat", "total_incl",
+    "total_excl", "total_vat", "total_incl", "exchange_rate", "shifted_vat_rate",
 )
 LINE_FIELDS = ("description", "amount_excl", "vat_code", "vat_amount", "account_code", "source_text")
 FIELD_LABELS = {
@@ -77,6 +79,7 @@ FIELD_LABELS = {
     "supplier_btw_number": "Btw-nummer", "supplier_iban": "IBAN",
     "invoice_number": "Factuurnummer", "invoice_date": "Factuurdatum",
     "due_date": "Vervaldatum", "currency": "Valuta", "totals": "Totalen",
+    "exchange_rate": "Wisselkoers", "shifted_vat_rate": "Btw-tarief voor verlegde btw",
     "total_excl": "Bedrag zonder BTW", "total_vat": "BTW", "total_incl": "Totaal incl. BTW",
     "kind": "Soort document",
 }
@@ -296,6 +299,8 @@ def _values_from_extraction(session: Session, extraction) -> dict:
         "invoice_date": _date_text(extraction.invoice_date),
         "due_date": _date_text(extraction.due_date),
         "currency": extraction.currency,
+        "exchange_rate": format_rate(extraction.exchange_rate_micro) if extraction.exchange_rate_micro else "",
+        "shifted_vat_rate": _rate_text(extraction.shifted_vat_rate_bp),
         "total_excl": _amount_text(extraction.total_excl_cents),
         "total_vat": _amount_text(extraction.total_vat_cents),
         "total_incl": _amount_text(extraction.total_incl_cents),
@@ -315,6 +320,13 @@ def _values_from_extraction(session: Session, extraction) -> dict:
         for line in extraction.lines
     ]
     return values
+
+
+def _rate_text(rate_bp: int | None) -> str:
+    """2100 -> '21', 650 -> '6,5'; blank falls back to the default shifted rate."""
+    rate_bp = DEFAULT_SHIFTED_VAT_BP if rate_bp is None else rate_bp
+    whole, rest = divmod(rate_bp, 100)
+    return f"{whole},{rest:02d}".rstrip("0") if rest else str(whole)
 
 
 def _ordered_accounts(session: Session, selected: set[str]) -> list[Account]:
@@ -349,6 +361,7 @@ def _review_page(
     values: dict | None = None,
     errors: list[str] | None = None,
     saved_notice: str | None = None,
+    payment_choice: int | None = None,
 ):
     try:
         extraction = get_extraction(session, document.id)
@@ -373,6 +386,10 @@ def _review_page(
         counted = [f for f in header_flags if f.get("level") in LEVELS]
         counted += [f for g in line_flags for fl in g.values() for f in fl if f.get("level") in LEVELS]
         contact = session.get(Contact, extraction.contact_id) if extraction.contact_id else None
+        payments = (
+            reconcile.payment_candidates_for_extraction(session, extraction)
+            if document.status != "geboekt" else []
+        )
         ctx.update(
             values=form_values,
             flags=_group(header_flags),
@@ -383,6 +400,8 @@ def _review_page(
             line_flags=line_flags,
             check_count=len(counted),
             contact=contact,
+            payments=payments,
+            payment_choice=payment_choice,
             **_lookups(session, form_values),
         )
     return _render(request, "inbox/review.html", status, **ctx)
@@ -461,21 +480,31 @@ async def review_save(
     except DocumentNotFoundError:
         return _deleted_meanwhile(request, session)
     if book:
-        return _book_and_continue(request, session, document)
+        return _book_and_continue(request, session, document, _payment_id(form))
     if finish:
         return RedirectResponse("/inbox?melding=klaar", status_code=303)
     return RedirectResponse(f"/inbox/{document_id}/nakijken?melding=opgeslagen", status_code=303)
 
 
-def _book_and_continue(request: Request, session: Session, document):
-    """The review is saved and committed; book it and go to the next invoice to check."""
+def _payment_id(form) -> int | None:
+    raw = str(form.get("bank_transaction_id") or "")
+    return int(raw) if raw.isdigit() else None
+
+
+def _book_and_continue(request: Request, session: Session, document, payment_id: int | None = None):
+    """The review is saved and committed; book it (and the chosen payment) and go to the next
+    invoice to check. Invoice and payment are committed together or not at all."""
     try:
         invoice = book_extraction(session, document.id)
         entry_id = invoice.journal_entry_id
+        if payment_id is not None:
+            reconcile.book_payment_for_invoice(session, payment_id, invoice)
         session.commit()
     except LedgerError as exc:
         session.rollback()
-        return _review_page(request, session, document, status=422, errors=[exc.message])
+        return _review_page(
+            request, session, document, status=422, errors=[exc.message], payment_choice=payment_id
+        )
     next_id = next_document_to_review(session, document.id)
     if next_id is None:
         return RedirectResponse(f"/inkoop?melding=geboekt&boeking={entry_id}", status_code=303)

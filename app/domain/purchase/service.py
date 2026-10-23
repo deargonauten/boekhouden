@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, aliased
 from app.domain.documents import get_document, mark_booked
 from app.domain.errors import LedgerError
 from app.domain.extraction.service import flagged_count
+from app.domain.fx import format_amount, format_rate
 from app.domain.ledger import Page, default_journal_id, post_entry
 from app.domain.ledger.service import _check_accounts, _check_vat_codes, _find_period
 from app.domain.opening.service import list_opening_items
@@ -25,8 +26,10 @@ from app.domain.purchase.booking import (
     BookingInput,
     BookingLineInput,
     PreviewRow,
+    DEFAULT_SHIFTED_VAT_BP,
     build_entry,
     check_bookable,
+    euro_amounts,
     check_content,
     check_state,
     invoice_number_key,
@@ -58,6 +61,8 @@ from app.models import (
 
 CREDITORS_CODE = "3000"
 VAT_RECEIVABLE_CODE = "1400"
+VAT_SHIFTED_RECEIVABLE_CODE = "1410"
+VAT_SHIFTED_PAYABLE_CODE = "3130"
 TABS = ("all", "open")
 STATUS_LABELS = {"open": "Open", "betaald": "Betaald", "gestorneerd": "Gestorneerd"}
 _MONTHS = (
@@ -86,6 +91,10 @@ def _booking_input(session: Session, document: Document, extraction: InvoiceExtr
         due_date=extraction.due_date,
         kind=extraction.kind,
         currency=extraction.currency,
+        exchange_rate_micro=extraction.exchange_rate_micro,
+        shifted_vat_rate_bp=(
+            DEFAULT_SHIFTED_VAT_BP if extraction.shifted_vat_rate_bp is None else extraction.shifted_vat_rate_bp
+        ),
         total_excl_cents=extraction.total_excl_cents,
         total_vat_cents=extraction.total_vat_cents,
         total_incl_cents=extraction.total_incl_cents,
@@ -119,7 +128,19 @@ def _system_accounts(session: Session) -> AccountIds:
                 f"Rekening {code} {name} ontbreekt in je grootboek, dus deze factuur kan niet automatisch "
                 "geboekt worden. Leg hem vast met een handmatige boeking.",
             )
-    return AccountIds(creditors=ids[CREDITORS_CODE], vat_receivable=ids[VAT_RECEIVABLE_CODE])
+    shifted = dict(
+        session.execute(
+            select(Account.code, Account.id).where(
+                Account.code.in_((VAT_SHIFTED_RECEIVABLE_CODE, VAT_SHIFTED_PAYABLE_CODE))
+            )
+        ).all()
+    )
+    return AccountIds(
+        creditors=ids[CREDITORS_CODE],
+        vat_receivable=ids[VAT_RECEIVABLE_CODE],
+        vat_shifted_receivable=shifted.get(VAT_SHIFTED_RECEIVABLE_CODE),
+        vat_shifted_payable=shifted.get(VAT_SHIFTED_PAYABLE_CODE),
+    )
 
 
 def _journal_id(session: Session) -> int:
@@ -172,6 +193,7 @@ def book_extraction(session: Session, document_id: int) -> PurchaseInvoice:
     check_bookable(data)
     new_entry = build_entry(data, _system_accounts(session), _journal_id(session))
     _check_duplicate(session, data)
+    euro = euro_amounts(data)  # the invoice's own amounts are euro cents; the original is kept beside them
 
     _open_transaction(session)
     try:
@@ -186,9 +208,12 @@ def book_extraction(session: Session, document_id: int) -> PurchaseInvoice:
                 invoice_date=data.invoice_date,
                 due_date=data.due_date,
                 kind=data.booking_kind,
-                total_excl_cents=data.total_excl_cents,
-                total_vat_cents=data.total_vat_cents,
-                total_incl_cents=data.total_incl_cents,
+                total_excl_cents=euro.excl,
+                total_vat_cents=euro.vat,
+                total_incl_cents=euro.incl,
+                currency=data.currency_code,
+                exchange_rate_micro=data.exchange_rate_micro if data.is_foreign else None,
+                original_total_incl_cents=data.total_incl_cents if data.is_foreign else None,
                 paid_cents=0,
                 created_at=_now(),
             )
@@ -226,6 +251,7 @@ class BookingPreview:
     journal_name: str | None = None
     summary: str | None = None  # "Kosten € 100,00, BTW € 21,00, nog te betalen aan ..."
     error: LedgerError | None = None
+    original_total_text: str | None = None  # "USD 100,00 tegen koers 1,25", foreign-currency invoices only
 
     @property
     def can_book(self) -> bool:
@@ -304,7 +330,8 @@ def prepare_booking(session: Session, document_id: int) -> BookingPreview:
         supplier_name=data.supplier_name,
         invoice_number=data.number or None,
         invoice_date=data.invoice_date,
-        total_incl_cents=data.total_incl_cents,
+        total_incl_cents=_euro_total(data),
+        original_total_text=_original_total_text(data),
         journal_code=journal.code if journal else None,
         journal_name=journal.name if journal else None,
         period_label=label,
@@ -316,6 +343,21 @@ def prepare_booking(session: Session, document_id: int) -> BookingPreview:
         summary=table.summary if table else None,
         error=_first_error(errors),
     )
+
+
+def _euro_total(data: BookingInput) -> int | None:
+    """Total in euro cents for the screen; the form's own total while it cannot be converted yet."""
+    if data.total_incl_cents is None or not data.is_foreign:
+        return data.total_incl_cents
+    if not data.exchange_rate_micro or any(l.amount_excl_cents is None or l.vat_amount_cents is None for l in data.lines):
+        return None
+    return euro_amounts(data).incl
+
+
+def _original_total_text(data: BookingInput) -> str | None:
+    if not data.is_foreign or data.total_incl_cents is None or not data.exchange_rate_micro:
+        return None
+    return f"{format_amount(data.total_incl_cents, data.currency_code)} tegen koers {format_rate(data.exchange_rate_micro)}"
 
 
 def _first_error(errors: list[LedgerError]) -> LedgerError | None:

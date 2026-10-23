@@ -8,6 +8,8 @@
 {%- endmacro %}
 {% block head %}<link rel="stylesheet" href="/static/css/inbox.css">
 <script src="/static/js/vat-suggest.js" defer></script>
+<script src="/static/js/line-amounts.js" defer></script>
+<script src="/static/js/currency-rate.js" defer></script>
 <link rel="stylesheet" href="/static/vendor/pdfjs/pdf_viewer.css">{% endblock %}
 {% block content %}
 {{ page_header("Nakijken: " ~ document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Nakijken", None)], term="nakijken", icon_name="file",
@@ -117,8 +119,18 @@
             <input id="invoice_number" name="invoice_number" value="{{ values.invoice_number }}">{{ flagged(flags.get("invoice_number")) }}
           </div>
           <div class="field">
-            <label for="currency">Valuta</label>
+            <label for="currency">Valuta {{ info("valuta") }}</label>
             <input id="currency" name="currency" value="{{ values.currency }}" maxlength="3" class="short">{{ flagged(flags.get("currency")) }}
+          </div>
+          <div class="field" data-foreign-only{% if (values.currency or "EUR")|upper == "EUR" %} hidden{% endif %}>
+            <label for="exchange_rate">Wisselkoers: hoeveel <span data-currency-name>{{ values.currency }}</span> is 1 euro? {{ info("wisselkoers") }}</label>
+            <input id="exchange_rate" name="exchange_rate" value="{{ values.exchange_rate }}" inputmode="decimal" class="num short" placeholder="1,0842">{{ flagged(flags.get("exchange_rate")) }}
+            <p class="hint">Gebruik de koers van de factuurdatum, bijvoorbeeld de referentiekoers van de ECB. De bedragen op de factuur blijven zoals ze zijn; bij het boeken reken ik ze om naar euro's.</p>
+          </div>
+          <div class="field" data-shifted-only hidden>
+            <label for="shifted_vat_rate">Btw-tarief voor verlegde btw (%) {{ info("verlegd") }}</label>
+            <input id="shifted_vat_rate" name="shifted_vat_rate" value="{{ values.shifted_vat_rate }}" inputmode="decimal" class="num short" placeholder="21">{{ flagged(flags.get("shifted_vat_rate")) }}
+            <p class="hint">De leverancier rekent geen btw, dus jij berekent die zelf met het Nederlandse tarief (meestal 21%). Datzelfde bedrag krijg je direct weer terug.</p>
           </div>
           <div class="field">
             <label for="invoice_date">Factuurdatum {{ info("factuurdatum") }}</label>
@@ -139,6 +151,7 @@
             <th>Omschrijving</th>
             <th>{{ term_label("grootrekening", "Op welke rekening boeken?") }}</th>
             <th class="num">Bedrag zonder BTW</th>
+            <th class="num">Bedrag incl. BTW</th>
             <th>BTW-tarief {{ info("btw_tarief") }}</th>
             <th class="num">Hoeveel BTW? {{ info("btw") }}</th>
             <th><span class="visually-hidden">Verwijderen</span></th>
@@ -150,7 +163,7 @@
         </div>
         <div class="card__footer stack">
           <div><button type="button" class="btn btn-secondary" hx-get="/inbox/{{ document.id }}/nakijken/regel" hx-target="#review-line-rows" hx-swap="beforeend">{{ icon("plus") }}Regel toevoegen</button></div>
-          <p class="hint">Staat er 'BTW verlegd' {{ info("verlegd") }} op de factuur? Kies dan het bijbehorende tarief en laat het BTW-bedrag leeg.</p>
+          <p class="hint">Staat er 'BTW verlegd' {{ info("verlegd") }} op de factuur, of zit de leverancier in het buitenland en rekent hij geen btw? Kies dan 'Intracommunautair' (leverancier in de EU), 'Export buiten EU' (leverancier buiten de EU) of 'BTW verlegd' (Nederlandse leverancier) en laat het BTW-bedrag leeg.</p>
         </div>
       </section>
 
@@ -175,6 +188,33 @@
           <label class="check"><input type="checkbox" name="totals_override" value="1"{% if values.totals_override %} checked{% endif %}> Het totaal klopt niet met de regels, ik weet het</label>
         </div>
       </section>
+
+      {% if document.status != "geboekt" %}
+      <section class="card card--flush payment-link" aria-labelledby="sec-payment">
+        <details{% if payment_choice %} open{% endif %}>
+          <summary id="sec-payment">Al betaald? Koppel een betaling {{ info("afletteren") }}
+            {% if payments %}{{ pill(payments|length ~ (" mogelijke betaling" if payments|length == 1 else " mogelijke betalingen"), "info") }}{% endif %}</summary>
+          <div class="card__body stack">
+            {% if payments %}
+            <p class="hint">Dit zijn betalingen op je bankrekening die bij deze factuur kunnen horen. De koppeling wordt gemaakt zodra je op 'Goedkeuren, boeken en volgende' klikt.</p>
+            <ul class="payment-options">
+              <li><label class="check"><input type="radio" name="bank_transaction_id" value=""{% if not payment_choice %} checked{% endif %}> Geen betaling koppelen</label></li>
+              {% for c in payments %}
+              <li><label class="check payment-option">
+                <input type="radio" name="bank_transaction_id" value="{{ c.txn.id }}"{% if payment_choice == c.txn.id %} checked{% endif %}>
+                <span><strong>{{ c.txn.booking_date.strftime("%d-%m-%Y") }}</strong> · {{ c.txn.counterparty_name or "Onbekende tegenpartij" }} · <strong>{{ c.txn.abs_cents|euro }}</strong>
+                  {% if c.txn.description %}<span class="hint">{{ c.txn.description }}</span>{% endif %}
+                  <span class="hint">{{ c.reasons|join(". ") }}</span></span>
+              </label></li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="hint">Er is geen betaling gevonden die bij deze factuur past. Je kunt de betaling ook later nog koppelen.</p>
+            {% endif %}
+          </div>
+        </details>
+      </section>
+      {% endif %}
 
       <div class="form-actions">
         {% if document.status != "geboekt" %}<button type="submit" name="actie" value="boeken" class="btn">{{ icon("check") }}Goedkeuren, boeken en volgende</button> {{ info("goedkeuren_boeken") }}{% endif %}

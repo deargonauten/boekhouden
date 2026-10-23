@@ -18,11 +18,12 @@ from app.domain.extraction.suggestions import (
     VAT_TOLERANCE_CENTS,
     AccountRef,
     half_up_vat,
+    is_foreign_country,
     resolve_account_code,
     resolve_vat_code,
 )
 from app.domain.extraction.types import ExtractedInvoice
-from app.domain.money import format_euro
+from app.domain.fx import format_amount
 from app.domain.relations.validation import (
     is_valid_btw_number,
     is_valid_iban,
@@ -139,8 +140,13 @@ def assess(
             add(field, "low", hint)
 
     # i/j. currency and kind
-    if (invoice.currency or "EUR").upper() != "EUR":
-        add("currency", "low", "Deze factuur is niet in euro's; bedragen zijn niet omgerekend.")
+    currency = (invoice.currency or "EUR").strip().upper() or "EUR"
+    if currency != "EUR":
+        add(
+            "currency",
+            "medium",
+            f"Deze factuur is in {currency}. Vul de wisselkoers in, dan reken ik de bedragen om naar euro's.",
+        )
     if invoice.kind == "credit_note":
         add("kind", "info", "Dit is een creditnota")
 
@@ -151,7 +157,15 @@ def assess(
             add(line_field(i, "account"), "low", "Kies zelf een rekening.")
         code, inferred = resolve_vat_code(line, vat_codes)
         resolved_codes.append(code)
-        if inferred:
+        no_dutch_vat = line.vat_amount_cents in (None, 0)
+        if is_foreign_country(sup.country) and no_dutch_vat and (inferred or code in (None, "NL_0")):
+            add(
+                line_field(i, "vat_code"),
+                "medium",
+                f"De leverancier zit in {sup.country.strip().upper()} en rekent geen Nederlandse btw. "
+                "Waarschijnlijk is de btw naar jou verlegd: controleer het btw-tarief.",
+            )
+        elif inferred:
             add(line_field(i, "vat_code"), "medium", "Tarief afgeleid uit het bedrag. Controleer dit.")
         elif code is None:
             add(line_field(i, "vat_code"), "low", "Kies zelf het BTW-tarief.")
@@ -164,8 +178,8 @@ def assess(
             add(
                 "total_excl",
                 "low",
-                f"De regels tellen op tot {format_euro(line_sum)}, maar het totaal op de "
-                f"factuur is {format_euro(invoice.total_excl_cents)}.",
+                f"De regels tellen op tot {format_amount(line_sum, currency)}, maar het totaal op de "
+                f"factuur is {format_amount(invoice.total_excl_cents, currency)}.",
             )
 
     # b. BTW arithmetic per code group
@@ -185,8 +199,8 @@ def assess(
             add(
                 line_field(idxs[0], "vat_amount"),
                 "low",
-                f"Bij {_rate_text(rate_bp)}% BTW over {format_euro(excl)} hoort "
-                f"{format_euro(expected)}, maar op de factuur staat {format_euro(given)}.",
+                f"Bij {_rate_text(rate_bp)}% BTW over {format_amount(excl, currency)} hoort "
+                f"{format_amount(expected, currency)}, maar op de factuur staat {format_amount(given, currency)}.",
             )
 
     # c. excl + vat = incl
@@ -196,8 +210,8 @@ def assess(
             add(
                 "total_incl",
                 "low",
-                f"Bedrag zonder BTW plus BTW is {format_euro(expected_incl)}, maar het totaal "
-                f"incl. BTW op de factuur is {format_euro(invoice.total_incl_cents)}.",  # type: ignore[arg-type]
+                f"Bedrag zonder BTW plus BTW is {format_amount(expected_incl, currency)}, maar het totaal "
+                f"incl. BTW op de factuur is {format_amount(invoice.total_incl_cents, currency)}.",  # type: ignore[arg-type]
             )
 
     return merge_flags(raw)

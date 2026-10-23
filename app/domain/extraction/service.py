@@ -39,6 +39,7 @@ from app.domain.extraction.suggestions import (
     resolve_account_code,
     resolve_vat_code,
     resolve_vat_code_for_account,
+    suggest_foreign_vat_code,
 )
 from app.domain.extraction.types import (
     AccountHint,
@@ -208,6 +209,7 @@ def _line_rows(
     vat_rates: dict[str, int],
     account_ids: dict[str, int],
     default_vats: dict[str, str | None] | None = None,
+    supplier_country: str | None = None,
 ) -> list[dict]:
     rows = []
     for i, line in enumerate(lines):
@@ -215,6 +217,10 @@ def _line_rows(
         vat_code, _inferred = resolve_vat_code(line, vat_rates)
         if vat_code is None:  # fall back to the account's standaard btw-tarief
             vat_code = resolve_vat_code_for_account(account_code, default_vats or {}, vat_rates)
+        # A supplier abroad that charges no btw: the btw is shifted to us (verlegd / EU / buiten de EU)
+        foreign_code = suggest_foreign_vat_code(supplier_country, vat_rates)
+        if foreign_code and not line.vat_amount_cents and vat_code in (None, "NL_0", "GEEN", "NL_21"):
+            vat_code = foreign_code
         rows.append(
             dict(
                 description=line.description,
@@ -279,6 +285,8 @@ def store_result(
     extraction.invoice_date = invoice.invoice_date
     extraction.due_date = invoice.due_date
     extraction.currency = (invoice.currency or "EUR").upper()
+    extraction.exchange_rate_micro = None  # a new reading starts without koers; filled in at nakijken
+    extraction.shifted_vat_rate_bp = None
     extraction.total_excl_cents = invoice.total_excl_cents
     extraction.total_vat_cents = invoice.total_vat_cents
     extraction.total_incl_cents = invoice.total_incl_cents
@@ -298,6 +306,7 @@ def store_result(
             vat_rates,
             _account_ids(session),
             _default_vats(session),
+            sup.country,
         ),
     )
     _apply_learned_defaults(
@@ -455,6 +464,8 @@ def save_review(
     extraction.invoice_date = parsed.invoice_date
     extraction.due_date = parsed.due_date
     extraction.currency = parsed.currency
+    extraction.exchange_rate_micro = parsed.exchange_rate_micro
+    extraction.shifted_vat_rate_bp = parsed.shifted_vat_rate_bp
     extraction.total_excl_cents = parsed.total_excl_cents
     extraction.total_vat_cents = parsed.total_vat_cents
     extraction.total_incl_cents = parsed.total_incl_cents

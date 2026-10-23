@@ -7,7 +7,6 @@ NOT_REVIEWED = "NOT_REVIEWED"
 MISSING_FIELD = "MISSING_FIELD"
 ZERO_AMOUNT = "ZERO_AMOUNT"
 INVALID_TOTALS = "INVALID_TOTALS"
-UNSUPPORTED_CURRENCY = "UNSUPPORTED_CURRENCY"
 UNSUPPORTED_VAT = "UNSUPPORTED_VAT"
 DUPLICATE_INVOICE = "DUPLICATE_INVOICE"
 ALREADY_BOOKED = "ALREADY_BOOKED"
@@ -20,8 +19,8 @@ NOT_REVIEWED_MESSAGE = (
     "'Klaar met nakijken'; daarna kun je hem boeken."
 )
 UNSUPPORTED_VAT_MESSAGE = (
-    "Deze factuur heeft verlegde of buitenlandse BTW. Dat boeken we hier nog niet "
-    "automatisch; leg het vast met een handmatige boeking."
+    "Dit BTW-tarief hoort niet bij een inkoopfactuur. Kies een tarief voor inkoop: bijvoorbeeld "
+    "BTW 21%, 'Intracommunautair' (EU) of 'Export buiten EU' (leverancier buiten de EU)."
 )
 NO_JOURNAL_MESSAGE = (
     "Er is geen inkoopdagboek actief. Zet het inkoopdagboek (IK) weer aan onder "

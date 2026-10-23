@@ -69,7 +69,7 @@
       </tbody>
     </table>
     </div>
-    <div class="card__footer"><p class="hint">Totaal van de factuur: <strong>{{ preview.total_incl_cents|euro }}</strong>. Na het boeken kun je dit alleen nog ongedaan maken met een stornoboeking. {{ info("storno") }}</p></div>
+    <div class="card__footer"><p class="hint">Totaal van de factuur: <strong>{{ preview.total_incl_cents|euro }}</strong>{% if preview.original_total_text %} (oorspronkelijk {{ preview.original_total_text }}){% endif %}. Na het boeken kun je dit alleen nog ongedaan maken met een stornoboeking. {{ info("storno") }}</p></div>
   </section>
   {% endif %}
 

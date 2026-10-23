@@ -48,6 +48,8 @@ class InvoiceExtraction(Base):
     invoice_date: Mapped[date | None] = mapped_column(Date)
     due_date: Mapped[date | None] = mapped_column(Date)
     currency: Mapped[str] = mapped_column(String, server_default=text("'EUR'"))
+    exchange_rate_micro: Mapped[int | None] = mapped_column(Integer)  # foreign units per EUR x 1e6
+    shifted_vat_rate_bp: Mapped[int | None] = mapped_column(Integer)  # Dutch rate for btw-verlegd lines
     total_excl_cents: Mapped[int | None] = mapped_column(Integer)
     total_vat_cents: Mapped[int | None] = mapped_column(Integer)
     total_incl_cents: Mapped[int | None] = mapped_column(Integer)

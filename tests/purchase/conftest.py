@@ -45,6 +45,8 @@ def make_extraction(session, make_doc, make_supplier, acc):
         kind="invoice",
         totals=None,
         currency="EUR",
+        exchange_rate_micro=None,
+        shifted_vat_rate_bp=None,
         due_date=None,
     ):
         doc = make_doc()
@@ -66,6 +68,8 @@ def make_extraction(session, make_doc, make_supplier, acc):
             invoice_date=day,
             due_date=due_date,
             currency=currency,
+            exchange_rate_micro=exchange_rate_micro,
+            shifted_vat_rate_bp=shifted_vat_rate_bp,
             total_excl_cents=t_excl,
             total_vat_cents=t_vat,
             total_incl_cents=t_incl,

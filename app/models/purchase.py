@@ -46,6 +46,11 @@ class PurchaseInvoice(Base):
     total_excl_cents: Mapped[int] = mapped_column(Integer)
     total_vat_cents: Mapped[int] = mapped_column(Integer)
     total_incl_cents: Mapped[int] = mapped_column(Integer)
+    # Amounts above are euro cents. For a foreign-currency invoice the original total and the
+    # koers it was booked at are kept here.
+    currency: Mapped[str] = mapped_column(String, server_default=text("'EUR'"))
+    exchange_rate_micro: Mapped[int | None] = mapped_column(Integer)
+    original_total_incl_cents: Mapped[int | None] = mapped_column(Integer)
     paid_cents: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     created_at: Mapped[datetime] = mapped_column(DateTime)
 

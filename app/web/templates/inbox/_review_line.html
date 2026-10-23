@@ -20,11 +20,12 @@
     {% if learned and line.account_code and line.account_code != learned.account_code %}<span class="hint learned-hint">{{ learned.hint }} {{ info("leerfunctie") }}</span>{% endif %}
   </td>
   <td class="cell-amount"><span class="cell-label">Bedrag excl. BTW</span><input name="line_amount_excl" value="{{ line.amount_excl }}" inputmode="decimal" class="num" aria-label="Bedrag zonder BTW" placeholder="0,00"></td>
+  <td class="cell-amount"><span class="cell-label">Bedrag incl. BTW</span><input class="num js-amount-incl" inputmode="decimal" aria-label="Bedrag inclusief BTW" placeholder="0,00"></td>
   <td class="cell-vat">
     <span class="cell-label">BTW-tarief {{ info("btw_tarief") }}</span>
     <select name="line_vat_code" aria-label="BTW-tarief">
       <option value="">Geen BTW</option>
-      {% for v in vat_codes %}<option value="{{ v.code }}"{% if line.vat_code == v.code %} selected{% endif %}>{{ v.name }} ({{ v.code }})</option>{% endfor %}
+      {% for v in vat_codes %}<option value="{{ v.code }}" data-rate-bp="{{ v.rate_bp }}"{% if v.purchase_rubriek in ("2a", "4a", "4b") %} data-shifted="1"{% endif %}{% if line.vat_code == v.code %} selected{% endif %}>{{ v.name }} ({{ v.code }})</option>{% endfor %}
     </select>
   </td>
   <td class="cell-vatamount"><span class="cell-label">Hoeveel BTW? {{ info("btw") }}</span><input name="line_vat_amount" value="{{ line.vat_amount }}" inputmode="decimal" class="num" aria-label="Hoeveel BTW?" placeholder="0,00"></td>
