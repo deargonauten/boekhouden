@@ -5,9 +5,8 @@ import pytest
 from app import web
 from app.web.navigation import NAV_ITEMS, mark_active
 
-# /bank (tests/test_bank_web.py), /inbox (tests/test_inbox_web.py), /boeken, /instellingen and /relaties and /verkoop (tests/test_sales_web.py) are real pages now (tests/test_ledger_web.py, tests/test_relations_web.py).
+# /btw (tests/test_btw_web.py), /bank (tests/test_bank_web.py), /inbox (tests/test_inbox_web.py), /boeken, /instellingen and /relaties and /verkoop (tests/test_sales_web.py) are real pages now (tests/test_ledger_web.py, tests/test_relations_web.py).
 PAGES = [
-    ("/btw", "BTW"),
     ("/rapportages", "Rapportages"),
     ("/activa", "Activa"),
 ]
