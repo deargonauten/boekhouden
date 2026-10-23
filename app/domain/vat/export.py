@@ -18,10 +18,14 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from app.domain.money import format_euro
 from app.domain.vat.filing import ReturnSnapshot
 from app.domain.vat.periods import VatPeriod
-from app.domain.vat.report import TOTAL_LABELS, round_whole_cents
+from app.domain.vat.report import TOTAL_LABELS, final_rounded, round_whole_cents
 
 BOM = "﻿"
-TOTAL_KEYS = ("5a", "5b", "5c", "5g")
+TOTAL_KEYS = ("5a", "5b", "5c", "5g", "5g_afgerond")
+ROUNDING_NOTE = (
+    "Het eindbedrag vul je af op hele euro's in: bij betalen naar beneden, bij terugvragen naar boven. "
+    "De bedragen per rubriek houden hun centen."
+)
 DISCLAIMER = (
     "Dit is een overzicht om over te nemen in Mijn Belastingdienst Zakelijk; het is zelf geen aangifte."
 )
@@ -76,8 +80,12 @@ def rubrieken_csv(snapshot: ReturnSnapshot) -> bytes:
                 format_csv_cents(line.grondslag_whole_cents), format_csv_cents(line.vat_cents),
             ])
     for key in TOTAL_KEYS:
-        rows.append([key, _safe_text(TOTAL_LABELS[key]), "", format_csv_cents(snapshot.totals.get(key, 0))])
+        rows.append([key, _safe_text(TOTAL_LABELS[key]), "", format_csv_cents(_total(snapshot, key))])
     return _csv_bytes(rows)
+
+
+def _total(snapshot: ReturnSnapshot, key: str) -> int:
+    return final_rounded(snapshot.totals) if key == "5g_afgerond" else snapshot.totals.get(key, 0)
 
 
 def _whole_euros(cents: int) -> str:
@@ -178,9 +186,12 @@ def aangifte_pdf(snapshot: ReturnSnapshot) -> bytes:
     if not shown:
         rows.append([_p(""), _p("Geen btw in deze periode", _SMALL), _p(""), _p("")])
     for key in TOTAL_KEYS:
-        rows.append([_p(key, _BOLD), _p(TOTAL_LABELS[key], _BOLD if key == "5g" else _BASE), _p(""),
-                     _p(format_euro(snapshot.totals.get(key, 0)), _RIGHT_BOLD if key == "5g" else _RIGHT)])
+        strong = key in ("5g", "5g_afgerond")
+        rows.append([_p("" if key == "5g_afgerond" else key, _BOLD),
+                     _p(TOTAL_LABELS[key], _BOLD if strong else _BASE), _p(""),
+                     _p(format_euro(_total(snapshot, key)), _RIGHT_BOLD if strong else _RIGHT)])
     story.append(_table(rows, [18 * mm, width - 18 * mm - 70 * mm, 40 * mm, 30 * mm]))
+    story.append(_p(ROUNDING_NOTE, _SMALL))
 
     story.append(_p("ICP-opgaaf (verkopen aan bedrijven in de EU)", _H2))
     if snapshot.icp:

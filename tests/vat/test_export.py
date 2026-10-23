@@ -68,7 +68,7 @@ def test_rubrieken_csv_shape_and_amounts():
     assert rows[0] == ["rubriek", "omschrijving", "omzet", "btw"]
     assert rows[1] == ["1a", "Omschrijving 1a", "1234,00", "259,35"]  # whole euros, rounded down
     assert rows[2][0] == "4b" and rows[2][2:] == ["50,00", "10,50"]
-    assert [r[0] for r in rows[3:]] == ["5a", "5b", "5c", "5g"]
+    assert [r[0] for r in rows[3:]] == ["5a", "5b", "5c", "5g", "5g_afgerond"]
     assert rows[-1][2:] == ["", "248,85"]
     assert b"1b" not in data  # rubrieken without values are left out
     assert data.endswith(b"\r\n")
@@ -76,7 +76,7 @@ def test_rubrieken_csv_shape_and_amounts():
 
 def test_rubrieken_csv_empty_still_has_totals():
     rows = rows_of(rubrieken_csv(snapshot()))
-    assert [r[0] for r in rows] == ["rubriek", "5a", "5b", "5c", "5g"]
+    assert [r[0] for r in rows] == ["rubriek", "5a", "5b", "5c", "5g", "5g_afgerond"]
     assert all(r[3] == "0,00" for r in rows[1:])
 
 
@@ -84,7 +84,8 @@ def test_rubrieken_csv_negative_amounts():
     s = snapshot([line("1a", -123499, -25935)], totals={"5a": -25935, "5b": 0, "5c": -25935, "5g": -25935})
     rows = rows_of(rubrieken_csv(s))
     assert rows[1][2:] == ["-1234,00", "-259,35"]
-    assert rows[-1][3] == "-259,35"
+    assert rows[-2][3] == "-259,35"
+    assert rows[-1][3] == "-260,00"  # derived for snapshots without the rounded total
 
 
 @pytest.mark.parametrize("prefix", ["=", "+", "-", "@"])
@@ -209,3 +210,37 @@ def test_pdf_partially_unassigned_shows_both_tables():
                              name="Klant BV")], unassigned=unassigned(1))
     text = pdf_text(aangifte_pdf(s))
     assert "Klant BV" in text and "Nog geen klant gekoppeld" in text and "VK-1" in text
+
+
+# --- afgerond eindbedrag -----------------------------------------------------------
+
+
+def _totals(exact, rounded):
+    return {"5a": max(exact, 0), "5b": max(-exact, 0), "5c": exact, "5g": exact, "5g_afgerond": rounded}
+
+
+def test_rubrieken_csv_has_rounded_row_pay():
+    rows = [r.split(";") for r in rubrieken_csv(snapshot(totals=_totals(1299, 1200))).decode("utf-8-sig").split("\r\n") if r]
+    by = {r[0]: r for r in rows}
+    assert by["5g"][3] == "12,99"
+    assert by["5g_afgerond"][3] == "12,00"
+
+
+def test_rubrieken_csv_has_rounded_row_refund():
+    rows = [r.split(";") for r in rubrieken_csv(snapshot(totals=_totals(-96, -100))).decode("utf-8-sig").split("\r\n") if r]
+    by = {r[0]: r for r in rows}
+    assert by["5g"][3] == "-0,96"
+    assert by["5g_afgerond"][3] == "-1,00"
+
+
+def test_pdf_shows_exact_and_rounded_amount():
+    text = " ".join(p.extract_text() for p in PdfReader(BytesIO(aangifte_pdf(snapshot(totals=_totals(1299, 1200))))).pages)
+    assert "12,99" in text
+    assert "Af te ronden bedrag voor je aangifte" in text
+    assert "12,00" in text
+
+
+def test_pdf_without_rounded_key_still_renders_old_snapshot():
+    old = {"5a": 1299, "5b": 0, "5c": 1299, "5g": 1299}
+    text = " ".join(p.extract_text() for p in PdfReader(BytesIO(aangifte_pdf(snapshot(totals=old)))).pages)
+    assert "12,00" in text

@@ -250,3 +250,44 @@ def test_empty_filed_period_has_no_todo_instruction(client):
     assert "Ingediend" in page
     assert "Geen btw in deze periode" in page
     assert "Je moet toch een aangifte doen" not in page
+
+
+def test_return_page_shows_exact_and_rounded_amount(client):
+    with Session(client.app.state.engine) as s:
+        Book(s, YEAR).sale(100_000, 2_199, day=DAY)
+        set_company(s)
+        s.commit()
+    r = client.get(Q1)
+    assert "21,99" in r.text
+    assert "Af te ronden bedrag voor je aangifte" in r.text
+    assert "21,00" in r.text
+    overview = client.get(f"/btw?jaar={YEAR}")
+    assert "21,00" in overview.text and "21,99" in overview.text
+
+
+def test_return_page_refund_rounds_up(client):
+    with Session(client.app.state.engine) as s:
+        Book(s, YEAR).purchase(1_000, 96, day=DAY)
+        set_company(s)
+        s.commit()
+    r = client.get(Q1)
+    assert "Af te ronden bedrag voor je aangifte" in r.text
+    assert "1,00" in r.text and "0,96" in r.text
+
+
+def test_filed_snapshot_stores_exact_and_rounded(client):
+    import json
+    with Session(client.app.state.engine) as s:
+        Book(s, YEAR).sale(100_000, 2_199, day=DAY)
+        set_company(s)
+        s.commit()
+    from app.domain import vat
+    from app.domain.vat.filing import snapshot_from_json, snapshot_to_json
+    with Session(client.app.state.engine) as s:
+        snap = vat.get_snapshot(s, vat.VatPeriod(YEAR, "quarter", 1))
+        assert snap.totals["5g"] == 2199 and snap.totals["5g_afgerond"] == 2100
+        back = snapshot_from_json(snapshot_to_json(snap))
+        assert back.totals["5g_afgerond"] == 2100
+        old = json.loads(snapshot_to_json(snap))
+        del old["totals"]["5g_afgerond"]
+        assert snapshot_from_json(json.dumps(old)).totals["5g_afgerond"] == 2100

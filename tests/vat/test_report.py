@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.domain.vat.report import PAY, REFUND, ZERO, build_vat_report, drilldown, round_whole_cents
+from app.domain.vat.report import PAY, REFUND, ZERO, build_vat_report, drilldown, round_final_cents, round_whole_cents
 from app.models import VatCode
 from tests.vat.vat_helpers import DAY, Q3, Book, codes, rubriek
 
@@ -31,6 +31,35 @@ def test_round_whole_euros_toward_zero_never_negative_zero(cents, whole):
     assert str(result) != "-0"
 
 
+@pytest.mark.parametrize("cents,whole", [
+    (1299, 1200), (1200, 1200), (99, 0), (1, 0), (0, 0),  # betalen: naar beneden
+    (-96, -100), (-100, -100), (-1201, -1300), (-1, -100),  # teruggave: naar boven
+])
+def test_round_final_pay_floor_refund_ceil(cents, whole):
+    result = round_final_cents(cents)
+    assert result == whole
+    assert str(result) != "-0"
+
+
+def test_report_totals_carry_exact_and_rounded_final_amount(session, book):
+    book.sale(100000, 2199)
+    r = report(session)
+    assert r.totals["5g"] == 2199
+    assert r.totals["5g_afgerond"] == 2100
+
+
+def test_report_refund_rounds_up(session, book):
+    book.purchase(1000, 96, code="NL_21")
+    r = report(session)
+    assert r.totals["5g"] == -96
+    assert r.totals["5g_afgerond"] == -100
+
+
+def test_report_zero_total(session):
+    r = report(session)
+    assert r.totals["5g"] == 0 and r.totals["5g_afgerond"] == 0
+
+
 # --- aggregation per rubriek -----------------------------------------------------
 
 
@@ -39,7 +68,7 @@ def test_nl_21_sale(session, book):
     r = report(session)
     line = rubriek(r, "1a")
     assert (line.grondslag_cents, line.grondslag_whole_cents, line.vat_cents) == (100000, 100000, 21000)
-    assert r.totals == {"5a": 21000, "5b": 0, "5c": 21000, "5g": 21000}
+    assert r.totals == {"5a": 21000, "5b": 0, "5c": 21000, "5g": 21000, "5g_afgerond": 21000}
     assert r.direction == PAY
     assert not r.warnings
 
@@ -96,7 +125,7 @@ def test_storno_nets_out(session, book):
 def test_purchase_nl_21_gives_voorbelasting_only(session, book):
     book.purchase(10000, 2100)
     r = report(session)
-    assert r.totals == {"5a": 0, "5b": 2100, "5c": -2100, "5g": -2100}
+    assert r.totals == {"5a": 0, "5b": 2100, "5c": -2100, "5g": -2100, "5g_afgerond": -2100}
     assert r.direction == REFUND
     assert not r.warnings
     assert all(l.grondslag_cents == 0 for l in r.lines)
@@ -108,7 +137,7 @@ def test_verlegd_purchase_2a_counts_in_5a_and_5b(session, book):
     ])
     r = report(session)
     assert (rubriek(r, "2a").grondslag_cents, rubriek(r, "2a").vat_cents) == (10000, 2100)
-    assert r.totals == {"5a": 2100, "5b": 2100, "5c": 0, "5g": 0}
+    assert r.totals == {"5a": 2100, "5b": 2100, "5c": 0, "5g": 0, "5g_afgerond": 0}
     assert r.direction == ZERO
     assert not r.warnings
 
@@ -191,7 +220,7 @@ def test_nihil_report(session, book):
     r = report(session)
     assert r.is_empty
     assert r.message == "Geen btw in deze periode"
-    assert r.totals == {"5a": 0, "5b": 0, "5c": 0, "5g": 0}
+    assert r.totals == {"5a": 0, "5b": 0, "5c": 0, "5g": 0, "5g_afgerond": 0}
     assert r.direction == ZERO
     assert r.warnings == []
 
