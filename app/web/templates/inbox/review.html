@@ -8,14 +8,16 @@
 {%- endmacro %}
 {% block head %}<link rel="stylesheet" href="/static/css/inbox.css">
 <script src="/static/js/vat-suggest.js" defer></script>
-<link rel="stylesheet" href="/static/vendor/pdfjs/pdf_viewer.css">
-<script type="module" src="/static/js/source-highlight.js"></script>{% endblock %}
+<link rel="stylesheet" href="/static/vendor/pdfjs/pdf_viewer.css">{% endblock %}
 {% block content %}
 {{ page_header("Nakijken: " ~ document.original_filename, breadcrumb=[("Inbox", "/inbox"), (document.original_filename, "/inbox/" ~ document.id), ("Nakijken", None)], term="nakijken", icon_name="file",
    lead="Links zie je het originele bestand, rechts wat het programma eruit heeft gelezen. Controleer vooral de gemarkeerde velden.") }}
 
 {% if saved_notice %}{{ notice(saved_notice, "success") }}{% endif %}
 {% if errors %}{{ error_box(errors) }}{% endif %}
+
+{# Inline so hx-boost re-runs it on every visit; head scripts are not re-evaluated after a boosted swap. #}
+<script type="module">import("/static/js/source-highlight.js").then((m) => m.init());</script>
 
 <div class="review-grid">
   <section class="review-doc card" aria-label="Origineel bestand">

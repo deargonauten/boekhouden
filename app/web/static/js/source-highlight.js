@@ -2,10 +2,11 @@
 // highlights the passage a line was read from when the user focuses that line.
 import * as pdfjsLib from "/static/vendor/pdfjs/pdf.min.mjs";
 
-const view = document.getElementById("pdf-view");
-const status = document.getElementById("source-status");
-const rows = document.getElementById("review-line-rows");
-const textLayers = []; // one div.textLayer per rendered page
+// Module state, re-bound by init() on every visit (hx-boost swaps the body without reloading this module).
+let view = null;
+let status = null;
+let rows = null;
+let textLayers = []; // one div.textLayer per rendered page
 
 const say = (text) => { if (status) status.textContent = text; };
 const normalize = (s) => s.toLowerCase().replace(/\s+/g, " ").trim();
@@ -89,23 +90,31 @@ function highlight(source) {
   say("De gemarkeerde tekst links is waar deze regel vandaan komt.");
 }
 
-if (rows) {
-  let active = null;
-  const onRow = (event) => {
-    const row = event.target.closest("tr.line-row");
-    if (!row || row === active) return;
-    active = row;
-    rows.querySelectorAll("tr.line-row.is-active").forEach((r) => r.classList.remove("is-active"));
-    row.classList.add("is-active");
-    highlight(row.querySelector("input[name=line_source_text]")?.value);
-  };
-  rows.addEventListener("focusin", onRow);
-  rows.addEventListener("click", onRow);
-}
+export function init() {
+  view = document.getElementById("pdf-view");
+  status = document.getElementById("source-status");
+  rows = document.getElementById("review-line-rows");
+  textLayers = [];
 
-if (view) {
-  renderPdf().catch(() => {
-    view.innerHTML = '<iframe class="file-view" src="' + view.dataset.src + '" title="Origineel bestand"></iframe>';
-    say("Het origineel kan hier niet gemarkeerd worden; je ziet het gewone bestand.");
-  });
+  if (rows) {
+    let active = null;
+    const onRow = (event) => {
+      const row = event.target.closest("tr.line-row");
+      if (!row || row === active) return;
+      active = row;
+      rows.querySelectorAll("tr.line-row.is-active").forEach((r) => r.classList.remove("is-active"));
+      row.classList.add("is-active");
+      highlight(row.querySelector("input[name=line_source_text]")?.value);
+    };
+    rows.addEventListener("focusin", onRow);
+    rows.addEventListener("click", onRow);
+  }
+
+  if (view) {
+    const target = view;
+    renderPdf().catch(() => {
+      target.innerHTML = '<iframe class="file-view" src="' + target.dataset.src + '" title="Origineel bestand"></iframe>';
+      say("Het origineel kan hier niet gemarkeerd worden; je ziet het gewone bestand.");
+    });
+  }
 }
