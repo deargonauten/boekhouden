@@ -279,3 +279,9 @@ def test_vat_code_rubriek_lock_unchanged_after_filing(session, book):
     file(session, Q3)
     fails("VAT_CODE_IN_LOCKED_PERIOD", update_vat_code, session, "NL_21", name="x",
           sales_rubriek="1b", purchase_rubriek="5b")
+
+
+def test_other_kind_in_same_year_refused_even_without_overlap(session, book):
+    file(session, Q1)
+    msg = fails("VAT_FREQUENCY_CONFLICT", file, session, VatPeriod(2026, "month", 4))
+    assert "kwartaal" in msg and "maand" in msg

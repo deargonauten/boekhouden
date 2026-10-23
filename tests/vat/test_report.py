@@ -362,3 +362,13 @@ def test_drilldown_5b_and_2a(session, book):
 
 def test_drilldown_unknown_rubriek_is_empty(session, book):
     assert drilldown(session, *Q3, "9z") == []
+
+
+def test_w3_compensating_errors_in_different_boxes(session, book):
+    # 21% sale with 9 on 3100 (should be 21) and 9% sale with 21 on 3110 (should be 9)
+    e = book.post([
+        ("1210", 20000 + 3000, 0), ("8000", 0, 10000, "NL_21"), ("8000", 0, 10000, "NL_9"),
+        ("3100", 0, 900), ("3110", 0, 2100),
+    ], journal="VK")
+    w = [w for w in report(session).warnings if w.code == "W3"]
+    assert [x.entry_ids for x in w] == [(e.id,)]
