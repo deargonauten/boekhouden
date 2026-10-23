@@ -47,3 +47,35 @@ def test_api_key_not_leaked_in_repr():
 
 def test_get_settings_cached():
     assert get_settings() is get_settings()
+
+
+def test_imap_defaults_and_not_configured(monkeypatch):
+    for key in ("IMAP_HOST", "IMAP_USER", "IMAP_PASSWORD", "IMAP_POLL_INTERVAL_MINUTES"):
+        monkeypatch.delenv(key, raising=False)
+    s = Settings(_env_file=None)
+    assert (s.imap_port, s.imap_folder, s.imap_processed_folder) == (993, "INBOX", "Verwerkt")
+    assert (s.imap_poll_interval_minutes, s.imap_max_messages_per_run, s.imap_timeout_seconds) == (0, 50, 30)
+    assert s.imap_configured is False
+
+
+def test_imap_configured_needs_host_user_password():
+    full = dict(imap_host="h", imap_user="u", imap_password="p")
+    assert Settings(_env_file=None, **full).imap_configured
+    for missing in full:
+        assert not Settings(_env_file=None, **{k: v for k, v in full.items() if k != missing}).imap_configured
+
+
+def test_imap_password_not_leaked():
+    s = Settings(_env_file=None, imap_password="imap-secret-1")
+    assert "imap-secret-1" not in repr(s) and "imap-secret-1" not in str(s)
+
+
+def test_imap_poll_interval_validation():
+    import pytest
+    from pydantic import ValidationError
+
+    for ok in (0, 1, 15, 1440):
+        assert Settings(_env_file=None, imap_poll_interval_minutes=ok).imap_poll_interval_minutes == ok
+    for bad in (-1, 1441):
+        with pytest.raises(ValidationError, match="IMAP_POLL_INTERVAL_MINUTES"):
+            Settings(_env_file=None, imap_poll_interval_minutes=bad)

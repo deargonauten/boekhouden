@@ -12,6 +12,14 @@
     ("Herkend", "/inbox?status=herkend", status_filter == "herkend", counts.herkend, "status_herkend"),
     ("Geboekt", "/inbox?status=geboekt", status_filter == "geboekt", counts.geboekt, "status_geboekt"),
    ], tab_label="Filter op status") %}
+{% if email_configured %}
+<form method="post" action="/inbox/ophalen" class="cluster" hx-boost="false" hx-disabled-elt="find button">
+  <button type="submit" class="btn btn-secondary" title="Haalt facturen op uit je factuurmailbox.">{{ icon("inbox") }}Nu ophalen</button>
+  <span class="hint">Haalt facturen op uit je factuurmailbox. {{ info("factuurmailbox") }}</span>
+</form>
+{% else %}
+<a class="hint" href="/instellingen/email">E-mail koppelen</a>
+{% endif %}
 <a class="btn" href="#upload" data-modal-open="#upload">{{ icon("plus") }}Bestand toevoegen</a>
 {% endcall %}
 
@@ -33,6 +41,11 @@
 
 {% if request.query_params.get("melding") == "verwijderd" %}{{ notice("Het document is verwijderd.", "success") }}{% endif %}
 {% if request.query_params.get("melding") == "klaar" %}{{ notice("Klaar met nakijken. De volgende stap is boeken.", "success") }}{% endif %}
+{% if request.query_params.get("melding") == "bezig" %}{{ notice("Er wordt al opgehaald. Wacht even en ververs de pagina.", "info") }}{% endif %}
+{% if email_error %}
+<div class="alert" role="alert"><p>{{ email_error.message }} <a href="/instellingen/email">Naar de mailinstellingen</a></p></div>
+{% endif %}
+{% if email_last_report %}{% with report=email_last_report %}{% include "inbox/_email_notice.html" %}{% endwith %}{% endif %}
 {% include "inbox/_extract_banner.html" %}
 {% if extract_results %}
 <div class="results stack" role="group" aria-label="Resultaat van het uitlezen">

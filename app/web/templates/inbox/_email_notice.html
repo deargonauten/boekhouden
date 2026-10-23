@@ -1,0 +1,23 @@
+{#- Result of an e-mail run. Context: `report` (IntakeReport). Used on the inbox and the e-mail settings page. -#}
+{% from "partials/_ui.html" import notice with context %}
+{% set new = report.documents_new %}
+{% set dup = report.documents_duplicate %}
+<div class="stack email-notice">
+{% if report.status == "fout" %}
+  {{ notice((report.error_message or "Ophalen is mislukt.") ~ " Controleer de gegevens bij Je factuurmailbox.", "warning") }}
+  <p><a href="/instellingen/email">Naar de mailbox-instellingen</a></p>
+{% elif not new and not dup %}
+  {{ notice("Geen nieuwe mail met facturen gevonden.", "info") }}
+{% else %}
+  {% set new_text = (new ~ " nieuwe documenten" if new != 1 else "1 nieuw document") if new else "geen nieuwe documenten" %}
+  {% set dup_text = ", " ~ (dup ~ " stonden er al" if dup != 1 else "1 stond er al") if dup else "" %}
+  {{ notice("Klaar: " ~ new_text ~ " uit je mailbox gehaald" ~ dup_text ~ ".", "success") }}
+{% endif %}
+{% if report.mails_without_attachments %}
+  {{ notice((report.mails_without_attachments ~ " mails zonder PDF of foto zijn overgeslagen." if report.mails_without_attachments != 1 else "1 mail zonder PDF of foto is overgeslagen."), "info") }}
+{% endif %}
+{% if report.problems %}
+  <div class="notice notice--warning" role="status"><div><ul>{% for p in report.problems %}<li>{{ p }}</li>{% endfor %}</ul></div></div>
+{% endif %}
+  <p class="hint">Automatisch ophalen werkt alleen als het programma draait.</p>
+</div>

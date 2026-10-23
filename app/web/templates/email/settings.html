@@ -1,0 +1,97 @@
+{% extends "base_settings.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, notice, error_box with context %}
+{% block settings_header %}
+{{ page_header("Je factuurmailbox", breadcrumb=[("Instellingen", "/instellingen/grootboek"), ("E-mail", None)], term="factuurmailbox", icon_name="settings") }}
+{% endblock %}
+{% block settings_content %}
+<p class="lead">Laat je facturen per e-mail binnenkomen: het programma haalt de PDF's en foto's uit je mailbox en zet ze in je inbox {{ info("inbox") }}. Dit gaat via een koppeling met je mailbox (IMAP {{ info("imap") }}).</p>
+
+{% if connection %}
+  {% if connection.ok %}
+    {{ notice("Verbinding gelukt: er staan " ~ connection.unread_count ~ " ongelezen mails in " ~ connection.folder ~ ".", "success") }}
+  {% else %}
+    {{ error_box(connection.message) }}
+  {% endif %}
+{% endif %}
+
+<section class="card" aria-labelledby="email-status">
+  <div class="card__body stack">
+    <h2 id="email-status">Zo staat het ervoor</h2>
+    {% if cfg.configured %}
+      {{ notice("De mailbox is gekoppeld.", "success") }}
+    {% else %}
+      {{ notice("De mailbox is nog niet gekoppeld. Volg de stappen hieronder.", "warning") }}
+    {% endif %}
+    <dl class="kv">
+      <dt>Server</dt><dd>{{ cfg.host or "niet ingesteld" }}</dd>
+      <dt>Poort</dt><dd>{{ cfg.port }}</dd>
+      <dt>Gebruiker</dt><dd>{{ cfg.user or "niet ingesteld" }}</dd>
+      <dt>Map met nieuwe mail</dt><dd>{{ cfg.folder }}</dd>
+      <dt>Map voor afgehandelde mail</dt><dd>{{ cfg.processed_folder }}</dd>
+    </dl>
+    <p>Wachtwoord: {{ "ingesteld" if cfg.password_set else "niet ingesteld" }}</p>
+    <p>{% if cfg.interval %}Automatisch ophalen: elke {{ cfg.interval }} {{ "minuut" if cfg.interval == 1 else "minuten" }}{% else %}Automatisch ophalen: Uit; gebruik de knop Nu ophalen in de Inbox{% endif %}</p>
+    <p class="hint">Automatisch ophalen werkt alleen als het programma draait.</p>
+    {% if cfg.configured %}
+    <form method="post" action="/instellingen/email/test" hx-boost="false">
+      <button type="submit" class="btn btn-secondary">Verbinding testen</button>
+      <span class="hint">Er wordt niets opgeslagen of verplaatst.</span>
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card" aria-labelledby="email-howto">
+  <div class="card__body stack">
+    <h2 id="email-howto">Zo koppel je je mailbox</h2>
+    <ol>
+      <li>Maak een apart e-mailadres voor je facturen, bijvoorbeeld facturen@jouwbedrijf.nl {{ info("factuurmailbox") }}. Laat leveranciers daar naartoe mailen, of stuur facturen zelf door.</li>
+      <li>Gebruikt je mailprovider een apart wachtwoord voor programma's? Maak dan een app-wachtwoord {{ info("app_wachtwoord") }} aan.</li>
+      <li>Zet de gegevens in het bestand <code>.env</code> in de map van dit programma:
+<pre><code>IMAP_HOST=imap.jouwprovider.nl
+IMAP_USER=facturen@jouwbedrijf.nl
+IMAP_PASSWORD=jouw-app-wachtwoord
+# Niet verplicht:
+# IMAP_PORT=993
+# IMAP_FOLDER=INBOX
+# IMAP_PROCESSED_FOLDER=Verwerkt
+# IMAP_POLL_INTERVAL_MINUTES=15</code></pre></li>
+      <li>Start het programma opnieuw en druk hier op Verbinding testen.</li>
+    </ol>
+    <p class="hint">Afgehandelde mail wordt naar de map {{ cfg.processed_folder }} verplaatst; er wordt niets verwijderd. Verwijder je later een document uit je inbox, dan komt het niet terug uit dezelfde mail.</p>
+  </div>
+</section>
+
+{% if last_report %}
+<section class="card" aria-labelledby="email-last">
+  <div class="card__body stack">
+    <h2 id="email-last">Laatste keer ophalen</h2>
+    {% with report=last_report %}{% include "inbox/_email_notice.html" %}{% endwith %}
+  </div>
+</section>
+{% endif %}
+
+<section class="card card--flush" aria-labelledby="email-recent">
+  <div class="card__body"><h2 id="email-recent">Laatst verwerkte mails</h2></div>
+  {% if messages %}
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Datum</th><th>Afzender</th><th>Onderwerp</th><th>Resultaat</th></tr></thead>
+    <tbody>
+    {% for m in messages %}
+    <tr>
+      <td class="nowrap">{{ m.received_at|datum_tijd }}</td>
+      <td>{{ m.from_addr }}</td>
+      <td>{{ m.subject }}</td>
+      <td>{% if not m.moved %}nog niet verplaatst{% elif m.outcome == "geen_bijlage" %}geen bijlage{% elif m.documents_new %}{{ m.documents_new }} nieuw{% else %}al aanwezig{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card__body"><p class="hint">Er is nog geen mail verwerkt.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

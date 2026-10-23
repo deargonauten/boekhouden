@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from app import web
 from app.web.ledger_routes import router as ledger_router
 from app.web.inbox_routes import router as inbox_router
+from app.web.email_routes import router as email_router
 from app.web.extraction_routes import router as extraction_router
 from app.web.relations_routes import router as relations_router
 from app.web.company_routes import router as company_router
@@ -26,6 +27,7 @@ router.include_router(relations_router)
 router.include_router(company_router)
 router.include_router(vat_router)
 router.include_router(inbox_router)
+router.include_router(email_router)
 router.include_router(extraction_router)
 router.include_router(booking_router)
 router.include_router(purchase_router)
