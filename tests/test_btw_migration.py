@@ -21,7 +21,7 @@ def test_upgrade_from_0013_and_downgrade(test_settings):
 
     command.upgrade(cfg, "0014_btw_aangifte")
     assert NEW_TABLES <= set(inspect(engine).get_table_names())
-    command.check(cfg)  # models and migration agree
+    # no command.check here: models are ahead of this revision (checked at head in test_migrations)
 
     command.downgrade(cfg, "0013_bank_match_sales")
     assert not NEW_TABLES & set(inspect(engine).get_table_names())
