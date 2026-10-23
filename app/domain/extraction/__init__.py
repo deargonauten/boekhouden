@@ -18,6 +18,7 @@ from app.domain.extraction.service import (  # noqa: F401
     flagged_count,
     get_extraction,
     line_flags,
+    next_document_to_review,
     run_extraction,
     save_review,
     store_failure,

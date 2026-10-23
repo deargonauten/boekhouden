@@ -98,6 +98,42 @@ def test_post_books_and_redirects_to_inkoop(client):
     assert entries(client) == 1
 
 
+def unreviewed_doc(client, **over):
+    use(client, FakeExtractor(INVOICE))
+    n = next(_n)
+    doc_id = add_doc(client, f"f{n}.pdf", PDF + bytes([n]))
+    client.post(f"/inbox/{doc_id}/uitlezen")
+    return doc_id, {**review_data(client, **over), "actie": "boeken"}
+
+
+def test_book_and_next_books_without_separate_review_and_opens_next(client):
+    first, data = unreviewed_doc(client, invoice_number="A-1")
+    second, _ = unreviewed_doc(client, invoice_number="A-2")
+    r = client.post(f"/inbox/{first}/nakijken", data=data, follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == f"/inbox/{second}/nakijken?melding=geboekt"
+    assert sql(client, "SELECT status FROM document WHERE id = :i", i=first) == [("geboekt",)]
+    assert entries(client) == 1
+    assert "vorige factuur is geboekt" in client.get(r.headers["location"]).text
+
+
+def test_book_and_next_without_more_documents_goes_to_inkoop(client):
+    doc_id, data = unreviewed_doc(client)
+    r = client.post(f"/inbox/{doc_id}/nakijken", data=data, follow_redirects=False)
+    assert r.headers["location"].startswith("/inkoop?melding=geboekt&boeking=")
+
+
+def test_book_and_next_with_booking_error_stays_on_review_and_keeps_edits(client):
+    first, data = unreviewed_doc(client, invoice_number="B-1")
+    reviewed_doc(client, invoice_number="B-1")  # same number from the same supplier is booked later
+    client.post(f"/inbox/{sql(client, 'SELECT max(id) FROM document')[0][0]}/boeken")
+    r = client.post(f"/inbox/{first}/nakijken", data=data)
+    assert r.status_code == 422
+    assert "Traceback" not in r.text
+    assert sql(client, "SELECT status FROM document WHERE id = :i", i=first) == [("herkend",)]
+    assert sql(client, "SELECT reviewed_at IS NOT NULL FROM invoice_extraction WHERE document_id = :i", i=first) == [(1,)]
+
+
 def test_double_submit_gives_422_and_no_second_entry(client):
     doc_id = reviewed_doc(client)
     client.post(f"/inbox/{doc_id}/boeken")
@@ -144,9 +180,9 @@ def test_missing_item_links_to_the_review_screen(client):
 def test_review_page_has_book_button_only_when_ok_and_not_geboekt(client):
     doc_id = reviewed_doc(client)
     page = client.get(f"/inbox/{doc_id}/nakijken").text
-    assert "Goedkeuren en boeken" in page and f'href="/inbox/{doc_id}/boeken"' in page
+    assert "Goedkeuren, boeken en volgende" in page
     client.post(f"/inbox/{doc_id}/boeken")
-    assert "Goedkeuren en boeken" not in client.get(f"/inbox/{doc_id}/nakijken").text
+    assert "Goedkeuren, boeken en volgende" not in client.get(f"/inbox/{doc_id}/nakijken").text
 
 
 def test_review_page_hints_what_you_chose_last_time(client):

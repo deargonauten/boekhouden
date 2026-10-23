@@ -138,6 +138,19 @@ def find_extraction(session: Session, document_id: int) -> InvoiceExtraction | N
     )
 
 
+def next_document_to_review(session: Session, after_id: int) -> int | None:
+    """Id of the next unbooked document that was read out fine, after `after_id` (wraps around)."""
+    ids = list(
+        session.scalars(
+            select(Document.id)
+            .join(InvoiceExtraction, InvoiceExtraction.document_id == Document.id)
+            .where(Document.status != "geboekt", InvoiceExtraction.status == "ok", Document.id != after_id)
+            .order_by(Document.id)
+        )
+    )
+    return next((i for i in ids if i > after_id), ids[0] if ids else None)
+
+
 def get_extraction(session: Session, document_id: int) -> InvoiceExtraction:
     extraction = find_extraction(session, document_id)
     if extraction is None:

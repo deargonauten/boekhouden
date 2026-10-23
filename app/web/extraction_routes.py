@@ -27,6 +27,7 @@ from app.domain.documents import (
     list_documents,
 )
 from app.domain.errors import (
+    LedgerError,
     DocumentNotFoundError,
     ExtractionError,
     ExtractionNotAllowedError,
@@ -41,12 +42,14 @@ from app.domain.extraction import (
     backend_status,
     build_request,
     get_extraction,
+    next_document_to_review,
     save_review,
     store_failure,
     store_result,
 )
 from app.domain.extraction.extractors.factory import get_extractor
 from app.domain.money import format_euro
+from app.domain.purchase import book_extraction
 from app.models import Account, Contact
 from app.web.inbox_routes import DOCUMENT_STATUSES, LIST_LIMIT, _list_page, get_storage
 
@@ -59,6 +62,7 @@ LEVELS = ("low", "medium")  # flag levels that count as "controleer dit"
 LEVEL_LABELS = {"medium": "Controleer", "low": "Onzeker"}
 SAVED_MESSAGE = "Opgeslagen."
 DELETED_MESSAGE = "Dit document is ondertussen verwijderd. Ga terug naar je inbox."
+BOOKED_NEXT_MESSAGE = "De vorige factuur is geboekt. Dit is de volgende."
 FINISHED_MESSAGE = "Klaar met nakijken. De volgende stap is boeken."
 NO_ACCOUNT_HINT = "Kies een rekening. Twijfel je? Kies 4999 Nog te verdelen."
 HEADER_FIELDS = (
@@ -394,7 +398,8 @@ def review_page(
     document = _load(session, document_id)
     if document is None:
         return web.not_found_response(request)
-    return _review_page(request, session, document, saved_notice=SAVED_MESSAGE if melding == "opgeslagen" else None)
+    notice = {"geboekt": BOOKED_NEXT_MESSAGE, "opgeslagen": SAVED_MESSAGE}.get(melding)
+    return _review_page(request, session, document, saved_notice=notice)
 
 
 @router.get("/inbox/{document_id:int}/nakijken/regel")
@@ -438,7 +443,8 @@ async def review_save(
         return web.not_found_response(request)
     form = await request.form()
     data = _review_input(form)
-    finish = form.get("actie") == "klaar"
+    book = form.get("actie") == "boeken"
+    finish = book or form.get("actie") == "klaar"
     try:
         save_review(session, document_id, data, finish=finish)
         session.commit()
@@ -454,6 +460,23 @@ async def review_save(
         return _review_page(request, session, document)
     except DocumentNotFoundError:
         return _deleted_meanwhile(request, session)
+    if book:
+        return _book_and_continue(request, session, document)
     if finish:
         return RedirectResponse("/inbox?melding=klaar", status_code=303)
     return RedirectResponse(f"/inbox/{document_id}/nakijken?melding=opgeslagen", status_code=303)
+
+
+def _book_and_continue(request: Request, session: Session, document):
+    """The review is saved and committed; book it and go to the next invoice to check."""
+    try:
+        invoice = book_extraction(session, document.id)
+        entry_id = invoice.journal_entry_id
+        session.commit()
+    except LedgerError as exc:
+        session.rollback()
+        return _review_page(request, session, document, status=422, errors=[exc.message])
+    next_id = next_document_to_review(session, document.id)
+    if next_id is None:
+        return RedirectResponse(f"/inkoop?melding=geboekt&boeking={entry_id}", status_code=303)
+    return RedirectResponse(f"/inbox/{next_id}/nakijken?melding=geboekt", status_code=303)

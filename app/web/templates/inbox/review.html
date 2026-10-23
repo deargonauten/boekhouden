@@ -175,9 +175,9 @@
       </section>
 
       <div class="form-actions">
+        {% if document.status != "geboekt" %}<button type="submit" name="actie" value="boeken" class="btn">{{ icon("check") }}Goedkeuren, boeken en volgende</button> {{ info("goedkeuren_boeken") }}{% endif %}
         <button type="submit" name="actie" value="opslaan" class="btn btn-secondary">Opslaan</button>
-        <button type="submit" name="actie" value="klaar" class="btn">{{ icon("check") }}Klaar met nakijken</button>
-        {% if document.status != "geboekt" %}<a class="btn" href="/inbox/{{ document.id }}/boeken">{{ icon("check") }}Goedkeuren en boeken</a> {{ info("goedkeuren_boeken") }}{% endif %}
+        <button type="submit" name="actie" value="klaar" class="btn btn-secondary">Klaar met nakijken</button>
         <a href="/inbox">Annuleren</a>
       </div>
     </form>
