@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info, term_label with context %}
+{% from "partials/_ui.html" import page_header, pill, notice, error_box, icon with context %}
+{% block content %}
+{% call page_header("BTW-aangifte " ~ period.label, breadcrumb=[("BTW", "/btw?jaar=" ~ period.year), (period.label, None)], term="btw_aangifte", icon_name="percent",
+   lead="Dit overzicht is gemaakt van je boekingen. Neem de bedragen over in Mijn Belastingdienst Zakelijk; dit programma verstuurt zelf niets.") %}
+  <a class="btn btn-secondary" href="{{ base }}/pdf" hx-boost="false">{{ icon("file") }}PDF</a>
+  <a class="btn btn-secondary" href="{{ base }}/rubrieken.csv" hx-boost="false">Rubrieken (CSV)</a>
+{% endcall %}
+{% if error %}{{ error_box(error) }}{% endif %}
+<p class="hint">Downloaden kan als PDF of als CSV-bestand. {{ info("csv_export") }}</p>
+
+<p>
+  {% if filed %}{{ pill("Ingediend", "success") }} {{ info("ingediend") }} op {{ snapshot.filed_on.strftime("%d-%m-%Y") }}{% if snapshot.reference %}, ontvangstnummer {{ snapshot.reference }}{% endif %}.
+  Dit zijn de bedragen zoals ze toen waren. De periode is vergrendeld. {{ info("vergrendelen") }}
+  {% else %}{{ pill("Voorlopig", "warning") }} Nog niet ingediend. Uiterlijk indienen: {{ deadline.strftime("%d-%m-%Y") }}{% if overdue %} {{ pill("Te laat", "danger") }}{% else %} {{ pill("Op tijd", "neutral") }}{% endif %}.{% endif %}
+</p>
+<p class="hint">Je btw {{ info("btw") }} telt mee in de periode {{ info("periode") }} van de boekingsdatum. {{ info("factuurstelsel") }}</p>
+
+{% if kor == "full" %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Je gebruikt de KOR {{ info("kor") }}: je hoeft geen btw-aangifte te doen. Verkoop aan bedrijven in de EU geef je wel door met de ICP-opgaaf hieronder.</div></div>
+{% elif kor == "partial" %}
+<div class="notice notice--warning" role="status">{{ icon("alert") }}<div>Een deel van deze periode valt onder de KOR {{ info("kor") }}. Controleer zelf welke boekingen meetellen.</div></div>
+{% endif %}
+
+{% if is_empty and filed %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Geen btw in deze periode. Dit was een aangifte met nul als bedrag: een nihilaangifte. {{ info("nihilaangifte") }}</div></div>
+{% elif is_empty and kor != "full" %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Geen btw in deze periode. Je moet toch een aangifte doen, met nul als bedrag: dat heet een nihilaangifte. {{ info("nihilaangifte") }}</div></div>
+{% endif %}
+
+{% if snapshot.warnings %}
+<section class="card">
+  <div class="card__header"><h2>Controleer dit</h2></div>
+  <div class="card__body">
+    <ul>
+      {% for w in snapshot.warnings %}<li>{{ w.message }}{% for eid in w.entry_ids[:5] %} <a href="/boeken/{{ eid }}">boeking {{ eid }}</a>{% endfor %}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<section class="card card--flush">
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr>
+      <th>Onderdeel (rubriek) {{ info("rubriek") }}</th><th class="num">Grondslag {{ info("grondslag") }}</th><th class="num">Btw</th><th><span class="visually-hidden">Details</span></th>
+    </tr></thead>
+    <tbody>
+    {% for l in snapshot.lines %}
+    <tr{% if not l.grondslag_cents and not l.vat_cents %} class="inactive"{% endif %}>
+      <td>{{ l.label }} ({{ l.rubriek }})</td>
+      <td class="num">{{ l.grondslag_whole_cents|euro }}</td>
+      <td class="num">{{ l.vat_cents|euro }}</td>
+      <td class="nowrap">{% if l.grondslag_cents or l.vat_cents %}<a href="{{ base }}/rubriek/{{ l.rubriek }}">Welke boekingen?</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    <tr><td><strong>Btw die je moet afdragen (5a)</strong> {{ info("btw_af_te_dragen") }}</td><td></td><td class="num">{{ snapshot.totals["5a"]|euro }}</td><td></td></tr>
+    <tr><td>Voorbelasting (5b) {{ info("voorbelasting") }}</td><td></td><td class="num">{{ snapshot.totals["5b"]|euro }}</td><td></td></tr>
+    <tr><td>Subtotaal (5c)</td><td></td><td class="num">{{ snapshot.totals["5c"]|euro }}</td><td></td></tr>
+    <tr><td><strong>{{ direction_label }} (5g)</strong></td><td></td><td class="num"><strong>{{ snapshot.totals["5g"]|abs|euro }}</strong></td><td></td></tr>
+    {% if snapshot.totals["5g_afgerond"] or snapshot.totals["5g"] %}
+    <tr><td><strong>Afgerond bedrag voor je aangifte</strong> {{ info("afronding_aangifte") }}<br><small class="muted">Dit vul je in bij de Belastingdienst, {{ direction_label|lower }} (exact: {{ snapshot.totals["5g"]|abs|euro }})</small></td><td></td><td class="num"><strong>{{ snapshot.totals["5g_afgerond"]|abs|euro }}</strong></td><td></td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<p class="hint">Grondslag is in hele euro's afgerond naar beneden; de btw staat in euro's en centen.</p>
+
+<section id="icp">
+  {% include "btw/_icp.html" %}
+</section>
+
+{% if not filed %}
+<section class="card">
+  <div class="card__header"><h2>Heb je de aangifte gedaan?</h2></div>
+  <div class="card__body">
+    {% if kor == "full" %}
+    <p>Voor deze periode hoef je geen aangifte te doen, dus je kunt hem ook niet als ingediend markeren.</p>
+    {% else %}
+    <p>Doe de aangifte eerst bij Mijn Belastingdienst Zakelijk. Markeer hem daarna hier als ingediend. {{ info("ingediend") }}</p>
+    <a class="btn" href="{{ base }}/indienen">Markeer als ingediend</a>
+    {% endif %}
+  </div>
+</section>
+{% else %}
+<p class="hint">Klopt er iets niet? Boek een correctie in de huidige open periode. Die komt mee in je volgende aangifte.</p>
+{% endif %}
+{% endblock %}

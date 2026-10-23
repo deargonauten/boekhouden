@@ -58,6 +58,7 @@ def test_settings_nav_contract():
         ("Dagboeken", "/instellingen/dagboeken", "dagboek"),
         ("Boekjaren", "/instellingen/boekjaren", "boekjaar"),
         ("Beginbalans", "/instellingen/beginbalans", "beginbalans"),
+        ("BTW-aangifte", "/instellingen/btw-aangifte", "btw_aangifte"),
     ]
     assert is_settings_active(items[0], "/instellingen/grootboek")
     assert is_settings_active(items[0], "/instellingen/grootboek/x")
@@ -78,7 +79,7 @@ def test_base_settings_renders_secondary_nav_with_active_link():
     nav = re.search(r'<nav class="settings-nav" aria-label="Instellingen">.*?</nav>', html, re.S).group(0)
     assert 'settings-nav__heading">Boekhouding<' in nav
     assert 'settings-nav__heading">Mijn bedrijf<' in nav
-    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 6
+    assert nav.count('class="settings-nav__link"') + nav.count('class="settings-nav__link" aria') == 7
     assert nav.count('aria-current="page"') == 1
     assert re.search(r'href="/instellingen/dagboeken" aria-current="page">Dagboeken', nav)
     for key in ("bedrijfsgegevens", "grootboek", "btw_code", "dagboek", "boekjaar"):

@@ -24,3 +24,4 @@ from app.models.sales import (  # noqa: F401
     SalesNumberCounter,
     SalesReminder,
 )
+from app.models.vat_return import VatEntryContact, VatReturn, VatSetting  # noqa: F401

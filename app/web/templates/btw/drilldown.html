@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, empty_state with context %}
+{% block content %}
+{{ page_header(line.label ~ " (" ~ line.rubriek ~ ")", breadcrumb=[("BTW", "/btw?jaar=" ~ period.year), (period.label, base), (line.rubriek, None)], term="rubriek", icon_name="percent",
+   lead="Dit zijn de boekingen die in dit vakje van de aangifte over " ~ period.label ~ " terechtkomen.") }}
+{% if rows %}
+<section class="card card--flush">
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Boeking {{ info("boeking") }}</th><th>Datum</th><th>Omschrijving</th><th>Rekening</th><th>Soort bedrag</th><th class="num">Bedrag</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="nowrap"><a href="/boeken/{{ r.entry_id }}">{{ r.entry_number }}</a></td>
+      <td class="nowrap">{{ r.booking_date.strftime("%d-%m-%Y") }}</td>
+      <td>{{ r.description }}</td>
+      <td>{{ r.account_code }} {{ r.account_name }}</td>
+      <td>{{ "Grondslag" if r.kind == "grondslag" else "Btw" }}</td>
+      <td class="num">{{ r.amount_cents|euro }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<p class="hint">Grondslag {{ info("grondslag") }} is het bedrag zonder btw {{ info("btw") }}, hier nog niet afgerond.</p>
+{% else %}
+{{ empty_state("Geen boekingen", "Er staan in deze periode geen boekingen in dit vakje.", "Terug naar de aangifte", base, "inbox") }}
+{% endif %}
+<p class="hint">Alleen boekingen met btw {{ info("btw") }} in deze periode {{ info("periode") }} staan hier.</p>
+<p><a href="{{ base }}">Terug naar de aangifte</a></p>
+{% endblock %}

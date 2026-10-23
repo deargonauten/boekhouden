@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, error_box with context %}
+{% block content %}
+{{ page_header("Aangifte " ~ period.label ~ " als ingediend markeren", breadcrumb=[("BTW", "/btw?jaar=" ~ period.year), (period.label, base), ("Indienen", None)], term="ingediend", icon_name="percent",
+   lead="Controleer dit nog één keer. Daarna kun je er niets meer in wijzigen.") }}
+{% if error %}{{ error_box(error) }}{% endif %}
+<section class="card">
+  <div class="card__header"><h2>Wat gebeurt er?</h2></div>
+  <div class="card__body">
+    <p>Je hebt de btw-aangifte {{ period.label }} gedaan bij Mijn Belastingdienst Zakelijk. {{ info("btw") }} Hier leggen we dat vast. Het programma verstuurt zelf niets.</p>
+    <ul>
+      <li>De bedragen worden vastgezet: {{ snapshot.totals["5g_afgerond"]|abs|euro }} (exact {{ snapshot.totals["5g"]|abs|euro }}, afgerond voor je aangifte) {{ "te betalen" if snapshot.totals["5g"] > 0 else ("terug te vragen" if snapshot.totals["5g"] < 0 else "(niets te betalen)") }}.</li>
+      <li>{{ month_count }} {{ "maand" if month_count == 1 else "maanden" }} worden vergrendeld. {{ info("vergrendelen") }} Je kunt daarna niets meer boeken in {{ "die maand" if month_count == 1 else "die maanden" }}.</li>
+      {% if closes_year %}<li>Het boekjaar {{ period.year }} wordt daarmee afgesloten.</li>{% endif %}
+    </ul>
+    <p><strong>Dit kun je niet terugdraaien.</strong></p>
+  </div>
+</section>
+<form method="post" action="{{ base }}/indienen" class="settings-form" hx-boost="false">
+  <div class="field">
+    <label for="filed_on">Datum waarop je de aangifte deed</label>
+    <input id="filed_on" name="filed_on" type="date" value="{{ values.filed_on }}" required>
+  </div>
+  <div class="field">
+    <label for="reference">Ontvangstnummer (niet verplicht)</label>
+    <input id="reference" name="reference" value="{{ values.reference }}" maxlength="60">
+    <span class="field__hint">Het nummer van de ontvangstbevestiging van de Belastingdienst.</span>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn">Ja, markeer als ingediend</button>
+    <a href="{{ base }}">Terug naar de aangifte</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "partials/_info.html" import info with context %}
+{% from "partials/_ui.html" import page_header, pill, notice, icon with context %}
+{% block content %}
+{% call page_header("Je btw-aangifte", breadcrumb=[("BTW", None)], term="btw_aangifte", icon_name="percent",
+   lead="Hier zie je per " ~ ("kwartaal" if kind == "quarter" else "maand") ~ " hoeveel btw je moet betalen of terugkrijgt. Je vult de bedragen zelf in bij Mijn Belastingdienst Zakelijk en markeert de aangifte hier daarna als ingediend.") %}<a class="btn btn-secondary" href="/instellingen/btw-aangifte">Instellingen</a>{% endcall %}
+
+<form method="get" action="/btw" class="toolbar" hx-boost="false">
+  <label for="jaar">Boekjaar {{ info("boekjaar") }}</label>
+  <select id="jaar" name="jaar" onchange="this.form.submit()">
+    {% for y in years %}<option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>{% endfor %}
+  </select>
+  <noscript><button type="submit" class="btn btn-secondary">Tonen</button></noscript>
+  <span class="muted">{{ kind_label }}</span>
+</form>
+
+<p class="hint">Je btw {{ info("btw") }} telt mee in het kwartaal of de maand van de boekingsdatum, niet van de betaaldatum. {{ info("factuurstelsel") }}</p>
+
+{% if settings.kor_from %}
+<div class="notice notice--info" role="status">{{ icon("info") }}<div>Je gebruikt de KOR {{ info("kor") }} vanaf {{ settings.kor_from.strftime("%d-%m-%Y") }}{% if settings.kor_until %} tot en met {{ settings.kor_until.strftime("%d-%m-%Y") }}{% endif %}. In die periodes doe je geen btw-aangifte. Verkoop aan bedrijven in de EU geef je wel door met de ICP-opgaaf. {{ info("icp_opgaaf") }}</div></div>
+{% else %}
+<p class="hint">Omzet dit jaar: {{ omzet_cents|euro }}. De grens voor de KOR is {{ kor_limit_cents|euro }} per jaar. {{ info("kor") }}</p>
+{% endif %}
+
+<section class="card card--flush">
+  <div class="table-wrap">
+  <table class="data">
+    <thead><tr>
+      <th>Periode {{ info("periode") }}</th><th>Uiterlijk indienen</th><th>Status</th><th class="num">Bedrag</th><th>Bekijken</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr{% if r.status == "niet_gestart" %} class="inactive"{% endif %}>
+      <td class="nowrap"><a href="{{ path_of(r.period) }}">{{ r.period.label }}</a>{% if current and current == r.period %} {{ pill("Nu bezig", "info") }}{% endif %}</td>
+      <td class="nowrap">{{ r.deadline.strftime("%d-%m-%Y") }}{% if r.status != "ingediend" %}{% if r.overdue %} {{ pill("Te laat", "danger") }}{% else %} {{ pill("Op tijd", "neutral") }}{% endif %}{% endif %}</td>
+      <td>{{ pill(status_labels[r.status], status_tones[r.status]) }}{% if r.kor == "full" %} {{ pill("KOR", "info") }}{% elif r.kor == "partial" %} {{ pill("Deels KOR", "info") }}{% endif %}</td>
+      <td class="num">{% if r.total_cents is not none %}{{ r.rounded_cents|abs|euro }} <small class="muted">{{ direction_labels[r.direction] }}</small>{% if r.rounded_cents != r.total_cents %}<br><small class="muted">exact {{ r.total_cents|abs|euro }}</small>{% endif %}{% else %}-{% endif %}</td>
+      <td class="nowrap"><a href="{{ path_of(r.period) }}">{% if r.status == "ingediend" %}Bekijken{% else %}Openen{% endif %}</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<p class="hint">Een btw-aangifte {{ info("btw_aangifte") }} doe je zelf bij de Belastingdienst. Is een aangifte ingediend? {{ info("ingediend") }} Dan staat hij vast. Een fout daarna corrigeer je met een correctieboeking in de huidige open periode; die telt mee in de volgende aangifte.</p>
+{% endblock %}

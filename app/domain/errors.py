@@ -283,3 +283,87 @@ INVALID_RUBRIEK = "INVALID_RUBRIEK"
 VAT_CODE_IN_LOCKED_PERIOD = "VAT_CODE_IN_LOCKED_PERIOD"
 VAT_CODE_IS_DEFAULT = "VAT_CODE_IS_DEFAULT"
 VAT_CODE_SYSTEM = "VAT_CODE_SYSTEM"
+
+
+# --- BTW-aangifte --------------------------------------------------------------
+VAT_PERIOD_INVALID = "VAT_PERIOD_INVALID"
+VAT_PERIOD_MISSING = "VAT_PERIOD_MISSING"
+VAT_ALREADY_FILED = "VAT_ALREADY_FILED"
+VAT_EARLIER_NOT_FILED = "VAT_EARLIER_NOT_FILED"
+VAT_KOR_NO_RETURN = "VAT_KOR_NO_RETURN"
+VAT_COMPANY_INCOMPLETE = "VAT_COMPANY_INCOMPLETE"
+VAT_FREQUENCY_CONFLICT = "VAT_FREQUENCY_CONFLICT"
+VAT_ENTRY_LOCKED = "VAT_ENTRY_LOCKED"
+VAT_FUTURE_DATE = "VAT_FUTURE_DATE"
+VAT_KOR_DATES = "VAT_KOR_DATES"
+# Not in the spec list; needed for plain-Dutch messages on other refusals.
+VAT_FREQUENCY_INVALID = "VAT_FREQUENCY_INVALID"
+VAT_KOR_START_INVALID = "VAT_KOR_START_INVALID"
+VAT_KOR_FILED = "VAT_KOR_FILED"
+VAT_ENTRY_NOT_FOUND = "VAT_ENTRY_NOT_FOUND"
+VAT_CONTACT_NOT_FOUND = "VAT_CONTACT_NOT_FOUND"
+
+VAT_MESSAGES: dict[str, str] = {
+    VAT_PERIOD_INVALID: "Deze periode bestaat niet. Kies een kwartaal van 1 tot 4 of een maand van 1 tot 12.",
+    VAT_PERIOD_MISSING: "Het boekjaar {year} bestaat nog niet. Maak het eerst aan onder Instellingen > Boekjaren.",
+    VAT_ALREADY_FILED: "Deze aangifte is al ingediend en kan niet meer worden aangepast.",
+    VAT_EARLIER_NOT_FILED: "Dien eerst de aangifte over {periode} in, daarna deze.",
+    VAT_KOR_NO_RETURN: "Je gebruikt de KOR in deze periode, dus je hoeft geen btw-aangifte te doen.",
+    VAT_COMPANY_INCOMPLETE: "Vul eerst je btw-nummer in onder Instellingen > Bedrijfsgegevens.",
+    VAT_FREQUENCY_CONFLICT: "Je kunt niet wisselen tussen kwartaal en maand in {year}: er is al een aangifte ingediend.",
+    VAT_ENTRY_LOCKED: "Deze boeking zit in een vergrendelde periode, dus je kunt er geen klant meer aan koppelen.",
+    VAT_FUTURE_DATE: "De datum van indienen kan niet in de toekomst liggen.",
+    VAT_KOR_DATES: "De einddatum van de KOR ligt vóór de startdatum.",
+    VAT_FREQUENCY_INVALID: "Kies of je btw-aangifte per kwartaal of per maand doet.",
+    VAT_KOR_START_INVALID: (
+        "De KOR begint op de eerste dag van een {eenheid}. Kies een andere startdatum; "
+        "een einddatum heeft altijd ook een startdatum nodig."
+    ),
+    VAT_KOR_FILED: "Je kunt de KOR niet wijzigen voor {periode}: daarover heb je al een btw-aangifte ingediend.",
+    VAT_ENTRY_NOT_FOUND: "Deze boeking bestaat niet. Ga terug naar de btw-aangifte en kies de boeking opnieuw.",
+    VAT_CONTACT_NOT_FOUND: "Deze relatie bestaat niet meer. Kies een andere klant.",
+}
+
+
+class VatReturnError(LedgerError):
+    """Base for BTW-aangifte errors."""
+
+    code = "VAT_ERROR"
+
+
+def vat_error(code: str, **fmt: object) -> "VatReturnError":
+    """Build a VatReturnError with the plain-Dutch message for `code`."""
+    return _VAT_CLASSES[code](VAT_MESSAGES[code].format(**fmt))
+
+
+def _vat_class(name: str, code: str) -> type[VatReturnError]:
+    return type(name, (VatReturnError,), {"code": code})
+
+
+VatPeriodInvalidError = _vat_class("VatPeriodInvalidError", VAT_PERIOD_INVALID)
+VatPeriodMissingError = _vat_class("VatPeriodMissingError", VAT_PERIOD_MISSING)
+VatAlreadyFiledError = _vat_class("VatAlreadyFiledError", VAT_ALREADY_FILED)
+VatEarlierNotFiledError = _vat_class("VatEarlierNotFiledError", VAT_EARLIER_NOT_FILED)
+VatKorNoReturnError = _vat_class("VatKorNoReturnError", VAT_KOR_NO_RETURN)
+VatCompanyIncompleteError = _vat_class("VatCompanyIncompleteError", VAT_COMPANY_INCOMPLETE)
+VatFrequencyConflictError = _vat_class("VatFrequencyConflictError", VAT_FREQUENCY_CONFLICT)
+VatEntryLockedError = _vat_class("VatEntryLockedError", VAT_ENTRY_LOCKED)
+VatFutureDateError = _vat_class("VatFutureDateError", VAT_FUTURE_DATE)
+VatKorDatesError = _vat_class("VatKorDatesError", VAT_KOR_DATES)
+_VAT_CLASSES: dict[str, type[VatReturnError]] = {
+    VAT_PERIOD_INVALID: VatPeriodInvalidError,
+    VAT_PERIOD_MISSING: VatPeriodMissingError,
+    VAT_ALREADY_FILED: VatAlreadyFiledError,
+    VAT_EARLIER_NOT_FILED: VatEarlierNotFiledError,
+    VAT_KOR_NO_RETURN: VatKorNoReturnError,
+    VAT_COMPANY_INCOMPLETE: VatCompanyIncompleteError,
+    VAT_FREQUENCY_CONFLICT: VatFrequencyConflictError,
+    VAT_ENTRY_LOCKED: VatEntryLockedError,
+    VAT_FUTURE_DATE: VatFutureDateError,
+    VAT_KOR_DATES: VatKorDatesError,
+    VAT_FREQUENCY_INVALID: _vat_class("VatFrequencyInvalidError", VAT_FREQUENCY_INVALID),
+    VAT_KOR_START_INVALID: _vat_class("VatKorStartInvalidError", VAT_KOR_START_INVALID),
+    VAT_KOR_FILED: _vat_class("VatKorFiledError", VAT_KOR_FILED),
+    VAT_ENTRY_NOT_FOUND: _vat_class("VatEntryNotFoundError", VAT_ENTRY_NOT_FOUND),
+    VAT_CONTACT_NOT_FOUND: _vat_class("VatContactNotFoundError", VAT_CONTACT_NOT_FOUND),
+}
