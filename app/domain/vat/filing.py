@@ -238,6 +238,8 @@ def file_vat_return(
     year_returns = list(session.scalars(select(VatReturn).where(VatReturn.year == vat_period.year)))
     if any(overlaps(vat_period, VatPeriod(r.year, r.kind, r.number)) for r in year_returns):
         raise vat_error("VAT_ALREADY_FILED")
+    if any(r.kind != vat_period.kind for r in year_returns):
+        raise vat_error("VAT_FREQUENCY_CONFLICT", year=vat_period.year)
     if filed_on > today:
         raise vat_error("VAT_FUTURE_DATE")
     if is_kor(vat_period, get_vat_settings(session)) == "full":

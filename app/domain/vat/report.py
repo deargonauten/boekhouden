@@ -275,9 +275,17 @@ def _entry_warnings(f: _EntryFacts, found: dict[str, set[int]]) -> None:
         if not any(r.account_code in accounts for r in btw_lines):
             found["W1"].add(eid)
             continue
-        expected = sum(_div_round(g.amount * g.row.rate_bp, 10000) for g in taxable)
-        if abs(sum(actual_of(a) for a in accounts) - expected) > TOLERANCE_CENTS:
-            found["W3"].add(eid)
+        # compare per box: sales btw is checked per rubriek (1a/1b/1c) against its own account, so
+        # a wrong 21% box cannot be hidden by a compensating error in the 9% box
+        if accounts is _SALES_FAMILY:
+            groups = [([g for g in taxable if g.rubriek == r], (a,)) for a, r in BTW_ACCOUNT_RUBRIEK.items()
+                      if r in ("1a", "1b", "1c")]
+        else:
+            groups = [(taxable, accounts)]
+        for group_lines, group_accounts in groups:
+            expected = sum(_div_round(g.amount * g.row.rate_bp, 10000) for g in group_lines)
+            if abs(sum(actual_of(a) for a in group_accounts) - expected) > TOLERANCE_CENTS:
+                found["W3"].add(eid)
 
     if any(g.side == "purchase" and g.rubriek in _VERLEGD_RUBRIEKEN for g in f.grondslag):
         payable = f.net_credit.get(VERLEGD_PAYABLE, 0)
