@@ -71,6 +71,9 @@ def _list_page(
     # Fetch one extra row to know whether the list is capped.
     documents = list_documents(session, status=status_filter or None, limit=LIST_LIMIT + 1)
     capped = len(documents) > LIST_LIMIT
+    state = request.app.state
+    runner = getattr(state, "email_runner", None)
+    melding = request.query_params.get("melding")
     return _render(
         request,
         "inbox/list.html",
@@ -84,6 +87,9 @@ def _list_page(
         status_filter=status_filter,
         statuses=DOCUMENT_STATUSES,
         results=list(results),
+        email_configured=bool(getattr(state.settings, "imap_configured", False)),
+        email_last_report=getattr(runner, "last_report", None) if melding == "opgehaald" else None,
+        email_error=getattr(state, "email_flash_error", None) if melding == "fout" else None,
     )
 
 
