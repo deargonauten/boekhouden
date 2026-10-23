@@ -3,7 +3,7 @@ Status: APPROVED
 # Spec: Bedrijfsgegevens (feature 35)
 
 ## 1. Goal and context
-The owner is the only user of this app and runs an eenmanszaak/VOF. Facturen (art. 35a Wet OB) and the BTW-aangifte need his own naam, adres, KvK-nummer, btw-id and IBAN. Today these live nowhere. This feature adds one settings screen, **Instellingen > Bedrijfsgegevens**, that stores them (a single row), validates them, and gives other modules a read API in `app/domain/company/`.
+The owner is the only user of this app and runs an eenmanszaak/VOF. Facturen (art. 35a Wet OB) and the BTW-aangifte need their own naam, adres, KvK-nummer, btw-id and IBAN. Today these live nowhere. This feature adds one settings screen, **Instellingen > Bedrijfsgegevens**, that stores them (a single row), validates them, and gives other modules a read API in `app/domain/company/`.
 
 Existing code to reuse (verified in repo):
 - `app/domain/relations/validation.py`: `normalize_kvk`/`is_valid_kvk`, `normalize_iban`/`is_valid_iban` (mod-97 plus NL length 18)/`format_iban`, `validate_email`, `validate_country`, `validate_postal_code`. Reuse the normalizers and `is_valid_*` checks; do not copy the regexes. (`validate_btw_number` accepts foreign ids, so company gets its own strict NL check.)

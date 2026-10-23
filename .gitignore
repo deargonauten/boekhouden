@@ -18,3 +18,12 @@ __pycache__/
 
 # Tailwind standalone CLI (downloaded by tools/build-css.sh)
 tools/tailwindcss
+
+# Local data and secrets (never commit)
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+*.pem
+*.key
+id_*
